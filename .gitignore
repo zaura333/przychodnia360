@@ -1,0 +1,47 @@
+# Notatki robocze i dokumentacja robocza (poza repozytorium)
+.local/
+
+# System operacyjny
+.DS_Store
+Thumbs.db
+
+# Edytory i narzędzia lokalne
+.idea/
+*.iml
+.vscode/
+.claude/settings.local.json
+
+# Sekrety i konfiguracja lokalna
+.env
+.env.*
+!.env.example
+
+# Backend (Maven, Java)
+backend/**/target/
+*.class
+hs_err_pid*
+
+# Frontend
+frontend/node_modules/
+frontend/dist/
+frontend/coverage/
+frontend/playwright-report/
+frontend/test-results/
+*.tsbuildinfo
+
+# Infrastruktura (Terraform); plik .terraform.lock.hcl ma trafiać do repozytorium
+**/.terraform/
+*.tfstate
+*.tfstate.*
+crash.log
+*.tfvars
+*.tfvars.json
+!*.tfvars.example
+
+# Lokalne środowisko uruchomieniowe
+docker-compose.override.yml
+.docker-data/
+
+# Logi
+*.log
+npm-debug.log*
