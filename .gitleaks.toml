@@ -7,3 +7,7 @@ useDefault = true
 [[allowlists]]
 description = "Wartości dev w szablonie środowiska lokalnego"
 paths = ['''(^|/)\.env\.example$''']
+
+[[allowlists]]
+description = "Hasła testowe kontenera Testcontainers (syntetyczne, tylko w testach)"
+paths = ['''backend/backend-api/src/test/java/pl/przychodnia360/AbstractIntegrationTest\.java''']
