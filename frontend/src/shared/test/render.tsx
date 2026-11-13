@@ -1,7 +1,7 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { render, type RenderResult } from '@testing-library/react';
 import type { ReactElement } from 'react';
-import { MemoryRouter } from 'react-router';
+import { MemoryRouter, RouterProvider, type DataRouter } from 'react-router';
 import { testData } from './testData';
 import { AuthProvider } from '@/app/providers/AuthProvider';
 import { ThemeProvider } from '@/app/providers/ThemeProvider';
@@ -34,6 +34,26 @@ export function renderWithProviders(
       <ThemeProvider>
         <AuthProvider initialState={toState(auth)}>
           <MemoryRouter initialEntries={[route]}>{ui}</MemoryRouter>
+        </AuthProvider>
+      </ThemeProvider>
+    </QueryClientProvider>,
+  );
+  return { ...result, queryClient };
+}
+
+/** Renderuje całą aplikację z routerem w pamięci i zadanym stanem sesji. */
+export function renderApp(
+  router: DataRouter,
+  auth: NonNullable<Options['auth']> = 'anonymous',
+): RenderResult & { queryClient: QueryClient } {
+  const queryClient = new QueryClient({
+    defaultOptions: { queries: { retry: false }, mutations: { retry: false } },
+  });
+  const result = render(
+    <QueryClientProvider client={queryClient}>
+      <ThemeProvider>
+        <AuthProvider initialState={toState(auth)}>
+          <RouterProvider router={router} />
         </AuthProvider>
       </ThemeProvider>
     </QueryClientProvider>,

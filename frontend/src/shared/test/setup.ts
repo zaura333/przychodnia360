@@ -6,7 +6,7 @@ import { tokenStore } from '@/shared/api/tokenStore';
 
 beforeAll(() => {
   // Nieobsłużone żądania sieciowe w testach są błędem (testy nie wychodzą do sieci)
-  server.listen({ onUnhandledRequest: 'error' });
+  server.listen({ onUnhandledFrame: 'error' });
 });
 
 afterEach(() => {
