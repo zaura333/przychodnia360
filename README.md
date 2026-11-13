@@ -83,7 +83,9 @@ Usługi i adresy: PostgreSQL `127.0.0.1:5432` (baza `p360`), Mailpit UI <http://
 
 Workflow w `.github/workflows/`: `backend.yml`, `frontend.yml` (zakres wyznacza zadanie `changes`; zbiorcze statusy `backend` i `frontend` raportują zawsze), `codeql.yml`, `gitleaks.yml`. Wersje narzędzi czytane z plików w repo: `.java-version`, `frontend/.nvmrc`.
 
-**Ruleset `main`** (`.github/rulesets/main.json`): zakaz pushu bezpośredniego i usuwania, historia liniowa, PR bez wymaganych zatwierdzeń (jedna osoba; bramką są statusy CI), wymagane statusy `backend`, `frontend`, `gitleaks` oraz aktualność z `main`. Statusy `infra` i `e2e` dojdą z tymi workflow. Import: _Settings → Rules → Rulesets → New ruleset → Import a ruleset_.
+**Przepływ gałęzi:** `feature/*` → PR do `develop` (squash) → PR `develop` → `main` (merge commit). Workflow CI uruchamiają się na każdym PR (dowolna gałąź bazowa) i na pushu do `main` i `develop`. Dependabot otwiera PR-y do `develop`.
+
+**Rulesety** (`.github/rulesets/main.json` i `develop.json`): zakaz pushu bezpośredniego, force-pusha i usuwania, PR bez wymaganych zatwierdzeń (jedna osoba; bramką są statusy CI), wymagane statusy `backend`, `frontend`, `gitleaks`. Dla `develop` dodatkowo wymagana aktualność z gałęzią bazową; dla `main` nie (merge commity z `develop` powodowałyby, że `develop` ciągle jest "za" `main`). Brak wymogu liniowej historii na `main`, bo wydania to merge commity. Statusy `infra` i `e2e` dojdą z tymi workflow. Import: _Settings → Rules → Rulesets → New ruleset → Import a ruleset_ (osobno każdy plik).
 
 **Ustawienia repozytorium (ręcznie, Settings):**
 
