@@ -1,0 +1,134 @@
+{
+  "openapi" : "3.1.0",
+  "info" : {
+    "description" : "Wersja demonstracyjna, dane wyłącznie syntetyczne.",
+    "title" : "Przychodnia360 API",
+    "version" : "v1"
+  },
+  "servers" : [ {
+    "url" : "/"
+  } ],
+  "paths" : {
+    "/api/v1/facilities" : {
+      "get" : {
+        "description" : "Dostęp: publiczny (wybór placówki przy logowaniu).",
+        "operationId" : "listFacilities",
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "type" : "array",
+                  "items" : {
+                    "$ref" : "#/components/schemas/FacilityResponse"
+                  }
+                }
+              }
+            },
+            "description" : "OK"
+          }
+        },
+        "summary" : "Lista aktywnych placówek",
+        "tags" : [ "facility-controller" ]
+      }
+    },
+    "/api/v1/health" : {
+      "get" : {
+        "description" : "Dostęp: publiczny.",
+        "operationId" : "getHealth",
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/HealthResponse"
+                }
+              }
+            },
+            "description" : "OK"
+          }
+        },
+        "summary" : "Stan aplikacji (bez bazy)",
+        "tags" : [ "health-controller" ]
+      }
+    },
+    "/api/v1/health/db" : {
+      "get" : {
+        "description" : "Dostęp: publiczny w local/test.",
+        "operationId" : "getHealthDb",
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/HealthResponse"
+                }
+              }
+            },
+            "description" : "OK"
+          }
+        },
+        "summary" : "Stan aplikacji z zapytaniem do bazy (tylko local/test)",
+        "tags" : [ "health-controller" ]
+      }
+    },
+    "/api/v1/me" : {
+      "get" : {
+        "description" : "Dostęp: każdy zalogowany użytkownik.",
+        "operationId" : "getMe",
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/MeResponse"
+                }
+              }
+            },
+            "description" : "OK"
+          }
+        },
+        "summary" : "Bieżący użytkownik",
+        "tags" : [ "me-controller" ]
+      }
+    }
+  },
+  "components" : {
+    "schemas" : {
+      "FacilityResponse" : {
+        "type" : "object",
+        "properties" : {
+          "name" : {
+            "type" : "string"
+          },
+          "slug" : {
+            "type" : "string"
+          }
+        }
+      },
+      "HealthResponse" : {
+        "type" : "object",
+        "properties" : {
+          "status" : {
+            "type" : "string"
+          }
+        }
+      },
+      "MeResponse" : {
+        "type" : "object",
+        "properties" : {
+          "role" : {
+            "type" : "string"
+          },
+          "tenantId" : {
+            "type" : "string",
+            "format" : "uuid"
+          },
+          "userId" : {
+            "type" : "string"
+          }
+        }
+      }
+    }
+  }
+}
