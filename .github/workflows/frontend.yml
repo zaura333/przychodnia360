@@ -39,54 +39,41 @@ jobs:
         working-directory: frontend
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
-      - id: setup
-        uses: ./.github/actions/setup-frontend
+      - uses: ./.github/actions/setup-frontend
       - name: Generowanie klienta API
-        if: steps.setup.outputs.present == 'true'
         run: npm run api:generate
       - name: Typecheck
-        if: steps.setup.outputs.present == 'true'
         run: npm run typecheck
       - name: Lint
-        if: steps.setup.outputs.present == 'true'
         run: npm run lint
       - name: Format
-        if: steps.setup.outputs.present == 'true'
         run: npm run format:check
       - name: Testy jednostkowe
-        if: steps.setup.outputs.present == 'true'
         env:
           TZ: America/Los_Angeles
         run: npm test
       - name: Build
-        if: steps.setup.outputs.present == 'true'
         run: npm run build
       # Budżet rozmiaru + brak statycznych importów obszarów (manifest Vite)
       - name: Budżet paczek
-        if: steps.setup.outputs.present == 'true'
         run: npm run check:bundle
       - name: Wersja Playwright
         id: pw
-        if: steps.setup.outputs.present == 'true'
         run: echo "version=$(npx --no-install playwright --version | awk '{print $2}')" >> "$GITHUB_OUTPUT"
       - name: Cache przeglądarek Playwright
-        if: steps.setup.outputs.present == 'true'
         uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4
         with:
           path: ~/.cache/ms-playwright
           key: playwright-${{ runner.os }}-${{ steps.pw.outputs.version }}
       - name: Instalacja Chromium
-        if: steps.setup.outputs.present == 'true'
         run: npx playwright install --with-deps chromium
       # Smoke przeciwko `vite preview` (etap 0, bez backendu): test CSP, trasy, baner
       - name: Playwright e2e
-        if: steps.setup.outputs.present == 'true'
         run: npm run test:e2e
       - name: Audyt zależności produkcyjnych
-        if: steps.setup.outputs.present == 'true'
         run: npm audit --omit=dev --audit-level=high
       - name: Raporty i ślady Playwright
-        if: always() && steps.setup.outputs.present == 'true'
+        if: always()
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
           name: frontend-playwright
@@ -96,15 +83,25 @@ jobs:
           if-no-files-found: ignore
           retention-days: 14
       - name: Paczka dist (tylko main)
-        if: github.ref == 'refs/heads/main' && steps.setup.outputs.present == 'true'
+        if: github.ref == 'refs/heads/main'
         run: tar -czf "$GITHUB_WORKSPACE/frontend-${GITHUB_SHA}.tgz" -C dist .
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
-        if: github.ref == 'refs/heads/main' && steps.setup.outputs.present == 'true'
+        if: github.ref == 'refs/heads/main'
         with:
           name: frontend-dist
           path: frontend-${{ github.sha }}.tgz
           if-no-files-found: error
           retention-days: 30
+
+  # Wdrożenie (S3, unieważnienie CloudFront, OIDC) jest wyłączone; włączane w 1a (F14 / CD3.3)
+  # po powstaniu infrastruktury. Wymaga zatwierdzenia w Environment demo.
+  deploy:
+    if: false
+    needs: build-test
+    runs-on: ubuntu-24.04
+    environment: demo
+    steps:
+      - run: echo 'Wdrozenie frontendu - patrz plan CI/CD, zadanie CD3.3'
 
   # Wymagany status. Zawsze raportuje: zielony także wtedy, gdy zadania pominięto zgodnie z filtrem.
   frontend:

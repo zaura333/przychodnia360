@@ -41,16 +41,13 @@ jobs:
     timeout-minutes: 30
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
-      - id: setup
-        uses: ./.github/actions/setup-backend
+      - uses: ./.github/actions/setup-backend
       # verify: testy jednostkowe, Testcontainers, ArchUnit, RLS, role, macierz uprawnień.
       # Faza integration-test generuje api/openapi.json (springdoc-openapi-maven-plugin).
       - name: Maven verify
-        if: steps.setup.outputs.present == 'true'
         working-directory: backend
         run: ./mvnw -B verify
       - name: Kontrakt api/openapi.json zgodny z kodem
-        if: steps.setup.outputs.present == 'true'
         run: |
           if ! git diff --exit-code -- api/openapi.json; then
             echo "::error::api/openapi.json różni się od wygenerowanego z kodu. Uruchom './mvnw verify' w backend/ i zatwierdź zmianę."
@@ -61,7 +58,7 @@ jobs:
             exit 1
           fi
       - name: Raporty testów
-        if: always() && steps.setup.outputs.present == 'true'
+        if: always()
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
           name: backend-test-reports
@@ -125,10 +122,8 @@ jobs:
     timeout-minutes: 20
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
-      - id: setup
-        uses: ./.github/actions/setup-backend
+      - uses: ./.github/actions/setup-backend
       - name: Build pakietu i SBOM
-        if: steps.setup.outputs.present == 'true'
         working-directory: backend
         run: |
           ./mvnw -B -q -pl backend-api -am package -DskipTests
@@ -143,7 +138,6 @@ jobs:
           cp target/bom.json "$GITHUB_WORKSPACE/backend-${GITHUB_SHA}.sbom.json" 2>/dev/null \
             || echo "::warning::Brak target/bom.json (SBOM nie powstał)."
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
-        if: steps.setup.outputs.present == 'true'
         with:
           name: backend-package
           path: |
