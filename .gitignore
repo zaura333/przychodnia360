@@ -53,3 +53,4 @@ frontend/src/shared/api/generated/
 backend/app.jar
 
 frontend/dist-bench/
+frontend/bench/results.json
