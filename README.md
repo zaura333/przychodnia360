@@ -22,6 +22,22 @@ Monorepo:
 - `infra/` – infrastruktura jako kod (Terraform),
 - `docs/` – dokumentacja.
 
+## CI i ochrona gałęzi `main`
+
+Workflow w `.github/workflows/`: `backend.yml`, `frontend.yml` (zakres wyznacza zadanie `changes`; zbiorcze statusy `backend` i `frontend` raportują zawsze), `codeql.yml`, `gitleaks.yml`. Wersje narzędzi czytane z plików w repo: `.java-version`, `frontend/.nvmrc`. Dopóki szkielety backendu i frontendu nie istnieją, kroki budowania są pomijane z komunikatem.
+
+**Ruleset `main`** (`.github/rulesets/main.json`): zakaz pushu bezpośredniego i usuwania, historia liniowa, PR bez wymaganych zatwierdzeń (jedna osoba; bramką są statusy CI), wymagane statusy `backend`, `frontend`, `gitleaks` oraz aktualność z `main`. Statusy `infra` i `e2e` dojdą z tymi workflow. Import: *Settings → Rules → Rulesets → New ruleset → Import a ruleset*.
+
+**Ustawienia repozytorium (ręcznie, Settings):**
+
+- Actions → General → Fork pull request workflows: wymagaj zatwierdzenia od wszystkich zewnętrznych współpracowników; domyślne uprawnienia `GITHUB_TOKEN`: tylko odczyt.
+- Code security: włącz Dependabot alerts i security updates, secret scanning z push protection, private vulnerability reporting.
+- Zakaz `pull_request_target` z checkoutem kodu z PR; brak self-hosted runnerów.
+
+**Lokalnie:** `pre-commit install` włącza hook gitleaks (`.pre-commit-config.yaml`).
+
+**Zasada migracji:** zgodne wstecz (expand/contract), skrypty Flyway niezmienne po scaleniu.
+
 ## Autorzy
 
 Do uzupełnienia.
