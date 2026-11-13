@@ -65,6 +65,10 @@ export default tseslint.config(
       'import-x/no-cycle': 'error',
       'import-x/order': ['error', { 'newlines-between': 'never' }],
       'no-console': 'error',
+      '@typescript-eslint/no-unused-vars': [
+        'error',
+        { argsIgnorePattern: '^_', varsIgnorePattern: '^_' },
+      ],
       'no-restricted-syntax': ['error', ...restrictedSyntax],
       '@typescript-eslint/no-explicit-any': 'error',
       '@typescript-eslint/ban-ts-comment': [
