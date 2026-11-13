@@ -1,0 +1,9 @@
+title = "przychodnia360"
+
+[extend]
+useDefault = true
+
+# Hasła lokalne i syntetyczne z .env.example są jawne z założenia (patrz plan Dockera, sekcja 1).
+[[allowlists]]
+description = "Wartości dev w szablonie środowiska lokalnego"
+paths = ['''(^|/)\.env\.example$''']
