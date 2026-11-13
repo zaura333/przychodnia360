@@ -50,8 +50,12 @@ export const appRoutes: RouteObject[] = [
               },
             ],
           },
-          ...(import.meta.env.DEV
-            ? [{ path: '/dev/kit', lazy: () => import('@/app/pages/DevKitPage') }]
+          // Strony deweloperskie i pomiarowe: tylko dev oraz build z VITE_BENCH=true (nie trafiają do produkcji)
+          ...(import.meta.env.DEV || import.meta.env.VITE_BENCH === 'true'
+            ? [
+                { path: '/dev/kit', lazy: () => import('@/app/pages/DevKitPage') },
+                { path: '/dev/schedule', lazy: () => import('@/app/pages/DevSchedulePage') },
+              ]
             : []),
           { path: '*', element: <NotFoundPage /> },
         ],

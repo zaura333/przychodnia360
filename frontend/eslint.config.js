@@ -37,6 +37,7 @@ export default tseslint.config(
   {
     ignores: [
       'dist',
+      'dist-bench',
       'coverage',
       'playwright-report',
       'test-results',

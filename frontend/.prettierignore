@@ -5,3 +5,5 @@ test-results
 node_modules
 package-lock.json
 src/shared/api/generated
+dist-bench
+bench/results.json
