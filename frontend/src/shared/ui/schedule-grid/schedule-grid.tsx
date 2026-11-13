@@ -5,6 +5,7 @@ import {
   useMemo,
   useRef,
   useState,
+  memo,
   type KeyboardEvent,
   type MouseEvent,
 } from 'react';
@@ -39,6 +40,35 @@ interface ColumnModel {
   working: boolean[];
   blocks: { appt: ScheduleAppointment; row: number; span: number }[];
 }
+
+interface CellProps {
+  ci: number;
+  r: number;
+  label: string;
+  working: boolean;
+  occupied: boolean;
+  isActive: boolean;
+}
+
+/** Komórka siatki: memoizowana po prymitywach, więc przewijanie renderuje tylko nowe kolumny. */
+const GridCell = memo(function GridCell({ ci, r, label, working, occupied, isActive }: CellProps) {
+  return (
+    <div
+      role="gridcell"
+      aria-colindex={ci + 2}
+      aria-label={label}
+      aria-disabled={!occupied && !working ? true : undefined}
+      data-col={ci}
+      data-row={r}
+      tabIndex={isActive ? 0 : -1}
+      className={cn(
+        'border-r border-b border-border',
+        working ? 'bg-background hover:bg-accent' : 'bg-muted',
+      )}
+      style={{ gridColumn: ci + 2, gridRow: r + 2 }}
+    />
+  );
+});
 
 /**
  * Siatka terminarza: CSS grid, bloki wizyt w komórkach siatki (grid-row), wzorzec ARIA `grid` z ruchomym
@@ -290,20 +320,14 @@ export function ScheduleGrid({
                     : 'poza dyżurem';
                 const isActive = active.col === ci && active.row === r;
                 return (
-                  <div
+                  <GridCell
                     key={column.id}
-                    role="gridcell"
-                    aria-colindex={ci + 2}
-                    aria-label={`${column.label}, ${time}, ${state}`}
-                    aria-disabled={!occupant && !working ? true : undefined}
-                    data-col={ci}
-                    data-row={r}
-                    tabIndex={isActive ? 0 : -1}
-                    className={cn(
-                      'border-r border-b border-border',
-                      working ? 'bg-background hover:bg-accent' : 'bg-muted',
-                    )}
-                    style={{ gridColumn: ci + 2, gridRow: r + 2 }}
+                    ci={ci}
+                    r={r}
+                    label={`${column.label}, ${time}, ${state}`}
+                    working={working}
+                    occupied={Boolean(occupant)}
+                    isActive={isActive}
                   />
                 );
               })}
