@@ -1,5 +1,8 @@
 import { z } from 'zod';
 
+// Zod 4 próbuje JIT przez new Function, co zgłasza naruszenie CSP (script-src bez 'unsafe-eval').
+z.config({ jitless: true });
+
 /** Zmienne VITE_* są publiczne (trafiają do paczki), więc nie zawierają sekretów. */
 const flag = z
   .enum(['true', 'false'])
