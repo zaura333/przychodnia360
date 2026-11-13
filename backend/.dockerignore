@@ -1,0 +1,6 @@
+**/target
+**/.idea
+**/*.iml
+*.sbom.json
+Dockerfile
+.dockerignore

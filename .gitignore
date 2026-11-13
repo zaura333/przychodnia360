@@ -48,3 +48,6 @@ npm-debug.log*
 
 # Wygenerowany klient API (Orval), nie jest commitowany
 frontend/src/shared/api/generated/
+
+# Jar przekazywany do celu from-jar (tworzony przez CI)
+backend/app.jar
