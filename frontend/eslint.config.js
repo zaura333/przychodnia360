@@ -67,7 +67,7 @@ export default tseslint.config(
       'no-console': 'error',
       '@typescript-eslint/no-unused-vars': [
         'error',
-        { argsIgnorePattern: '^_', varsIgnorePattern: '^_' },
+        { argsIgnorePattern: '^_', varsIgnorePattern: '^_', caughtErrorsIgnorePattern: '^_' },
       ],
       'no-restricted-syntax': ['error', ...restrictedSyntax],
       '@typescript-eslint/no-explicit-any': 'error',
