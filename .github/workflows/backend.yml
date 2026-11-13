@@ -3,7 +3,7 @@ name: backend
 on:
   pull_request:
   push:
-    branches: [main]
+    branches: [main, develop]
 
 permissions:
   contents: read
@@ -102,16 +102,18 @@ jobs:
     runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
-      - name: osv-scanner (zależności Mavena)
+      - uses: ./.github/actions/setup-backend
+      # osv-scanner nie rozwiązuje zależności od modułu z reaktora (shared-core), więc skanujemy SBOM
+      # wygenerowany przez Mavena (pełne drzewo zależności, także przechodnie).
+      - name: SBOM zależności Mavena
+        working-directory: backend
+        run: ./mvnw -B -q org.cyclonedx:cyclonedx-maven-plugin:makeAggregateBom -DskipTests
+      - name: osv-scanner (SBOM)
         run: |
-          if ! find backend -name pom.xml -print -quit 2>/dev/null | grep -q .; then
-            echo "::notice::Brak pom.xml, pomijam skan zależności."
-            exit 0
-          fi
           curl -sSfL -o "$RUNNER_TEMP/osv-scanner" \
             "https://github.com/google/osv-scanner/releases/download/v${OSV_SCANNER_VERSION}/osv-scanner_linux_amd64"
           chmod +x "$RUNNER_TEMP/osv-scanner"
-          "$RUNNER_TEMP/osv-scanner" scan source --recursive backend
+          "$RUNNER_TEMP/osv-scanner" scan source -L backend/target/bom.json
 
   # Jar Spring Boot + obraz Dockera z celu from-jar (DK2) na każdym przebiegu, także na PR: e2e.yml uruchamia
   # ten sam jar, z którego powstaje obraz wdrożeniowy (ECS Fargate). Push do ECR (rola gha-ecr-push, OIDC)
