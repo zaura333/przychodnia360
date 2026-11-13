@@ -6,7 +6,7 @@ Platforma webowa dla małych i średnich przychodni: rezerwacja wizyt, dokumenta
 
 ## Status
 
-Faza planowania, implementacja jeszcze się nie rozpoczęła. Dokumentacja projektu trafi do katalogu `docs/`.
+Etap 0 w toku: gotowy szkielet backendu (Spring Boot, Flyway, RLS, testy), szkielet frontendu w przygotowaniu. Dokumentacja projektu trafi do katalogu `docs/`.
 
 ## Technologie
 
@@ -21,6 +21,21 @@ Monorepo:
 - `api/` – kontrakt OpenAPI,
 - `infra/` – infrastruktura jako kod (Terraform),
 - `docs/` – dokumentacja.
+
+## Backend: uruchomienie lokalne
+
+Wymagania: Java 21, Docker. Pakiet bazowy: `pl.przychodnia360`. Moduły: `shared-core` (czysta Java) i `backend-api` (Spring Boot).
+
+```bash
+cp .env.example .env                 # raz
+docker compose up -d --wait          # postgres + mailpit
+cd backend
+./mvnw verify                        # testy (Testcontainers), generuje ../api/openapi.json
+java -jar backend-api/target/backend-api.jar --spring.profiles.active=local
+curl http://localhost:8080/api/v1/health
+```
+
+Po zmianie endpointów `./mvnw verify` aktualizuje `api/openapi.json`; plik trzeba zatwierdzić (CI sprawdza zgodność). Konwencje bazy: `docs/db-conventions.md`.
 
 ## CI i ochrona gałęzi `main`
 
