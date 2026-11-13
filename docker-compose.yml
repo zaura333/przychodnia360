@@ -36,5 +36,29 @@ services:
       timeout: 3s
       retries: 10
 
+  # Profil full: cała platforma w kontenerach (osoby bez Javy, e2e). Domyślnie backend działa z IDE.
+  backend:
+    profiles: ["full"]
+    build:
+      context: ./backend
+      target: runtime
+    environment:
+      SPRING_PROFILES_ACTIVE: local
+      # W sieci compose baza i poczta mają nazwy usług (z IDE: localhost)
+      DB_URL: jdbc:postgresql://postgres:5432/${P360_DB_NAME:-p360}
+      P360_OWNER_PASSWORD: ${P360_OWNER_PASSWORD:?ustaw w .env (skopiuj .env.example)}
+      P360_APP_PASSWORD: ${P360_APP_PASSWORD:?ustaw w .env (skopiuj .env.example)}
+    ports:
+      - "127.0.0.1:${BACKEND_PORT:-8080}:8080"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      mailpit:
+        condition: service_healthy
+    # Punkt wyjścia zbliżony do zadania Fargate (0,5 vCPU, 2 GB); finalnie z ADR-006
+    cpus: 0.5
+    mem_limit: 2g
+    # Bez restart: błędy backendu mają być widoczne
+
 volumes:
   pgdata:
