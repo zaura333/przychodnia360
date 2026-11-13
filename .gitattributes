@@ -1,0 +1,8 @@
+# Domyślnie normalizuj końce linii
+* text=auto
+
+# Skrypty uruchamiane w kontenerach Linux muszą mieć LF (CRLF psuje start kontenera)
+docker/** text eol=lf
+*.sh text eol=lf
+mvnw text eol=lf
+*.cmd text eol=crlf
