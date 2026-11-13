@@ -1,0 +1,171 @@
+name: backend
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: backend-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+env:
+  OASDIFF_VERSION: "1.37.0"
+  OSV_SCANNER_VERSION: "2.7.1"
+
+jobs:
+  changes:
+    runs-on: ubuntu-24.04
+    outputs:
+      backend: ${{ steps.filter.outputs.backend }}
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - id: filter
+        uses: dorny/paths-filter@0e4a8c6effa4802afeda77dc8d303f8176d7dfad # v3
+        with:
+          filters: |
+            backend:
+              - 'backend/**'
+              - 'api/**'
+              - '.java-version'
+              - '.github/actions/setup-backend/**'
+              - '.github/workflows/backend.yml'
+
+  build-test:
+    needs: changes
+    if: needs.changes.outputs.backend == 'true'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - id: setup
+        uses: ./.github/actions/setup-backend
+      # verify: testy jednostkowe, Testcontainers, ArchUnit, RLS, role, macierz uprawnień.
+      # Faza integration-test generuje api/openapi.json (springdoc-openapi-maven-plugin).
+      - name: Maven verify
+        if: steps.setup.outputs.present == 'true'
+        working-directory: backend
+        run: ./mvnw -B verify
+      - name: Kontrakt api/openapi.json zgodny z kodem
+        if: steps.setup.outputs.present == 'true'
+        run: |
+          if ! git diff --exit-code -- api/openapi.json; then
+            echo "::error::api/openapi.json różni się od wygenerowanego z kodu. Uruchom './mvnw verify' w backend/ i zatwierdź zmianę."
+            exit 1
+          fi
+          if [ -n "$(git ls-files --others --exclude-standard -- api/openapi.json)" ]; then
+            echo "::error::api/openapi.json został wygenerowany, ale nie jest zatwierdzony w repozytorium."
+            exit 1
+          fi
+      - name: Raporty testów
+        if: always() && steps.setup.outputs.present == 'true'
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: backend-test-reports
+          path: |
+            backend/**/target/surefire-reports/
+            backend/**/target/failsafe-reports/
+            backend/**/target/site/jacoco/
+          if-no-files-found: ignore
+          retention-days: 14
+
+  # Etap 0: tylko ostrzeżenie (continue-on-error). Od 1a: usunąć continue-on-error (blokada).
+  openapi-breaking:
+    needs: changes
+    if: needs.changes.outputs.backend == 'true' && github.event_name == 'pull_request'
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          fetch-depth: 0
+      - name: oasdiff breaking względem bazy PR
+        continue-on-error: true
+        env:
+          BASE_REF: ${{ github.base_ref }}
+        run: |
+          if [ ! -f api/openapi.json ]; then
+            echo "::notice::Brak api/openapi.json w PR, pomijam."
+            exit 0
+          fi
+          if ! git cat-file -e "origin/${BASE_REF}:api/openapi.json" 2>/dev/null; then
+            echo "::notice::Brak api/openapi.json w gałęzi bazowej (pierwszy kontrakt), pomijam."
+            exit 0
+          fi
+          git show "origin/${BASE_REF}:api/openapi.json" > "$RUNNER_TEMP/base-openapi.json"
+          curl -sSfL "https://github.com/oasdiff/oasdiff/releases/download/v${OASDIFF_VERSION}/oasdiff_${OASDIFF_VERSION}_linux_amd64.tar.gz" \
+            | tar -xz -C "$RUNNER_TEMP" oasdiff
+          "$RUNNER_TEMP/oasdiff" breaking "$RUNNER_TEMP/base-openapi.json" api/openapi.json --format githubactions --fail-on ERR
+
+  security:
+    needs: changes
+    if: needs.changes.outputs.backend == 'true'
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - name: osv-scanner (zależności Mavena)
+        run: |
+          if ! find backend -name pom.xml -print -quit 2>/dev/null | grep -q .; then
+            echo "::notice::Brak pom.xml, pomijam skan zależności."
+            exit 0
+          fi
+          curl -sSfL -o "$RUNNER_TEMP/osv-scanner" \
+            "https://github.com/google/osv-scanner/releases/download/v${OSV_SCANNER_VERSION}/osv-scanner_linux_amd64"
+          chmod +x "$RUNNER_TEMP/osv-scanner"
+          "$RUNNER_TEMP/osv-scanner" scan source --recursive backend
+
+  # Pakiet backend-<sha>.zip (app.jar + run.sh) na każdym przebiegu, także na PR (na potrzeby e2e.yml).
+  # Wgranie do S3 (rola gha-artifacts-upload, OIDC) dojdzie w CD2.3, poza fazą 1 (bez AWS).
+  package:
+    needs: [changes, build-test]
+    if: needs.changes.outputs.backend == 'true'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - id: setup
+        uses: ./.github/actions/setup-backend
+      - name: Build pakietu i SBOM
+        if: steps.setup.outputs.present == 'true'
+        working-directory: backend
+        run: |
+          ./mvnw -B -q -pl backend-api -am package -DskipTests
+          ./mvnw -B -q org.cyclonedx:cyclonedx-maven-plugin:makeAggregateBom -DskipTests
+          jar="$(find backend-api/target -maxdepth 1 -name '*.jar' ! -name '*.original' | head -n 1)"
+          test -n "$jar" || { echo "::error::Nie znaleziono jar-a backend-api."; exit 1; }
+          rm -rf "$RUNNER_TEMP/pkg" && mkdir -p "$RUNNER_TEMP/pkg"
+          cp "$jar" "$RUNNER_TEMP/pkg/app.jar"
+          printf '#!/bin/sh\nexec java -jar /var/task/app.jar --server.port="${PORT:-8080}"\n' > "$RUNNER_TEMP/pkg/run.sh"
+          chmod +x "$RUNNER_TEMP/pkg/run.sh"
+          (cd "$RUNNER_TEMP/pkg" && zip -q -r "$GITHUB_WORKSPACE/backend-${GITHUB_SHA}.zip" .)
+          cp target/bom.json "$GITHUB_WORKSPACE/backend-${GITHUB_SHA}.sbom.json" 2>/dev/null \
+            || echo "::warning::Brak target/bom.json (SBOM nie powstał)."
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        if: steps.setup.outputs.present == 'true'
+        with:
+          name: backend-package
+          path: |
+            backend-${{ github.sha }}.zip
+            backend-${{ github.sha }}.sbom.json
+          if-no-files-found: error
+          retention-days: 14
+
+  # Wymagany status. Zawsze raportuje: zielony także wtedy, gdy zadania pominięto zgodnie z filtrem.
+  backend:
+    needs: [changes, build-test, openapi-breaking, security, package]
+    if: always()
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Agregacja wyników
+        env:
+          RESULTS: ${{ join(needs.*.result, ' ') }}
+        run: |
+          echo "Wyniki: $RESULTS"
+          for r in $RESULTS; do
+            if [ "$r" != "success" ] && [ "$r" != "skipped" ]; then
+              echo "::error::Co najmniej jedno zadanie zakończyło się wynikiem: $r"
+              exit 1
+            fi
+          done

@@ -1,0 +1,125 @@
+name: frontend
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: frontend-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+jobs:
+  changes:
+    runs-on: ubuntu-24.04
+    outputs:
+      frontend: ${{ steps.filter.outputs.frontend }}
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - id: filter
+        uses: dorny/paths-filter@0e4a8c6effa4802afeda77dc8d303f8176d7dfad # v3
+        with:
+          filters: |
+            frontend:
+              - 'frontend/**'
+              - 'api/**'
+              - '.github/actions/setup-frontend/**'
+              - '.github/workflows/frontend.yml'
+
+  build-test:
+    needs: changes
+    if: needs.changes.outputs.frontend == 'true'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    defaults:
+      run:
+        working-directory: frontend
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - id: setup
+        uses: ./.github/actions/setup-frontend
+      - name: Generowanie klienta API
+        if: steps.setup.outputs.present == 'true'
+        run: npm run api:generate
+      - name: Typecheck
+        if: steps.setup.outputs.present == 'true'
+        run: npm run typecheck
+      - name: Lint
+        if: steps.setup.outputs.present == 'true'
+        run: npm run lint
+      - name: Format
+        if: steps.setup.outputs.present == 'true'
+        run: npm run format:check
+      - name: Testy jednostkowe
+        if: steps.setup.outputs.present == 'true'
+        env:
+          TZ: America/Los_Angeles
+        run: npm test
+      - name: Build
+        if: steps.setup.outputs.present == 'true'
+        run: npm run build
+      # Budżet rozmiaru + brak statycznych importów obszarów (manifest Vite)
+      - name: Budżet paczek
+        if: steps.setup.outputs.present == 'true'
+        run: npm run check:bundle
+      - name: Wersja Playwright
+        id: pw
+        if: steps.setup.outputs.present == 'true'
+        run: echo "version=$(npx --no-install playwright --version | awk '{print $2}')" >> "$GITHUB_OUTPUT"
+      - name: Cache przeglądarek Playwright
+        if: steps.setup.outputs.present == 'true'
+        uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-${{ runner.os }}-${{ steps.pw.outputs.version }}
+      - name: Instalacja Chromium
+        if: steps.setup.outputs.present == 'true'
+        run: npx playwright install --with-deps chromium
+      # Smoke przeciwko `vite preview` (etap 0, bez backendu): test CSP, trasy, baner
+      - name: Playwright e2e
+        if: steps.setup.outputs.present == 'true'
+        run: npm run test:e2e
+      - name: Audyt zależności produkcyjnych
+        if: steps.setup.outputs.present == 'true'
+        run: npm audit --omit=dev --audit-level=high
+      - name: Raporty i ślady Playwright
+        if: always() && steps.setup.outputs.present == 'true'
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: frontend-playwright
+          path: |
+            frontend/playwright-report/
+            frontend/test-results/
+          if-no-files-found: ignore
+          retention-days: 14
+      - name: Paczka dist (tylko main)
+        if: github.ref == 'refs/heads/main' && steps.setup.outputs.present == 'true'
+        run: tar -czf "$GITHUB_WORKSPACE/frontend-${GITHUB_SHA}.tgz" -C dist .
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        if: github.ref == 'refs/heads/main' && steps.setup.outputs.present == 'true'
+        with:
+          name: frontend-dist
+          path: frontend-${{ github.sha }}.tgz
+          if-no-files-found: error
+          retention-days: 30
+
+  # Wymagany status. Zawsze raportuje: zielony także wtedy, gdy zadania pominięto zgodnie z filtrem.
+  frontend:
+    needs: [changes, build-test]
+    if: always()
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Agregacja wyników
+        env:
+          RESULTS: ${{ join(needs.*.result, ' ') }}
+        run: |
+          echo "Wyniki: $RESULTS"
+          for r in $RESULTS; do
+            if [ "$r" != "success" ] && [ "$r" != "skipped" ]; then
+              echo "::error::Co najmniej jedno zadanie zakończyło się wynikiem: $r"
+              exit 1
+            fi
+          done

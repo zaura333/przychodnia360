@@ -1,0 +1,30 @@
+name: setup-backend
+description: Java (Temurin, wersja z .java-version) i cache Mavena. Wykrywa, czy szkielet backendu już istnieje.
+
+outputs:
+  present:
+    description: "'true', gdy istnieje backend/mvnw (szkielet Mavena)"
+    value: ${{ steps.detect.outputs.present }}
+
+runs:
+  using: composite
+  steps:
+    - id: detect
+      shell: bash
+      run: |
+        cd "$GITHUB_WORKSPACE"
+        if [ -f backend/mvnw ]; then
+          echo "present=true" >> "$GITHUB_OUTPUT"
+        else
+          echo "present=false" >> "$GITHUB_OUTPUT"
+          echo "::notice::Brak backend/mvnw (szkielet backendu jeszcze nie istnieje), kroki budowania pominięte."
+        fi
+    - if: steps.detect.outputs.present == 'true'
+      uses: actions/setup-java@cf277c60eb25467037889841efdb72551f06f6c3 # v4
+      with:
+        distribution: temurin
+        java-version-file: .java-version
+        cache: maven
+        cache-dependency-path: |
+          backend/**/pom.xml
+          backend/.mvn/wrapper/maven-wrapper.properties
