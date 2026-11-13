@@ -10,7 +10,7 @@ Etap 0 w toku: gotowy szkielet backendu (Spring Boot, Flyway, RLS, testy), szkie
 
 ## Technologie
 
-Java 21 i Spring Boot, React z TypeScript, Tailwind CSS, PostgreSQL, AWS (Lambda, S3, CloudFront, RDS) oraz Terraform.
+Java 21 i Spring Boot, React z TypeScript, Tailwind CSS, PostgreSQL, AWS (ECS Fargate, S3, CloudFront, RDS) oraz Terraform.
 
 ## Struktura repozytorium
 
