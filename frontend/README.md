@@ -11,16 +11,17 @@ npm ci               # instaluje zależności i generuje klienta API (postinstal
 npm run dev          # http://localhost:5173, proxy /api -> http://localhost:8080 (VITE_DEV_BACKEND)
 ```
 
-| Skrypt                 | Opis                                                                                    |
-| ---------------------- | --------------------------------------------------------------------------------------- |
-| `npm run typecheck`    | TypeScript `strict` (aplikacja i konfiguracja)                                          |
-| `npm run lint`         | ESLint z regułami projektowymi                                                          |
-| `npm run format:check` | Prettier                                                                                |
-| `npm test`             | Vitest (jsdom, `TZ=America/Los_Angeles`, MSW)                                           |
-| `npm run build`        | typecheck + build produkcyjny z manifestem                                              |
-| `npm run check:bundle` | budżet rozmiaru i test manifestu (obszary w osobnych chunkach)                          |
-| `npm run test:e2e`     | Playwright (Chromium) przeciw `vite preview` z nagłówkami CSP; `BASE_URL` pomija serwer |
-| `npm run api:generate` | klient API (Orval) z `../api/openapi.json`; wynik nie jest commitowany                  |
+| Skrypt                   | Opis                                                                                    |
+| ------------------------ | --------------------------------------------------------------------------------------- |
+| `npm run typecheck`      | TypeScript `strict` (aplikacja i konfiguracja)                                          |
+| `npm run lint`           | ESLint z regułami projektowymi                                                          |
+| `npm run format:check`   | Prettier                                                                                |
+| `npm test`               | Vitest (jsdom, `TZ=America/Los_Angeles`, MSW)                                           |
+| `npm run build`          | typecheck + build produkcyjny z manifestem                                              |
+| `npm run check:bundle`   | budżet rozmiaru i test manifestu (obszary w osobnych chunkach)                          |
+| `npm run test:e2e`       | Playwright (Chromium) przeciw `vite preview` z nagłówkami CSP; `BASE_URL` pomija serwer |
+| `npm run bench:schedule` | pomiary prototypu terminarza (Playwright, build produkcyjny z CSP, `dist-bench`)        |
+| `npm run api:generate`   | klient API (Orval) z `../api/openapi.json`; wynik nie jest commitowany                  |
 
 Pierwsze uruchomienie e2e: `npx playwright install chromium`.
 
@@ -65,4 +66,4 @@ Orval generuje hooki TanStack Query z `../api/openapi.json` do `src/shared/api/g
 
 ## Architecture Decision Records
 
-W `../docs/adr/` (prefiks `ADR-F`): stos i struktura, sesja i tokeny, klient API, czas i strefy, CSP i motyw, strategia testów. ADR-F04 (komponent terminarza) powstanie z prototypem `ScheduleGrid`.
+W `../docs/adr/` (prefiks `ADR-F`): stos i struktura, sesja i tokeny, klient API, czas i strefy, CSP i motyw, strategia testów. ADR-F04 opisuje wybór komponentu terminarza (własny `ScheduleGrid`); pomiary powtórzysz przez `npm run bench:schedule`.
