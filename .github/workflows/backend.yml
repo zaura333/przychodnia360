@@ -113,8 +113,9 @@ jobs:
           chmod +x "$RUNNER_TEMP/osv-scanner"
           "$RUNNER_TEMP/osv-scanner" scan source --recursive backend
 
-  # Pakiet backend-<sha>.zip (app.jar + run.sh) na każdym przebiegu, także na PR (na potrzeby e2e.yml).
-  # Wgranie do S3 (rola gha-artifacts-upload, OIDC) dojdzie w CD2.3, poza fazą 1 (bez AWS).
+  # Jar Spring Boot + obraz Dockera z celu from-jar (DK2) na każdym przebiegu, także na PR: e2e.yml uruchamia
+  # ten sam jar, z którego powstaje obraz wdrożeniowy (ECS Fargate). Push do ECR (rola gha-ecr-push, OIDC)
+  # tylko na main i dopiero po powstaniu infrastruktury (CD2.3); do tego czasu zadanie push-image jest wyłączone.
   package:
     needs: [changes, build-test]
     if: needs.changes.outputs.backend == 'true'
@@ -123,28 +124,40 @@ jobs:
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
       - uses: ./.github/actions/setup-backend
-      - name: Build pakietu i SBOM
+      - name: Build jar i SBOM
         working-directory: backend
         run: |
           ./mvnw -B -q -pl backend-api -am package -DskipTests
           ./mvnw -B -q org.cyclonedx:cyclonedx-maven-plugin:makeAggregateBom -DskipTests
-          jar="$(find backend-api/target -maxdepth 1 -name '*.jar' ! -name '*.original' | head -n 1)"
-          test -n "$jar" || { echo "::error::Nie znaleziono jar-a backend-api."; exit 1; }
-          rm -rf "$RUNNER_TEMP/pkg" && mkdir -p "$RUNNER_TEMP/pkg"
-          cp "$jar" "$RUNNER_TEMP/pkg/app.jar"
-          printf '#!/bin/sh\nexec java -jar /var/task/app.jar --server.port="${PORT:-8080}"\n' > "$RUNNER_TEMP/pkg/run.sh"
-          chmod +x "$RUNNER_TEMP/pkg/run.sh"
-          (cd "$RUNNER_TEMP/pkg" && zip -q -r "$GITHUB_WORKSPACE/backend-${GITHUB_SHA}.zip" .)
+          cp backend-api/target/backend-api.jar app.jar
           cp target/bom.json "$GITHUB_WORKSPACE/backend-${GITHUB_SHA}.sbom.json" 2>/dev/null \
             || echo "::warning::Brak target/bom.json (SBOM nie powstał)."
+      - name: Obraz Docker (cel from-jar, x86_64)
+        working-directory: backend
+        run: docker build --target from-jar -t "p360/backend:${GITHUB_SHA}" .
+      - name: Skan obrazu (trivy, blokada przy HIGH i CRITICAL z poprawką)
+        uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
+        with:
+          image-ref: p360/backend:${{ github.sha }}
+          severity: HIGH,CRITICAL
+          ignore-unfixed: true
+          exit-code: "1"
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
           name: backend-package
           path: |
-            backend-${{ github.sha }}.zip
+            backend/app.jar
             backend-${{ github.sha }}.sbom.json
           if-no-files-found: error
           retention-days: 14
+
+  push-image:
+    if: false # włączane w CD2.3 (ECR, rola gha-ecr-push) po powstaniu infrastruktury
+    needs: package
+    runs-on: ubuntu-24.04
+    environment: demo
+    steps:
+      - run: echo 'Push obrazu do ECR - patrz plan CI/CD, zadanie CD2.3'
 
   # Wymagany status. Zawsze raportuje: zielony także wtedy, gdy zadania pominięto zgodnie z filtrem.
   backend:
