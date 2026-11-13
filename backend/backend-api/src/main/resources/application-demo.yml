@@ -1,8 +1,8 @@
-# Profil demo (AWS). Poświadczenia z Parameter Store dochodzą w zadaniach CD2.x; tu tylko zachowanie.
+# Profil demo (ECS Fargate). Poświadczenia z Parameter Store/Secrets dochodzą w zadaniach CD2.x; tu tylko zachowanie.
 spring:
   datasource:
     hikari:
-      maximum-pool-size: ${DB_POOL_SIZE:2}
+      maximum-pool-size: ${DB_POOL_SIZE:10}
 
 logging:
   structured:
