@@ -1,6 +1,7 @@
 import { Navigate, Route, Routes } from 'react-router';
 import { RoleGate } from '@/app/RoleGate';
 import { NotFoundPage, SoonPage } from '@/app/pages/pages';
+import { DoctorDayPage } from '@/features/appointments';
 import { ReceptionPatientsPage } from '@/features/patients';
 import { MySchedulePage } from '@/features/staff';
 import { ServicesPage } from '@/features/catalog';
@@ -13,7 +14,7 @@ function StaffHome() {
   if (user?.role === 'DOCTOR') {
     return (
       <RoleGate path="/pracownik">
-        <SoonPage title="Dzisiaj" />
+        <DoctorDayPage />
       </RoleGate>
     );
   }
