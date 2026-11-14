@@ -73,7 +73,8 @@ jobs:
           if-no-files-found: ignore
           retention-days: 14
 
-  # Etap 0: tylko ostrzeżenie (continue-on-error). Od 1a: usunąć continue-on-error (blokada).
+  # Blokada (fala 0, A3): złamanie kontraktu względem bazy PR daje czerwony wynik.
+  # W fali 1.8 kontrakt dzieli się na per usługa i agregat; krok trzeba wtedy dostosować.
   openapi-breaking:
     needs: changes
     if: needs.changes.outputs.backend == 'true' && github.event_name == 'pull_request'
@@ -83,7 +84,6 @@ jobs:
         with:
           fetch-depth: 0
       - name: oasdiff breaking względem bazy PR
-        continue-on-error: true
         env:
           BASE_REF: ${{ github.base_ref }}
         run: |
