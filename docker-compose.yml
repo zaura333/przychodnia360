@@ -62,5 +62,26 @@ services:
     mem_limit: 2g
     # Bez restart: błędy backendu mają być widoczne
 
+  # Profil async: SNS i SQS lokalnie (LocalStack, fala 1.4). Temat, kolejki i DLQ tworzy docker/localstack/init.
+  # Wersja przypięta (community, bez tokenu); `latest` wymaga konta. Backend włącza transport zmiennymi
+  # P360_EVENTS_SNS_TOPIC_ARN i P360_EVENTS_AWS_ENDPOINT (patrz README).
+  localstack:
+    profiles: ["async", "full"]
+    image: localstack/localstack:3.8.1
+    restart: unless-stopped
+    environment:
+      SERVICES: sns,sqs
+      AWS_DEFAULT_REGION: eu-central-1
+    ports:
+      - "127.0.0.1:${LOCALSTACK_PORT:-4566}:4566"
+    volumes:
+      - ./docker/localstack/init/ready.d:/etc/localstack/init/ready.d:ro
+    healthcheck:
+      test: ["CMD-SHELL", "awslocal sns list-topics | grep -q p360-clinic-core-events"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+      start_period: 15s
+
 volumes:
   pgdata:
