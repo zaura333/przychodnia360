@@ -20,7 +20,7 @@ Rezerwacje muszą być poprawne przy równoległych żądaniach, a grafiki lekar
 
 - Test współbieżności (20 równoległych rezerwacji tego samego terminu: dokładnie jedna `201`, reszta `409`) jest bramką jakości i działa w każdym `verify`.
 - Siatka slotów jest liczona względem pełnej godziny UTC. Kroki dzielące godzinę (5, 10, 15, 20, 30, 60 minut) działają poprawnie, bo strefa Europe/Warsaw ma pełne offsety godzinowe.
-- Rejestrator tworzy rekord pacjenta bez konta (`POST /reception/patients`); założenie konta pacjenta przez rejestratora (link ustawienia hasła) jest do zrobienia osobno, bo wymaga zależności patients → identity, która tworzyłaby cykl modułów (decyzja D-033).
+- Rejestrator tworzy rekord pacjenta bez konta (`POST /reception/patients`); założenie konta pacjenta przez rejestratora (link ustawienia hasła) jest do zrobienia osobno, bo wymaga zależności patients → identity, która tworzyłaby cykl modułów (decyzja D-032 w dzienniku decyzji).
 
 ## Odrzucone opcje
 
