@@ -100,6 +100,34 @@ jobs:
             | tar -xz -C "$RUNNER_TEMP" oasdiff
           "$RUNNER_TEMP/oasdiff" breaking "$RUNNER_TEMP/base-openapi.json" api/openapi.json --format githubactions --fail-on ERR
 
+  # Blokada (zadanie 1.8): zmiana schematu zdarzenia łamiąca istniejących konsumentów (usunięte lub zmienione pole,
+  # pole wymagane staje się opcjonalne, obniżona wersja, usunięty typ zdarzenia) daje czerwony wynik. Zamiast edycji
+  # w miejscu: nowy typ zdarzenia (api/events/README.md). Test: EventSchemaBreakingChangeTest.
+  events-breaking:
+    needs: changes
+    if: needs.changes.outputs.backend == 'true' && github.event_name == 'pull_request'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          fetch-depth: 0
+      - uses: ./.github/actions/setup-backend
+      - name: Zmiany łamiące kontrakty zdarzeń względem bazy PR
+        env:
+          BASE_REF: ${{ github.base_ref }}
+        run: |
+          if [ -z "$(git ls-tree -r --name-only "origin/${BASE_REF}" -- api/events)" ]; then
+            echo "::notice::Brak api/events w gałęzi bazowej (pierwsze schematy), pomijam."
+            exit 0
+          fi
+          mkdir -p "$RUNNER_TEMP/base-events"
+          git archive "origin/${BASE_REF}" api/events | tar -x -C "$RUNNER_TEMP/base-events"
+          cd backend
+          ./mvnw -B -q -pl platform/p360-test-support -am test \
+            -Dtest=EventSchemaBreakingChangeTest -Dsurefire.failIfNoSpecifiedTests=false \
+            -Dp360.events.base-dir="$RUNNER_TEMP/base-events/api/events"
+
   security:
     needs: changes
     if: needs.changes.outputs.backend == 'true'
@@ -167,7 +195,7 @@ jobs:
 
   # Wymagany status. Zawsze raportuje: zielony także wtedy, gdy zadania pominięto zgodnie z filtrem.
   backend:
-    needs: [changes, build-test, openapi-breaking, security, package]
+    needs: [changes, build-test, openapi-breaking, events-breaking, security, package]
     if: always()
     runs-on: ubuntu-24.04
     steps:
