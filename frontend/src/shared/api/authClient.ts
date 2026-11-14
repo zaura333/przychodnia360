@@ -38,8 +38,13 @@ export async function refresh(): Promise<string> {
 }
 
 export async function logout(): Promise<void> {
+  // Backend wymaga zalogowania (token dostępu), żeby unieważnić rodzinę tokenów odświeżania
+  const token = tokenStore.get();
   try {
-    await performFetch<undefined>('/api/v1/auth/logout', { method: 'POST' });
+    await performFetch<undefined>('/api/v1/auth/logout', {
+      method: 'POST',
+      headers: token ? { Authorization: `Bearer ${token}` } : {},
+    });
   } finally {
     tokenStore.clear();
   }
