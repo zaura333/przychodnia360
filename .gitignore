@@ -45,3 +45,12 @@ docker-compose.override.yml
 # Logi
 *.log
 npm-debug.log*
+
+# Wygenerowany klient API (Orval), nie jest commitowany
+frontend/src/shared/api/generated/
+
+# Jar przekazywany do celu from-jar (tworzony przez CI)
+backend/app.jar
+
+frontend/dist-bench/
+frontend/bench/results.json

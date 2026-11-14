@@ -1,0 +1,9 @@
+# Dokumentuje odpowiedzialność. Przy jednej osobie nie wymusza przeglądu
+# (włączyć "Require review from Code Owners" w rulesecie, gdy dojdzie druga osoba).
+*                 @zaura333
+/backend/         @zaura333
+/frontend/        @zaura333
+/api/             @zaura333
+/infra/           @zaura333
+/.github/         @zaura333
+/docker/          @zaura333

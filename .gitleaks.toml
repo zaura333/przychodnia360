@@ -1,0 +1,29 @@
+title = "przychodnia360"
+
+[extend]
+useDefault = true
+
+# Hasła lokalne i syntetyczne z .env.example są jawne z założenia (patrz plan Dockera, sekcja 1).
+[[allowlists]]
+description = "Wartości dev w szablonie środowiska lokalnego"
+paths = ['''(^|/)\.env\.example$''']
+
+[[allowlists]]
+description = "Hasła testowe kontenera Testcontainers (syntetyczne, tylko w testach)"
+paths = ['''backend/backend-api/src/test/java/pl/przychodnia360/AbstractIntegrationTest\.java''']
+
+[[allowlists]]
+description = "Klucze JWT i hasła demo tylko lokalne i testowe (syntetyczne, profile local i test)"
+paths = [
+  '''backend/backend-api/src/main/resources/application-local\.yml''',
+  '''backend/backend-api/src/test/resources/application-test\.yml''',
+  '''backend/backend-api/src/test/java/.*Test\.java''',
+]
+
+[[allowlists]]
+description = "Testy e2e: hasła syntetyczne zakładanych kont testowych (tylko lokalnie, dane demo)"
+paths = ['''frontend/e2e/.*\.ts''']
+
+[[allowlists]]
+description = "Fałszywe trafienie: nazwa klucza localStorage z kodem placówki (nie jest sekretem)"
+paths = ['''frontend/src/features/auth/components/TenantPicker\.tsx''']
