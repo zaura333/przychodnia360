@@ -24,3 +24,7 @@ security:
 
 app:
   public-base-url: http://localhost:5173
+
+seed:
+  # Hasło wszystkich kont demo (dane syntetyczne, tylko lokalnie); nadpisz zmienną SEED_PASSWORD
+  password: ${SEED_PASSWORD:demo-przychodnia-2026}

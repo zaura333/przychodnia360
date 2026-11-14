@@ -22,3 +22,6 @@ security:
     active-kid: ${JWT_ACTIVE_KID}
     keys:
       "[${JWT_ACTIVE_KID}]": ${JWT_ACTIVE_KEY}
+
+seed:
+  password: ${SEED_PASSWORD:}   # pusty = seed pominięty; hasło z Parameter Store
