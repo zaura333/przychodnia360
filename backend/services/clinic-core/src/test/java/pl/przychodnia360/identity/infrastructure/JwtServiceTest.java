@@ -13,10 +13,13 @@ import com.nimbusds.jose.util.JSONObjectUtils;
 import com.nimbusds.jwt.JWTClaimsSet;
 import com.nimbusds.jwt.PlainJWT;
 import com.nimbusds.jwt.SignedJWT;
+import java.math.BigInteger;
+import java.security.KeyFactory;
 import java.security.KeyPair;
 import java.security.KeyPairGenerator;
 import java.security.interfaces.RSAPrivateKey;
 import java.security.interfaces.RSAPublicKey;
+import java.security.spec.RSAPublicKeySpec;
 import java.time.Clock;
 import java.time.Duration;
 import java.time.Instant;
@@ -56,6 +59,10 @@ class JwtServiceTest {
 
     private static JwtProperties.Key privateOf(KeyPair pair) {
         return new JwtProperties.Key(b64(pair.getPrivate().getEncoded()), null);
+    }
+
+    private static JwtProperties.Key publicOnlyKey(byte[] x509) {
+        return new JwtProperties.Key(null, b64(x509));
     }
 
     private static JwtProperties.Key publicOnly(KeyPair pair) {
@@ -186,10 +193,13 @@ class JwtServiceTest {
     void invalidAndTooShortKeysAreRejected() throws Exception {
         assertThatThrownBy(() -> service("a", Map.of("a", new JwtProperties.Key("nie-base64!!", null)), NOW))
                 .isInstanceOf(IllegalStateException.class);
-        KeyPairGenerator small = KeyPairGenerator.getInstance("RSA");
-        small.initialize(1024);
-        KeyPair weak = small.generateKeyPair();
-        assertThatThrownBy(() -> service("a", Map.of("a", privateOf(weak)), NOW))
+        // Zbyt krótki klucz: publiczny klucz RSA o module 1024 bitów zbudowany z liczb, bez generowania pary kluczy
+        // (generowanie słabego klucza jest zgłaszane przez CodeQL; walidacja w JwtService sprawdza długość modułu).
+        BigInteger weakModulus = BigInteger.ONE.shiftLeft(1023).setBit(0);
+        var weakPublic = KeyFactory.getInstance("RSA")
+                .generatePublic(new RSAPublicKeySpec(weakModulus, BigInteger.valueOf(65537)));
+        assertThat(((RSAPublicKey) weakPublic).getModulus().bitLength()).isEqualTo(1024);
+        assertThatThrownBy(() -> service("a", Map.of("a", publicOnlyKey(weakPublic.getEncoded())), NOW))
                 .isInstanceOf(IllegalStateException.class).hasMessageContaining("2048");
     }
 
