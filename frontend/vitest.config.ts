@@ -16,5 +16,7 @@ export default defineConfig({
     setupFiles: ['./src/shared/test/setup.ts'],
     include: ['src/**/*.test.{ts,tsx}'],
     css: true,
+    // Testy ekranów piszą znak po znaku w jsdom, a pierwsze wejście w obszar ładuje chunk
+    testTimeout: 15_000,
   },
 });
