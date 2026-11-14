@@ -1,0 +1,184 @@
+name: backend
+
+on:
+  pull_request:
+  push:
+    branches: [main, develop]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: backend-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+env:
+  OASDIFF_VERSION: "1.37.0"
+  OSV_SCANNER_VERSION: "2.7.1"
+
+jobs:
+  changes:
+    runs-on: ubuntu-24.04
+    # paths-filter na PR pobiera listę plików z API GitHuba (wymaga pull-requests: read)
+    permissions:
+      contents: read
+      pull-requests: read
+    outputs:
+      backend: ${{ steps.filter.outputs.backend }}
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - id: filter
+        uses: dorny/paths-filter@0e4a8c6effa4802afeda77dc8d303f8176d7dfad # v3
+        with:
+          filters: |
+            backend:
+              - 'backend/**'
+              - 'api/**'
+              - '.java-version'
+              - '.github/actions/setup-backend/**'
+              - '.github/workflows/backend.yml'
+
+  build-test:
+    needs: changes
+    if: needs.changes.outputs.backend == 'true'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - uses: ./.github/actions/setup-backend
+      # verify: testy jednostkowe, Testcontainers, ArchUnit, RLS, role, macierz uprawnień.
+      # Faza integration-test generuje api/openapi.json (springdoc-openapi-maven-plugin).
+      - name: Maven verify
+        working-directory: backend
+        run: ./mvnw -B verify
+      - name: Kontrakt api/openapi.json zgodny z kodem
+        run: |
+          if ! git diff --exit-code -- api/openapi.json; then
+            echo "::error::api/openapi.json różni się od wygenerowanego z kodu. Uruchom './mvnw verify' w backend/ i zatwierdź zmianę."
+            exit 1
+          fi
+          if [ -n "$(git ls-files --others --exclude-standard -- api/openapi.json)" ]; then
+            echo "::error::api/openapi.json został wygenerowany, ale nie jest zatwierdzony w repozytorium."
+            exit 1
+          fi
+      - name: Raporty testów
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: backend-test-reports
+          path: |
+            backend/**/target/surefire-reports/
+            backend/**/target/failsafe-reports/
+            backend/**/target/site/jacoco/
+          if-no-files-found: ignore
+          retention-days: 14
+
+  # Etap 0: tylko ostrzeżenie (continue-on-error). Od 1a: usunąć continue-on-error (blokada).
+  openapi-breaking:
+    needs: changes
+    if: needs.changes.outputs.backend == 'true' && github.event_name == 'pull_request'
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          fetch-depth: 0
+      - name: oasdiff breaking względem bazy PR
+        continue-on-error: true
+        env:
+          BASE_REF: ${{ github.base_ref }}
+        run: |
+          if [ ! -f api/openapi.json ]; then
+            echo "::notice::Brak api/openapi.json w PR, pomijam."
+            exit 0
+          fi
+          if ! git cat-file -e "origin/${BASE_REF}:api/openapi.json" 2>/dev/null; then
+            echo "::notice::Brak api/openapi.json w gałęzi bazowej (pierwszy kontrakt), pomijam."
+            exit 0
+          fi
+          git show "origin/${BASE_REF}:api/openapi.json" > "$RUNNER_TEMP/base-openapi.json"
+          curl -sSfL "https://github.com/oasdiff/oasdiff/releases/download/v${OASDIFF_VERSION}/oasdiff_${OASDIFF_VERSION}_linux_amd64.tar.gz" \
+            | tar -xz -C "$RUNNER_TEMP" oasdiff
+          "$RUNNER_TEMP/oasdiff" breaking "$RUNNER_TEMP/base-openapi.json" api/openapi.json --format githubactions --fail-on ERR
+
+  security:
+    needs: changes
+    if: needs.changes.outputs.backend == 'true'
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - uses: ./.github/actions/setup-backend
+      # osv-scanner nie rozwiązuje zależności od modułu z reaktora (shared-core), więc skanujemy SBOM
+      # wygenerowany przez Mavena (pełne drzewo zależności, także przechodnie).
+      - name: SBOM zależności Mavena
+        working-directory: backend
+        run: ./mvnw -B -q org.cyclonedx:cyclonedx-maven-plugin:makeAggregateBom -DskipTests
+      - name: osv-scanner (SBOM)
+        run: |
+          curl -sSfL -o "$RUNNER_TEMP/osv-scanner" \
+            "https://github.com/google/osv-scanner/releases/download/v${OSV_SCANNER_VERSION}/osv-scanner_linux_amd64"
+          chmod +x "$RUNNER_TEMP/osv-scanner"
+          "$RUNNER_TEMP/osv-scanner" scan source -L backend/target/bom.json
+
+  # Jar Spring Boot + obraz Dockera z celu from-jar (DK2) na każdym przebiegu, także na PR: e2e.yml uruchamia
+  # ten sam jar, z którego powstaje obraz wdrożeniowy (ECS Fargate). Push do ECR (rola gha-ecr-push, OIDC)
+  # tylko na main i dopiero po powstaniu infrastruktury (CD2.3); do tego czasu zadanie push-image jest wyłączone.
+  package:
+    needs: [changes, build-test]
+    if: needs.changes.outputs.backend == 'true'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - uses: ./.github/actions/setup-backend
+      - name: Build jar i SBOM
+        working-directory: backend
+        run: |
+          ./mvnw -B -q -pl backend-api -am package -DskipTests
+          ./mvnw -B -q org.cyclonedx:cyclonedx-maven-plugin:makeAggregateBom -DskipTests
+          cp backend-api/target/backend-api.jar app.jar
+          cp target/bom.json "$GITHUB_WORKSPACE/backend-${GITHUB_SHA}.sbom.json" 2>/dev/null \
+            || echo "::warning::Brak target/bom.json (SBOM nie powstał)."
+      - name: Obraz Docker (cel from-jar, x86_64)
+        working-directory: backend
+        run: docker build --target from-jar -t "p360/backend:${GITHUB_SHA}" .
+      - name: Skan obrazu (trivy, blokada przy HIGH i CRITICAL z poprawką)
+        uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
+        with:
+          image-ref: p360/backend:${{ github.sha }}
+          severity: HIGH,CRITICAL
+          ignore-unfixed: true
+          exit-code: "1"
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: backend-package
+          path: |
+            backend/app.jar
+            backend-${{ github.sha }}.sbom.json
+          if-no-files-found: error
+          retention-days: 14
+
+  push-image:
+    if: false # włączane w CD2.3 (ECR, rola gha-ecr-push) po powstaniu infrastruktury
+    needs: package
+    runs-on: ubuntu-24.04
+    environment: demo
+    steps:
+      - run: echo 'Push obrazu do ECR - patrz plan CI/CD, zadanie CD2.3'
+
+  # Wymagany status. Zawsze raportuje: zielony także wtedy, gdy zadania pominięto zgodnie z filtrem.
+  backend:
+    needs: [changes, build-test, openapi-breaking, security, package]
+    if: always()
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Agregacja wyników
+        env:
+          RESULTS: ${{ join(needs.*.result, ' ') }}
+        run: |
+          echo "Wyniki: $RESULTS"
+          for r in $RESULTS; do
+            if [ "$r" != "success" ] && [ "$r" != "skipped" ]; then
+              echo "::error::Co najmniej jedno zadanie zakończyło się wynikiem: $r"
+              exit 1
+            fi
+          done

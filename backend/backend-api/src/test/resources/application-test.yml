@@ -1,0 +1,12 @@
+# Profil testowy: baza z Testcontainers (adresy i hasła ustawia AbstractIntegrationTest).
+spring:
+  flyway:
+    # migracja testowa tworzy tabelę wzorcową _tenant_probe (nie istnieje w produkcji)
+    locations: classpath:db/migration,classpath:db/testmigration
+
+logging:
+  structured:
+    format:
+      console: logstash
+    json:
+      customizer: pl.przychodnia360.common.logging.PeselMaskingCustomizer

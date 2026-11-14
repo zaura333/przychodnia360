@@ -1,0 +1,13 @@
+# Profil lokalny (docker-compose). Wartości dev są jawne, bo dane są syntetyczne i lokalne;
+# zgodne z .env.example. Nadpisywane zmiennymi środowiskowymi (np. w profilu compose `full`).
+spring:
+  datasource:
+    password: ${P360_APP_PASSWORD:p360_app_local_dev}
+  flyway:
+    password: ${P360_OWNER_PASSWORD:p360_owner_local_dev}
+    placeholders:
+      app_password: ${P360_APP_PASSWORD:p360_app_local_dev}
+
+logging:
+  pattern:
+    level: "%5p [%X{requestId:-}]"
