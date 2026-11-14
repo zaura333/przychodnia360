@@ -1,7 +1,8 @@
 name: e2e
 
-# E2E na prawdziwym backendzie: docker compose (profil full: Postgres, Mailpit, backend z seedem `local`)
-# + frontend z `vite preview` + Playwright (frontend/e2e/real). Plan fali 0, zadanie A2.
+# E2E na prawdziwym backendzie: docker compose (profil core: Postgres, Mailpit, backend z seedem `local` i krawędź
+# Traefik) + frontend z `vite preview` kierowany na krawędź (port 8090) + Playwright (frontend/e2e/real).
+# Plan fali 0 (A2) i zadanie 1.10: e2e idzie przez krawędź, jak w AWS.
 # Status `e2e` dodać do wymaganych w rulesetach dopiero po 3 kolejnych zielonych przebiegach.
 
 on:
@@ -57,7 +58,7 @@ jobs:
         run: cp .env.example .env
 
       - name: Start platformy (postgres, mailpit, backend)
-        run: docker compose --profile full up -d --build --wait
+        run: docker compose --profile core up -d --build --wait
 
       # `--wait` nie widzi seedu (kilka sekund po starcie), więc czekamy na zdolność do zalogowania
       # na koncie z seedu zamiast stałego opóźnienia.
@@ -69,13 +70,13 @@ jobs:
             code=$(curl -s -o /dev/null -w '%{http_code}' \
               -H 'Content-Type: application/json' -H "Origin: ${BASE_URL}" \
               -d "{\"tenantSlug\":\"klinika-a\",\"email\":\"rejestracja@klinika-a.example.test\",\"password\":\"${SEED_PASSWORD}\"}" \
-              http://localhost:8080/api/v1/auth/login || true)
+              http://localhost:8090/api/v1/auth/login || true)
             echo "próba ${i}: HTTP ${code}"
             if [ "${code}" = "200" ]; then exit 0; fi
             sleep 3
           done
           echo "::error::Backend lub seed nie są gotowe po 180 s"
-          docker compose --profile full logs backend | tail -n 100
+          docker compose --profile core logs backend traefik | tail -n 150
           exit 1
 
       - name: Wersja Playwright
@@ -100,7 +101,8 @@ jobs:
       - name: Serwer podglądu frontendu
         working-directory: frontend
         env:
-          VITE_DEV_BACKEND: http://127.0.0.1:8080
+          # krawędź (Traefik), nie backend bezpośrednio: ścieżki frontendu muszą przechodzić przez reguły routingu
+          VITE_DEV_BACKEND: http://127.0.0.1:8090
         run: |
           nohup npm run preview -- --port 4173 --strictPort > "$RUNNER_TEMP/preview.log" 2>&1 &
           for i in $(seq 1 30); do
@@ -128,7 +130,7 @@ jobs:
 
       - name: Logi backendu przy błędzie
         if: failure()
-        run: docker compose --profile full logs --no-color > "$RUNNER_TEMP/compose.log" || true
+        run: docker compose --profile core logs --no-color > "$RUNNER_TEMP/compose.log" || true
       - name: Logi compose (artefakt)
         if: failure()
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
@@ -140,7 +142,7 @@ jobs:
 
       - name: Sprzątanie
         if: always()
-        run: docker compose --profile full down -v
+        run: docker compose --profile core down -v
 
   # Wymagany status (po 3 zielonych przebiegach). Zawsze raportuje: zielony także, gdy zadanie pominięto filtrem.
   e2e:
