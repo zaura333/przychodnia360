@@ -48,6 +48,8 @@ services:
       DB_URL: jdbc:postgresql://postgres:5432/${P360_DB_NAME:-p360}
       P360_OWNER_PASSWORD: ${P360_OWNER_PASSWORD:?ustaw w .env (skopiuj .env.example)}
       P360_APP_PASSWORD: ${P360_APP_PASSWORD:?ustaw w .env (skopiuj .env.example)}
+      SPRING_MAIL_HOST: mailpit
+      SPRING_MAIL_PORT: "1025"
     ports:
       - "127.0.0.1:${BACKEND_PORT:-8080}:8080"
     depends_on:

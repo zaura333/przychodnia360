@@ -32,6 +32,7 @@ public abstract class AbstractApiTest extends AbstractIntegrationTest {
     @Autowired protected TransactionTemplate tx;
     @Autowired protected JdbcClient jdbc;
     @Autowired protected PatientFacade patientFacade;
+    @Autowired protected RecordingMailSender mails;
 
     /** Konto pacjenta z rekordem pacjenta i tokenem. */
     protected record PatientAccount(User user, UUID patientId, String token) {

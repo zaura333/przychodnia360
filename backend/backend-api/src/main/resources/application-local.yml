@@ -8,6 +8,10 @@ spring:
     placeholders:
       app_password: ${P360_APP_PASSWORD:p360_app_local_dev}
 
+  mail:
+    host: localhost   # Mailpit z docker-compose (w profilu full nadpisywane SPRING_MAIL_HOST)
+    port: 1025
+
 logging:
   pattern:
     level: "%5p [%X{requestId:-}]"
@@ -17,3 +21,6 @@ security:
     active-kid: local-1
     keys:
       local-1: bG9jYWwtZGV2LW9ubHktand0LWtleS0wMTIzNDU2Nzg5YWJjZGVm
+
+app:
+  public-base-url: http://localhost:5173

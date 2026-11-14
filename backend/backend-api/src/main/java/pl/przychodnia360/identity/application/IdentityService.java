@@ -6,7 +6,10 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import pl.przychodnia360.identity.api.IdentityFacade;
 import pl.przychodnia360.identity.api.Role;
+import pl.przychodnia360.identity.application.MailSender.MailMessage;
+import pl.przychodnia360.identity.domain.AccountToken;
 import pl.przychodnia360.identity.domain.User;
+import pl.przychodnia360.tenant.api.TenantFacade;
 import pl.przychodnia360.shared.Ids;
 import pl.przychodnia360.shared.NotFoundException;
 import pl.przychodnia360.shared.TenantContext;
@@ -19,10 +22,15 @@ class IdentityService implements IdentityFacade {
 
     private final UserRepository users;
     private final TokenService tokens;
+    private final PasswordResetService passwordResets;
+    private final TenantFacade tenants;
 
-    IdentityService(UserRepository users, TokenService tokens) {
+    IdentityService(UserRepository users, TokenService tokens, PasswordResetService passwordResets,
+            TenantFacade tenants) {
         this.users = users;
         this.tokens = tokens;
+        this.passwordResets = passwordResets;
+        this.tenants = tenants;
     }
 
     @Override
@@ -33,6 +41,11 @@ class IdentityService implements IdentityFacade {
         }
         User user = User.create(Ids.newId(), TenantContext.requireTenant().value(), email.trim(), role, null);
         users.insert(user);
+        String raw = passwordResets.issueToken(user, AccountToken.Purpose.SET_PASSWORD);
+        String clinic = tenants.name(user.tenantId()).orElse("przychodni");
+        passwordResets.sendAfterCommit(new MailMessage(user.email(), "Konto w Przychodni360",
+                "Utworzono dla Ciebie konto w placówce " + clinic + ". Ustaw hasło (link ważny 72 godziny):\n"
+                        + passwordResets.link(raw)));
         return user.id();
     }
 
