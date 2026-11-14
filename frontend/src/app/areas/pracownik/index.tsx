@@ -1,7 +1,7 @@
 import { Navigate, Route, Routes } from 'react-router';
 import { RoleGate } from '@/app/RoleGate';
 import { NotFoundPage, SoonPage } from '@/app/pages/pages';
-import { DoctorDayPage } from '@/features/appointments';
+import { DoctorDayPage, ReceptionSchedulePage } from '@/features/appointments';
 import { ReceptionPatientsPage } from '@/features/patients';
 import { MySchedulePage } from '@/features/staff';
 import { ServicesPage } from '@/features/catalog';
@@ -42,7 +42,7 @@ export function Component() {
         path="terminarz"
         element={
           <RoleGate path="/pracownik/terminarz">
-            <SoonPage title="Terminarz" />
+            <ReceptionSchedulePage />
           </RoleGate>
         }
       />

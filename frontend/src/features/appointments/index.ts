@@ -2,3 +2,4 @@
 export { BookAppointmentPage } from './pages/BookAppointmentPage';
 export { MyAppointmentsPage } from './pages/MyAppointmentsPage';
 export { DoctorDayPage } from './pages/DoctorDayPage';
+export { ReceptionSchedulePage } from './pages/ReceptionSchedulePage';

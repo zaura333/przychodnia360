@@ -150,3 +150,6 @@ export function parseLocalDate(value: string): LocalDate {
   }
   return value;
 }
+
+/** Chwila jako znacznik ISO-8601 (UTC) do ciał żądań, np. `startAt` rezerwacji. */
+export const toIsoString = (instant: Instant): string => new Date(instant).toISOString();

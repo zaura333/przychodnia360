@@ -1,4 +1,4 @@
-import { useQuery } from '@tanstack/react-query';
+import { useQueries, useQuery } from '@tanstack/react-query';
 import {
   getDoctorSchedule,
   listDoctors,
@@ -34,5 +34,16 @@ export function useMySchedule(from: LocalDate, to: LocalDate, refetchMs?: number
     queryKey: keys.scoped('my-schedule', from, to),
     queryFn: async () => (await getMySchedule({ from, to })).data,
     ...(refetchMs ? { refetchInterval: refetchMs } : {}),
+  });
+}
+
+/** Grafiki wielu lekarzy na ten sam zakres dat (terminarz: jedno zapytanie na kolumnę). */
+export function useDoctorSchedules(ids: readonly string[], from: LocalDate, to: LocalDate) {
+  const keys = useUserKeys();
+  return useQueries({
+    queries: ids.map((id) => ({
+      queryKey: keys.scoped('doctors', id, 'schedule', from, to),
+      queryFn: async () => (await getDoctorSchedule(id, { from, to })).data,
+    })),
   });
 }
