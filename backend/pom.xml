@@ -20,6 +20,7 @@
   <modules>
     <module>platform/p360-shared-core</module>
     <module>platform/p360-platform-starter</module>
+    <module>platform/p360-test-support</module>
     <module>services/clinic-core</module>
   </modules>
 
@@ -52,6 +53,12 @@
         <groupId>pl.przychodnia360</groupId>
         <artifactId>p360-platform-starter</artifactId>
         <version>${project.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>pl.przychodnia360</groupId>
+        <artifactId>p360-test-support</artifactId>
+        <version>${project.version}</version>
+        <scope>test</scope>
       </dependency>
       <dependency>
         <groupId>org.springdoc</groupId>
