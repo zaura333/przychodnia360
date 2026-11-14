@@ -28,7 +28,7 @@
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     <springdoc.version>3.2.0</springdoc.version>
     <archunit.version>1.5.1</archunit.version>
-    <bouncycastle.version>1.80</bouncycastle.version>
+    <bouncycastle.version>1.85</bouncycastle.version>
     <enforcer.version>3.7.0</enforcer.version>
   </properties>
 
