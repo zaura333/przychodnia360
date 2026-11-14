@@ -15,6 +15,9 @@ CREATE TABLE users (
     status          text        NOT NULL DEFAULT 'ACTIVE' CHECK (status IN ('ACTIVE', 'BLOCKED', 'DEACTIVATED')),
     failed_attempts int         NOT NULL DEFAULT 0,
     locked_until    timestamptz,
+    -- powiązania ustawiane przez moduły staff i patients (bez FK: tabele powstają później, FK dodają ich migracje)
+    employee_id     uuid,
+    patient_id      uuid,
     created_at      timestamptz NOT NULL DEFAULT now(),
     updated_at      timestamptz NOT NULL DEFAULT now(),
     version         bigint      NOT NULL DEFAULT 0,

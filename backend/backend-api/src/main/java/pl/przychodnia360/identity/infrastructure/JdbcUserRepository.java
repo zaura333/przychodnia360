@@ -18,7 +18,7 @@ import pl.przychodnia360.shared.ConflictException;
 class JdbcUserRepository implements UserRepository {
 
     private static final String COLUMNS =
-            "id, tenant_id, email, role, password_hash, status, failed_attempts, locked_until, version";
+            "id, tenant_id, email, role, password_hash, status, failed_attempts, locked_until, employee_id, patient_id, version";
 
     private final JdbcClient jdbc;
 
@@ -30,10 +30,11 @@ class JdbcUserRepository implements UserRepository {
     public void insert(User u) {
         try {
             jdbc.sql("""
-                    INSERT INTO users (id, tenant_id, email, role, password_hash, status)
-                    VALUES (?, ?, ?, ?, ?, ?)
+                    INSERT INTO users (id, tenant_id, email, role, password_hash, status, employee_id, patient_id)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?)
                     """)
-                    .params(u.id(), u.tenantId(), u.email(), u.role().name(), u.passwordHash(), u.status().name())
+                    .params(u.id(), u.tenantId(), u.email(), u.role().name(), u.passwordHash(), u.status().name(),
+                            u.employeeId(), u.patientId())
                     .update();
         } catch (DuplicateKeyException e) {
             throw new ConflictException("email-taken", "Konto z tym adresem e-mail już istnieje.");
@@ -44,11 +45,12 @@ class JdbcUserRepository implements UserRepository {
     public void update(User u) {
         int rows = jdbc.sql("""
                 UPDATE users SET password_hash = ?, status = ?, failed_attempts = ?, locked_until = ?,
-                       updated_at = now(), version = version + 1
+                       employee_id = ?, patient_id = ?, updated_at = now(), version = version + 1
                  WHERE id = ? AND version = ?
                 """)
                 .params(u.passwordHash(), u.status().name(), u.failedAttempts(),
-                        u.lockedUntil() == null ? null : Timestamp.from(u.lockedUntil()), u.id(), u.version())
+                        u.lockedUntil() == null ? null : Timestamp.from(u.lockedUntil()), u.employeeId(), u.patientId(),
+                        u.id(), u.version())
                 .update();
         if (rows == 0) {
             throw new ConflictException("concurrent-update", "Konto zostało zmienione równolegle. Spróbuj ponownie.");
@@ -78,6 +80,7 @@ class JdbcUserRepository implements UserRepository {
         return new User(rs.getObject("id", UUID.class), rs.getObject("tenant_id", UUID.class), rs.getString("email"),
                 Role.valueOf(rs.getString("role")), rs.getString("password_hash"),
                 UserStatus.valueOf(rs.getString("status")), rs.getInt("failed_attempts"),
-                locked == null ? null : locked.toInstant(), rs.getLong("version"));
+                locked == null ? null : locked.toInstant(), rs.getObject("employee_id", UUID.class),
+                rs.getObject("patient_id", UUID.class), rs.getLong("version"));
     }
 }

@@ -15,10 +15,12 @@ public class User {
     private UserStatus status;
     private int failedAttempts;
     private Instant lockedUntil;
+    private UUID employeeId;
+    private UUID patientId;
     private final long version;
 
     public User(UUID id, UUID tenantId, String email, Role role, String passwordHash, UserStatus status,
-            int failedAttempts, Instant lockedUntil, long version) {
+            int failedAttempts, Instant lockedUntil, UUID employeeId, UUID patientId, long version) {
         this.id = id;
         this.tenantId = tenantId;
         this.email = email;
@@ -27,11 +29,13 @@ public class User {
         this.status = status;
         this.failedAttempts = failedAttempts;
         this.lockedUntil = lockedUntil;
+        this.employeeId = employeeId;
+        this.patientId = patientId;
         this.version = version;
     }
 
     public static User create(UUID id, UUID tenantId, String email, Role role, String passwordHash) {
-        return new User(id, tenantId, email, role, passwordHash, UserStatus.ACTIVE, 0, null, 0);
+        return new User(id, tenantId, email, role, passwordHash, UserStatus.ACTIVE, 0, null, null, null, 0);
     }
 
     public boolean isLocked(Instant now) {
@@ -60,6 +64,14 @@ public class User {
         this.passwordHash = newHash;
         this.failedAttempts = 0;
         this.lockedUntil = null;
+    }
+
+    public void linkEmployee(UUID employeeId) {
+        this.employeeId = employeeId;
+    }
+
+    public void linkPatient(UUID patientId) {
+        this.patientId = patientId;
     }
 
     public void block() {
@@ -100,6 +112,14 @@ public class User {
 
     public Instant lockedUntil() {
         return lockedUntil;
+    }
+
+    public UUID employeeId() {
+        return employeeId;
+    }
+
+    public UUID patientId() {
+        return patientId;
     }
 
     public long version() {
