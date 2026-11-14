@@ -37,6 +37,21 @@ curl http://localhost:8080/api/v1/health
 
 Po zmianie endpointów `./mvnw verify` aktualizuje `api/openapi.json`; plik trzeba zatwierdzić (CI sprawdza zgodność). Konwencje bazy: `docs/db-conventions.md`.
 
+**Lista kontrolna: nowa tabela danych placówki**
+- migracja `V<n>__opis.sql` z `tenant_id`, `ENABLE` i `FORCE ROW LEVEL SECURITY` oraz polityką `tenant_id = app_tenant_id()` (wzorzec w `docs/db-conventions.md`),
+- `RlsCoverageTest` przechodzi (albo wyjątek z uzasadnieniem),
+- test izolacji: placówka B nie widzi wierszy placówki A,
+- brak `GRANT` dla `p360_app` poza domyślnymi uprawnieniami; funkcje `SECURITY DEFINER` tylko z uzasadnieniem.
+
+**Lista kontrolna: nowy endpoint**
+- `@PreAuthorize` odwołujące się do `PermissionPolicy` albo jawne `@PublicEndpoint` (domyślnie odmowa),
+- wiersz w `PermissionMatrixTest` dla każdej roli (dozwolone i zabronione),
+- błędy jako Problem Details (`/problems/<slug>`), cudzy zasób to `404`,
+- zero danych osobowych w logach (PESEL maskowany),
+- `./mvnw verify` i zatwierdzony `api/openapi.json`.
+
+**Decyzje architektoniczne** są w `docs/adr/`: backend `ADR-B01` (PostgreSQL i role), `B02` (logowanie ze slugiem), `B03` (uprawnienia), `B04` (przedział czasu), `B05` (reguła 24 h), `B06` (Argon2id, wstępnie); frontend `ADR-F01` do `F07`.
+
 ## Frontend: uruchomienie lokalne
 
 Wymagania: Node z `frontend/.nvmrc`. Szczegóły, skrypty i zasady: `frontend/README.md`.
