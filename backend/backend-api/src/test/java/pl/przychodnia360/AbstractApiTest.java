@@ -14,6 +14,7 @@ import pl.przychodnia360.identity.api.Role;
 import pl.przychodnia360.identity.application.PasswordHasher;
 import pl.przychodnia360.identity.application.UserRepository;
 import pl.przychodnia360.identity.domain.User;
+import pl.przychodnia360.patients.api.PatientFacade;
 import pl.przychodnia360.shared.Ids;
 import pl.przychodnia360.shared.TenantContext;
 import pl.przychodnia360.shared.TenantId;
@@ -30,6 +31,11 @@ public abstract class AbstractApiTest extends AbstractIntegrationTest {
     @Autowired protected PasswordHasher hasher;
     @Autowired protected TransactionTemplate tx;
     @Autowired protected JdbcClient jdbc;
+    @Autowired protected PatientFacade patientFacade;
+
+    /** Konto pacjenta z rekordem pacjenta i tokenem. */
+    protected record PatientAccount(User user, UUID patientId, String token) {
+    }
 
     /** Odpowiedź HTTP z wygodnym dostępem do JSON. */
     protected record Resp(int status, String body, HttpHeaders headers) {
@@ -67,6 +73,36 @@ public abstract class AbstractApiTest extends AbstractIntegrationTest {
             tx.executeWithoutResult(s -> users.insert(user));
         }
         return user;
+    }
+
+    /** Pacjent z kontem powiązanym z rekordem pacjenta, już zalogowany. */
+    protected PatientAccount newPatientAccount(UUID tenantId, String firstName, String lastName) {
+        User user = newUser(tenantId, Role.PATIENT);
+        UUID patientId;
+        try (var h = TenantContext.open(new TenantId(tenantId))) {
+            patientId = tx.execute(s -> {
+                UUID id = patientFacade.create(firstName, lastName, java.time.LocalDate.of(1990, 1, 1), null);
+                user.linkPatient(id);
+                users.update(user);
+                patientFacade.linkAccount(id, user.id());
+                return id;
+            });
+        }
+        return new PatientAccount(user, patientId, login(tenantId, user));
+    }
+
+    /** Ustawia hasło konta utworzonego bez hasła (np. pracownika) i zwraca token po zalogowaniu. */
+    protected String loginWithNewPassword(UUID tenantId, String userId) {
+        User user = inTenantResult(tenantId, () -> users.findById(UUID.fromString(userId)).orElseThrow());
+        user.changePassword(hasher.hash(PASSWORD));
+        inTenant(tenantId, () -> users.update(user));
+        return login(tenantId, user);
+    }
+
+    protected <T> T inTenantResult(UUID tenantId, java.util.function.Supplier<T> action) {
+        try (var h = TenantContext.open(new TenantId(tenantId))) {
+            return tx.execute(s -> action.get());
+        }
     }
 
     protected void inTenant(UUID tenantId, Runnable action) {
