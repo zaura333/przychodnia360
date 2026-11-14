@@ -1,0 +1,30 @@
+{
+  "consumer": "scheduling-service",
+  "event": "ServiceUpdated",
+  "note": "Kopia service_ref w bazie scheduling (S1, ADR-M14): nazwa, cena, czas trwania, typ wykonawcy, aktywność.",
+  "requires": {
+    "tenantId": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "aggregateId": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "name": {
+      "type": "string"
+    },
+    "price": {
+      "type": "number"
+    },
+    "durationMinutes": {
+      "type": "integer"
+    },
+    "performerType": {
+      "type": "string"
+    },
+    "active": {
+      "type": "boolean"
+    }
+  }
+}
