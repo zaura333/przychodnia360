@@ -21,11 +21,14 @@ class OutboxDomainEventPublisher implements DomainEventPublisher {
     private final JdbcClient jdbc;
     private final JsonMapper mapper;
     private final InProcessDomainEventPublisher inProcess;
+    private final EventTracing tracing;
 
-    OutboxDomainEventPublisher(JdbcClient jdbc, JsonMapper mapper, InProcessDomainEventPublisher inProcess) {
+    OutboxDomainEventPublisher(JdbcClient jdbc, JsonMapper mapper, InProcessDomainEventPublisher inProcess,
+            EventTracing tracing) {
         this.jdbc = jdbc;
         this.mapper = mapper;
         this.inProcess = inProcess;
+        this.tracing = tracing;
     }
 
     @Override
@@ -37,11 +40,13 @@ class OutboxDomainEventPublisher implements DomainEventPublisher {
             throw new IllegalArgumentException("Zdarzenie " + event.type() + " bez tenantId");
         }
         jdbc.sql("""
-                INSERT INTO outbox (id, tenant_id, aggregate_id, type, schema_version, payload, occurred_at)
-                VALUES (?, ?, ?, ?, ?, CAST(? AS jsonb), ?)
+                INSERT INTO outbox (id, tenant_id, aggregate_id, type, schema_version, payload, occurred_at,
+                                    traceparent)
+                VALUES (?, ?, ?, ?, ?, CAST(? AS jsonb), ?, ?)
                 """)
                 .params(Ids.newId(), event.tenantId(), event.aggregateId(), event.type(), event.schemaVersion(),
-                        mapper.writeValueAsString(event), java.sql.Timestamp.from(event.occurredAt()))
+                        mapper.writeValueAsString(event), java.sql.Timestamp.from(event.occurredAt()),
+                        tracing.currentTraceparent())
                 .update();
         inProcess.publish(event);
     }
