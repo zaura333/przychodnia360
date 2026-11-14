@@ -78,6 +78,11 @@ public final class TenantContext {
         return scope == null ? Optional.empty() : Optional.ofNullable(scope.tenant());
     }
 
+    /** Placówka bieżącego żądania; brak kontekstu to błąd programisty (nie dane użytkownika). */
+    public static TenantId requireTenant() {
+        return current().orElseThrow(() -> new IllegalStateException("Brak kontekstu placówki"));
+    }
+
     public static boolean isExplicitlyWithoutTenant() {
         Scope scope = CURRENT.get();
         return scope != null && scope.tenant() == null;
