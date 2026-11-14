@@ -53,7 +53,7 @@ class ArchitectureTest {
             .should().onlyDependOnClassesThat().resideOutsideOfPackage("org.springframework..")
             .allowEmptyShould(true);
 
-    /** Moduł wywołuje inny wyłącznie przez jego pakiety api i application, nigdy przez domain ani infrastructure. */
+    /** Moduł wywołuje inny wyłącznie przez jego pakiet api (0R.2); application, domain i infrastructure są prywatne. */
     @ArchTest
     static final ArchRule modulesAreAccessedOnlyThroughApiOrApplication = noClasses()
             .that(new com.tngtech.archunit.base.DescribedPredicate<>("są w innym module") {
@@ -70,11 +70,34 @@ class ArchitectureTest {
                     for (var dependency : origin.getDirectDependenciesFromSelf()) {
                         String targetPackage = dependency.getTargetClass().getPackageName();
                         String targetModule = module(targetPackage);
-                        boolean internal = targetPackage.contains(".domain") || targetPackage.contains(".infrastructure");
+                        boolean internal = targetPackage.contains(".domain") || targetPackage.contains(".infrastructure")
+                                || targetPackage.contains(".application");
                         if (targetModule != null && originModule != null && !targetModule.equals(originModule)
                                 && MODULES.contains(targetModule) && internal) {
                             events.add(com.tngtech.archunit.lang.SimpleConditionEvent.violated(dependency,
                                     dependency.getDescription()));
+                        }
+                    }
+                }
+            })
+            .allowEmptyShould(true);
+
+    /** Zdarzenia domenowe niosą tylko identyfikatory i dane techniczne (ADR-M10), bez danych osobowych. */
+    @ArchTest
+    static final ArchRule domainEventsCarryNoPersonalData = classes()
+            .that().implement(pl.przychodnia360.shared.DomainEvent.class)
+            .and().areNotInterfaces()
+            .should(new com.tngtech.archunit.lang.ArchCondition<>("nie mieć pól z danymi osobowymi") {
+                private final java.util.regex.Pattern pii = java.util.regex.Pattern.compile(
+                        "(?i).*(first|last)name|.*pesel.*|.*email.*|.*phone.*|.*birth.*|.*address.*|.*password.*");
+
+                @Override
+                public void check(com.tngtech.archunit.core.domain.JavaClass event,
+                        com.tngtech.archunit.lang.ConditionEvents events) {
+                    for (var field : event.getAllFields()) {
+                        if (pii.matcher(field.getName()).matches()) {
+                            events.add(com.tngtech.archunit.lang.SimpleConditionEvent.violated(field,
+                                    event.getName() + " ma pole " + field.getName()));
                         }
                     }
                 }
