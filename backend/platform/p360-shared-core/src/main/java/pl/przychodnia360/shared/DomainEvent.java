@@ -16,6 +16,11 @@ public interface DomainEvent {
 
     Instant occurredAt();
 
+    /** Wersja schematu zdarzenia (kontrakt w api/events/); rośnie przy zmianie niezgodnej wstecz. */
+    default int schemaVersion() {
+        return 1;
+    }
+
     /** Nazwa typu zdarzenia w kopercie (domyślnie nazwa klasy). */
     default String type() {
         return getClass().getSimpleName();
