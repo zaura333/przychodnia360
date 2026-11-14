@@ -1,0 +1,5 @@
+table,class,note
+service_categories,DICT,słownik bez danych osobowych
+services,DICT,słownik bez danych osobowych
+outbox,RC-10,dane techniczne: opublikowane + 30 dni (OutboxRelay.purgePublishedBefore)
+processed_events,RC-10,dane techniczne: wygaśnięcie + 30 dni

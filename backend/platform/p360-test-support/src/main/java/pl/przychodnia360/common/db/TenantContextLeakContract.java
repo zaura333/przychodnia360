@@ -27,7 +27,7 @@ public abstract class TenantContextLeakContract extends PostgresIntegrationTest 
     void setUp() {
         HikariConfig config = new HikariConfig();
         config.setJdbcUrl(url);
-        config.setUsername("p360_app");
+        config.setUsername(APP_ROLE);
         config.setPassword(appPassword());
         config.setMaximumPoolSize(1);
         config.setMinimumIdle(0);
