@@ -1,0 +1,20 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://schemas.przychodnia360.example/events/AppointmentBooked.schema.json",
+  "title": "AppointmentBooked",
+  "description": "Wizyta zarezerwowana. Tylko identyfikatory i dane techniczne, bez danych osobowych (ADR-M10).",
+  "x-schemaVersion": 1,
+  "x-producer": "scheduling",
+  "type": "object",
+  "properties": {
+    "tenantId": { "type": "string", "format": "uuid", "description": "Placówka (izolacja tenantów)" },
+    "aggregateId": { "type": "string", "format": "uuid", "description": "Identyfikator agregatu, którego dotyczy zdarzenie" },
+    "patientId": { "type": "string", "format": "uuid", "description": "Pacjent" },
+    "employeeId": { "type": "string", "format": "uuid", "description": "Wykonawca (lekarz lub personel)" },
+    "serviceId": { "type": "string", "format": "uuid", "description": "Usługa" },
+    "startAt": { "type": "string", "format": "date-time", "description": "Początek wizyty (UTC)" },
+    "occurredAt": { "type": "string", "format": "date-time", "description": "Moment zdarzenia (UTC)" }
+  },
+  "required": ["tenantId", "aggregateId", "patientId", "employeeId", "serviceId", "startAt", "occurredAt"],
+  "additionalProperties": false
+}
