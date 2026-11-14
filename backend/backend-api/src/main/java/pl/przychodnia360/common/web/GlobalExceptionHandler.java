@@ -22,6 +22,7 @@ import pl.przychodnia360.shared.ForbiddenException;
 import pl.przychodnia360.shared.NotFoundException;
 import pl.przychodnia360.shared.TooManyRequestsException;
 import pl.przychodnia360.shared.UnauthorizedException;
+import pl.przychodnia360.shared.UnprocessableException;
 import pl.przychodnia360.shared.ValidationException;
 
 /**
@@ -57,6 +58,11 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
     @ExceptionHandler(ForbiddenException.class)
     ResponseEntity<ProblemDetail> forbidden(ForbiddenException ex) {
         return of(HttpStatus.FORBIDDEN, ex, "Brak uprawnień");
+    }
+
+    @ExceptionHandler(UnprocessableException.class)
+    ResponseEntity<ProblemDetail> unprocessable(UnprocessableException ex) {
+        return of(HttpStatus.UNPROCESSABLE_ENTITY, ex, "Operacja niedozwolona");
     }
 
     @ExceptionHandler(UnauthorizedException.class)

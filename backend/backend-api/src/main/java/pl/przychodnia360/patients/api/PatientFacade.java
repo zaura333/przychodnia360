@@ -1,6 +1,8 @@
 package pl.przychodnia360.patients.api;
 
 import java.time.LocalDate;
+import java.util.Collection;
+import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -23,4 +25,7 @@ public interface PatientFacade {
     void linkAccount(UUID patientId, UUID userId);
 
     Optional<PatientInfo> find(UUID patientId);
+
+    /** Pacjenci po identyfikatorach (widoki z imieniem i nazwiskiem); nieznane identyfikatory są pomijane. */
+    Map<UUID, PatientInfo> findAll(Collection<UUID> ids);
 }

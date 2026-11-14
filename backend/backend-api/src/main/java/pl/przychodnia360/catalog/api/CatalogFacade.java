@@ -1,6 +1,8 @@
 package pl.przychodnia360.catalog.api;
 
 import java.math.BigDecimal;
+import java.util.Collection;
+import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -13,4 +15,7 @@ public interface CatalogFacade {
     }
 
     Optional<ServiceInfo> service(UUID serviceId);
+
+    /** Usługi po identyfikatorach, także nieaktywne (historia wizyt); nieznane są pomijane. */
+    Map<UUID, ServiceInfo> services(Collection<UUID> ids);
 }

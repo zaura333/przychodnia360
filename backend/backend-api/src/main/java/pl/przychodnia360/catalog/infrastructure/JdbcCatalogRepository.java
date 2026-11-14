@@ -3,6 +3,7 @@ package pl.przychodnia360.catalog.infrastructure;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -71,6 +72,15 @@ class JdbcCatalogRepository implements CatalogRepository {
     public Optional<MedicalService> findService(UUID id) {
         return jdbc.sql("SELECT " + SERVICE_COLUMNS + " FROM services WHERE id = ?").param(id)
                 .query(JdbcCatalogRepository::service).optional();
+    }
+
+    @Override
+    public List<MedicalService> findServices(Collection<UUID> ids) {
+        if (ids.isEmpty()) {
+            return List.of();
+        }
+        return jdbc.sql("SELECT " + SERVICE_COLUMNS + " FROM services WHERE id = ANY(?)")
+                .param(ids.toArray(UUID[]::new)).query(JdbcCatalogRepository::service).list();
     }
 
     @Override

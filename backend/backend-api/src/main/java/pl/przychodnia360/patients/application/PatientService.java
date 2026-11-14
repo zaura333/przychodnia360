@@ -2,6 +2,9 @@ package pl.przychodnia360.patients.application;
 
 import java.time.LocalDate;
 import java.util.Arrays;
+import java.util.Collection;
+import java.util.Map;
+import java.util.stream.Collectors;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -46,6 +49,13 @@ public class PatientService implements PatientFacade {
     @Transactional(readOnly = true)
     public Optional<PatientInfo> find(UUID patientId) {
         return repository.findById(patientId).map(PatientService::info);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public Map<UUID, PatientInfo> findAll(Collection<UUID> ids) {
+        return repository.findByIds(ids).stream()
+                .collect(Collectors.toMap(Patient::id, PatientService::info, (a, b) -> a));
     }
 
     @Transactional(readOnly = true)

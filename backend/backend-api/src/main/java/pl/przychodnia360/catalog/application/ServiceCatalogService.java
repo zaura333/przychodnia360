@@ -1,7 +1,10 @@
 package pl.przychodnia360.catalog.application;
 
 import java.math.BigDecimal;
+import java.util.Collection;
 import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
 import java.util.Optional;
 import java.util.UUID;
 import org.springframework.stereotype.Service;
@@ -130,5 +133,13 @@ public class ServiceCatalogService implements CatalogFacade {
     public Optional<ServiceInfo> service(UUID serviceId) {
         return repository.findService(serviceId).map(s -> new ServiceInfo(s.id(), s.name(), s.price(),
                 s.durationMinutes(), s.performerType(), s.active()));
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public Map<UUID, ServiceInfo> services(Collection<UUID> ids) {
+        return repository.findServices(ids).stream().collect(Collectors.toMap(MedicalService::id,
+                s -> new ServiceInfo(s.id(), s.name(), s.price(), s.durationMinutes(), s.performerType(), s.active()),
+                (a, b) -> a));
     }
 }

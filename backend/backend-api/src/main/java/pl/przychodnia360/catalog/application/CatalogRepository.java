@@ -1,6 +1,7 @@
 package pl.przychodnia360.catalog.application;
 
 import java.math.BigDecimal;
+import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -19,6 +20,8 @@ public interface CatalogRepository {
     long countServices(ServiceFilter filter);
 
     Optional<MedicalService> findService(UUID id);
+
+    List<MedicalService> findServices(Collection<UUID> ids);
 
     void insertService(MedicalService service);
 

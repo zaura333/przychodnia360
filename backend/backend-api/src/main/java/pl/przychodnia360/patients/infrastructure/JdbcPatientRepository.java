@@ -4,6 +4,7 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.time.LocalDate;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -52,6 +53,15 @@ class JdbcPatientRepository implements PatientRepository {
     public Optional<Patient> findById(UUID id) {
         return jdbc.sql("SELECT " + COLUMNS + " FROM patients WHERE id = ?").param(id)
                 .query(JdbcPatientRepository::map).optional();
+    }
+
+    @Override
+    public List<Patient> findByIds(Collection<UUID> ids) {
+        if (ids.isEmpty()) {
+            return List.of();
+        }
+        return jdbc.sql("SELECT " + COLUMNS + " FROM patients WHERE id = ANY(?)").param(ids.toArray(UUID[]::new))
+                .query(JdbcPatientRepository::map).list();
     }
 
     /** Dla każdego fragmentu: (imię lub nazwisko) zaczyna się od fragmentu. Znaki LIKE są uciekane. */
