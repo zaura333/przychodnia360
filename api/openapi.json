@@ -9,6 +9,115 @@
     "url" : "/"
   } ],
   "paths" : {
+    "/api/v1/auth/login" : {
+      "post" : {
+        "description" : "Dostęp: publiczny. Zwraca token dostępu i ustawia ciasteczko odświeżania.",
+        "operationId" : "login",
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/LoginRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/TokenResponse"
+                }
+              }
+            },
+            "description" : "OK"
+          }
+        },
+        "summary" : "Logowanie do placówki",
+        "tags" : [ "auth-controller" ]
+      }
+    },
+    "/api/v1/auth/logout" : {
+      "post" : {
+        "description" : "Dostęp: zalogowany. Unieważnia rodzinę tokenów odświeżania i usuwa ciasteczko.",
+        "operationId" : "logout",
+        "parameters" : [ {
+          "in" : "cookie",
+          "name" : "p360_rt",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "description" : "OK"
+          }
+        },
+        "summary" : "Wylogowanie",
+        "tags" : [ "auth-controller" ]
+      }
+    },
+    "/api/v1/auth/platform/login" : {
+      "post" : {
+        "description" : "Dostęp: publiczny.",
+        "operationId" : "loginPlatformAdmin",
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/PlatformLoginRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/TokenResponse"
+                }
+              }
+            },
+            "description" : "OK"
+          }
+        },
+        "summary" : "Logowanie administratora platformy",
+        "tags" : [ "auth-controller" ]
+      }
+    },
+    "/api/v1/auth/refresh" : {
+      "post" : {
+        "description" : "Dostęp: publiczny, wymaga ciasteczka odświeżania. Rotuje token odświeżania.",
+        "operationId" : "refreshToken",
+        "parameters" : [ {
+          "in" : "cookie",
+          "name" : "p360_rt",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/TokenResponse"
+                }
+              }
+            },
+            "description" : "OK"
+          }
+        },
+        "summary" : "Odświeżenie tokenu",
+        "tags" : [ "auth-controller" ]
+      }
+    },
     "/api/v1/facilities" : {
       "get" : {
         "description" : "Dostęp: publiczny (wybór placówki przy logowaniu).",
@@ -114,17 +223,88 @@
           }
         }
       },
+      "LoginRequest" : {
+        "type" : "object",
+        "properties" : {
+          "email" : {
+            "type" : "string",
+            "format" : "email",
+            "maxLength" : 254,
+            "minLength" : 0
+          },
+          "password" : {
+            "type" : "string",
+            "maxLength" : 200,
+            "minLength" : 0
+          },
+          "tenantSlug" : {
+            "type" : "string",
+            "maxLength" : 63,
+            "minLength" : 0
+          }
+        },
+        "required" : [ "email", "password", "tenantSlug" ]
+      },
       "MeResponse" : {
         "type" : "object",
         "properties" : {
+          "employeeId" : {
+            "type" : "string",
+            "format" : "uuid"
+          },
+          "patientId" : {
+            "type" : "string",
+            "format" : "uuid"
+          },
           "role" : {
-            "type" : "string"
+            "type" : "string",
+            "enum" : [ "PATIENT", "DOCTOR", "MEDICAL_STAFF", "RECEPTIONIST", "TENANT_ADMIN", "PLATFORM_ADMIN" ]
+          },
+          "slotStepMinutes" : {
+            "type" : "integer",
+            "format" : "int32"
           },
           "tenantId" : {
             "type" : "string",
             "format" : "uuid"
           },
+          "tenantName" : {
+            "type" : "string"
+          },
           "userId" : {
+            "type" : "string",
+            "format" : "uuid"
+          }
+        }
+      },
+      "PlatformLoginRequest" : {
+        "type" : "object",
+        "properties" : {
+          "email" : {
+            "type" : "string",
+            "format" : "email",
+            "maxLength" : 254,
+            "minLength" : 0
+          },
+          "password" : {
+            "type" : "string",
+            "maxLength" : 200,
+            "minLength" : 0
+          }
+        },
+        "required" : [ "email", "password" ]
+      },
+      "TokenResponse" : {
+        "type" : "object",
+        "properties" : {
+          "accessToken" : {
+            "type" : "string"
+          },
+          "expiresIn" : {
+            "type" : "integer",
+            "format" : "int64"
+          },
+          "tokenType" : {
             "type" : "string"
           }
         }
