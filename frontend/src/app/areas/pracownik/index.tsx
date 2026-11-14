@@ -1,6 +1,7 @@
 import { Navigate, Route, Routes } from 'react-router';
 import { RoleGate } from '@/app/RoleGate';
 import { NotFoundPage, SoonPage } from '@/app/pages/pages';
+import { ServicesPage } from '@/features/catalog';
 import { useAuth } from '@/shared/api/session';
 
 /** Strona startowa obszaru pracownika zależna od roli. */
@@ -54,7 +55,7 @@ export function Component() {
         path="uslugi"
         element={
           <RoleGate path="/pracownik/uslugi">
-            <SoonPage title="Usługi" />
+            <ServicesPage />
           </RoleGate>
         }
       />

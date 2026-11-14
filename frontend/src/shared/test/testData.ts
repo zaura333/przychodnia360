@@ -18,6 +18,20 @@ export const testData = {
     return { status: 'authenticated', user: testData.user(role, overrides) };
   },
 
+  service(overrides: Record<string, unknown> = {}) {
+    return {
+      id: 's-1',
+      name: 'Konsultacja',
+      description: 'Opis usługi',
+      categoryId: 'c-1',
+      price: 150,
+      durationMinutes: 30,
+      performerType: 'DOCTOR',
+      active: true,
+      ...overrides,
+    };
+  },
+
   /** Problem Details w formacie backendu: type, title, status, detail, traceId. */
   problem(type: string, status: number, extra: Record<string, unknown> = {}) {
     return {
@@ -53,4 +67,9 @@ export function problemResponse(
     status,
     headers: { 'Content-Type': 'application/problem+json' },
   });
+}
+
+/** Strona wyników w kształcie backendu (PageResponse). */
+export function page<T>(items: T[], overrides: Record<string, unknown> = {}) {
+  return { items, page: 0, size: 12, total: items.length, ...overrides };
 }

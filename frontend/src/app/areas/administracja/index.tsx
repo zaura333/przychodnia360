@@ -1,6 +1,7 @@
 import { Navigate, Route, Routes } from 'react-router';
 import { RoleGate } from '@/app/RoleGate';
 import { NotFoundPage, SoonPage } from '@/app/pages/pages';
+import { AdminServicesPage } from '@/features/catalog';
 
 /** Obszar administracji placówki: osobny chunk ładowany leniwie. Dostęp do tras określa ROUTE_TABLE. */
 export function Component() {
@@ -11,7 +12,7 @@ export function Component() {
         path="uslugi"
         element={
           <RoleGate path="/administracja/uslugi">
-            <SoonPage title="Usługi" />
+            <AdminServicesPage />
           </RoleGate>
         }
       />
