@@ -10,7 +10,7 @@ Wersja bazy musi być taka sama lokalnie (docker-compose), w testach (Testcontai
 
 ## Decyzja
 
-**Wersja.** PostgreSQL 16 (obraz `postgres:16.6`). RDS ma używać tej samej wersji major (16); przy zmianie wersji zmieniamy ją jednocześnie w trzech miejscach: `docker-compose.yml`, `AbstractIntegrationTest.POSTGRES_IMAGE` i w linii `Wersja PostgreSQL:` tego ADR. Zgodność pilnuje `ComposeConsistencyTest`, więc zmiana tylko w jednym miejscu kończy się czerwonym testem.
+**Wersja.** PostgreSQL 16 (obraz `postgres:16.6`). RDS ma używać tej samej wersji major (16); przy zmianie wersji zmieniamy ją jednocześnie w trzech miejscach: `docker-compose.yml`, `PostgresIntegrationTest.POSTGRES_IMAGE` (p360-test-support) i w linii `Wersja PostgreSQL:` tego ADR. Zgodność pilnuje `ComposeConsistencyTest`, więc zmiana tylko w jednym miejscu kończy się czerwonym testem.
 
 **Role.**
 - `p360_owner`: właściciel bazy i schematu, używany wyłącznie przez Flyway (migrator). Tworzony przez `docker/postgres/init/01-roles.sh` (`NOSUPERUSER`, `NOBYPASSRLS`, `CREATEROLE`). `CREATEROLE`, bo migracja V1 tworzy rolę aplikacji.

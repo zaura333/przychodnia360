@@ -43,7 +43,7 @@ Po zmianie endpointów `./mvnw verify` aktualizuje `api/openapi.json`; plik trze
 
 **Lista kontrolna: nowa tabela danych placówki**
 - migracja `V<n>__opis.sql` z `tenant_id`, `ENABLE` i `FORCE ROW LEVEL SECURITY` oraz polityką `tenant_id = app_tenant_id()` (wzorzec w `docs/db-conventions.md`),
-- `RlsCoverageTest` przechodzi (albo wyjątek z uzasadnieniem),
+- `RlsCoverageTest` (podklasa `RlsCoverageContract` z `p360-test-support`) przechodzi (albo wyjątek z uzasadnieniem),
 - test izolacji: placówka B nie widzi wierszy placówki A,
 - brak `GRANT` dla `p360_app` poza domyślnymi uprawnieniami; funkcje `SECURITY DEFINER` tylko z uzasadnieniem.
 
@@ -87,7 +87,7 @@ Usługi i adresy: PostgreSQL `127.0.0.1:5432` (baza `p360`), Mailpit UI <http://
 
 **Obraz backendu** (`backend/Dockerfile`): cel `runtime` (domyślny) buduje jar wewnątrz obrazu; cel `from-jar` kopiuje gotowy `backend/app.jar` (tak robi CI, więc e2e i wdrożenie uruchamiają ten sam jar). Obraz działa jako użytkownik inny niż root, na Alpine, x86_64.
 
-**Wersja PostgreSQL** jest zapisana w trzech miejscach (`docker-compose.yml`, `AbstractIntegrationTest`, `docs/adr/ADR-B01-postgresql-wersja-i-role.md`); `ComposeConsistencyTest` pilnuje, żeby się zgadzały.
+**Wersja PostgreSQL** jest zapisana w trzech miejscach (`docker-compose.yml`, `PostgresIntegrationTest` w `p360-test-support`, `docs/adr/ADR-B01-postgresql-wersja-i-role.md`); `ComposeConsistencyTest` pilnuje, żeby się zgadzały.
 
 **Rozwiązywanie problemów:**
 
