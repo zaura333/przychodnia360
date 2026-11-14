@@ -78,12 +78,17 @@ Docker służy do uruchamiania zależności (PostgreSQL, Mailpit) i do odtwarzan
 | Cel                                       | Polecenie                                            |
 | ----------------------------------------- | ---------------------------------------------------- |
 | Zależności (postgres, mailpit)            | `docker compose up -d --wait`                        |
-| Cała platforma (z backendem w kontenerze) | `docker compose --profile full up -d --build --wait` |
+| Rdzeń (backend w kontenerze + krawędź)    | `docker compose --profile core up -d --build --wait` |
+| Wszystko (core + async: SNS i SQS)        | `docker compose --profile full up -d --build --wait` |
 | Logi                                      | `docker compose logs -f backend`                     |
 | Zatrzymanie (dane zostają)                | `docker compose --profile full down`                 |
 | Reset danych i seed od nowa               | `docker compose --profile full down -v` a potem `up` |
 
-Usługi i adresy: PostgreSQL `127.0.0.1:5432` (baza `p360`), Mailpit UI <http://localhost:8025> (SMTP `1025`), backend <http://localhost:8080/api/v1/health> (profil `full`). Domyślnie (`up -d`) startują tylko zależności, a backend działa z IDE lub z `java -jar`, frontend z `npm run dev`.
+**Profile compose** (łączone flagą `--profile`): `core` (usługi biznesowe, dziś monolit `clinic-core` jako `backend`, i krawędź Traefik na `http://127.0.0.1:8090`), `edge` (sama krawędź, gdy backend działa z IDE), `async` (LocalStack: SNS i SQS, obraz ok. 2 GB, poza `core`), `finance` (zarezerwowany dla billing i integration-hub, na razie bez usług), `full` (core, finance i async). Przy `down` podaj te same profile co przy `up`, inaczej kontenery profili zostaną. Frontend przez krawędź: `VITE_DEV_BACKEND=http://127.0.0.1:8090`.
+
+**Baza per usługa:** lista usług w `P360_SERVICE_DATABASES` (np. `notification,integration-hub`) tworzy przy pierwszym starcie (pusty wolumen) bazę `p360_<usługa>` i właściciela `p360_<usługa>_owner` z hasłem z `P360_<USŁUGA>_OWNER_PASSWORD` (patrz `.env.example`); właściciel jednej usługi nie wchodzi do bazy innej. Baza główna `p360` (clinic-core) zostaje bez zmian.
+
+Usługi i adresy: PostgreSQL `127.0.0.1:5432` (baza `p360`), Mailpit UI <http://localhost:8025> (SMTP `1025`), backend <http://localhost:8080/api/v1/health> (profile `core` i `full`). Domyślnie (`up -d`) startują tylko zależności, a backend działa z IDE lub z `java -jar`, frontend z `npm run dev`.
 
 **Obraz backendu** (`backend/Dockerfile`): cel `runtime` (domyślny) buduje jar wewnątrz obrazu; cel `from-jar` kopiuje gotowy `backend/app.jar` (tak robi CI, więc e2e i wdrożenie uruchamiają ten sam jar). Obraz działa jako użytkownik inny niż root, na Alpine, x86_64.
 

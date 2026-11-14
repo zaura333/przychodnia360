@@ -12,6 +12,6 @@ Regeneracja po zmianie tabel (z katalogu `backend`, Bash):
 
 Uruchomienie lokalnie (krawędź na `http://127.0.0.1:8090`, port zmienia `EDGE_PORT`):
 
-    docker compose --profile full --profile edge up -d
+    docker compose --profile core up -d --build --wait
 
 Frontend przez krawędź: `VITE_DEV_BACKEND=http://127.0.0.1:8090 npm run dev` (lub `npm run test:e2e:real`).

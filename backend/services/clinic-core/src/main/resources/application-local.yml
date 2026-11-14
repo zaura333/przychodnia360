@@ -9,7 +9,7 @@ spring:
       app_password: ${P360_APP_PASSWORD:p360_app_local_dev}
 
   mail:
-    host: localhost   # Mailpit z docker-compose (w profilu full nadpisywane SPRING_MAIL_HOST)
+    host: localhost   # Mailpit z docker-compose (w profilach compose core i full nadpisywane SPRING_MAIL_HOST)
     port: 1025
 
 logging:
