@@ -1,8 +1,9 @@
 import { Navigate, Route, Routes } from 'react-router';
 import { RoleGate } from '@/app/RoleGate';
-import { NotFoundPage, SoonPage } from '@/app/pages/pages';
+import { NotFoundPage } from '@/app/pages/pages';
 import { AdminAppointmentsPage } from '@/features/appointments';
 import { AdminServicesPage } from '@/features/catalog';
+import { AdminEmployeesPage, EmployeeSchedulePage } from '@/features/staff';
 
 /** Obszar administracji placówki: osobny chunk ładowany leniwie. Dostęp do tras określa ROUTE_TABLE. */
 export function Component() {
@@ -21,7 +22,7 @@ export function Component() {
         path="pracownicy"
         element={
           <RoleGate path="/administracja/pracownicy">
-            <SoonPage title="Pracownicy" />
+            <AdminEmployeesPage />
           </RoleGate>
         }
       />
@@ -29,7 +30,7 @@ export function Component() {
         path="pracownicy/:id/grafik"
         element={
           <RoleGate path="/administracja/pracownicy/:id/grafik">
-            <SoonPage title="Grafik pracownika" />
+            <EmployeeSchedulePage />
           </RoleGate>
         }
       />
