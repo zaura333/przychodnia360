@@ -11,7 +11,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import pl.przychodnia360.AbstractApiTest;
 import pl.przychodnia360.common.time.ClinicTime;
-import pl.przychodnia360.identity.api.Role;
+import pl.przychodnia360.common.security.Role;
 
 /** Wspólne dane: placówka, usługa 30 min, lekarz z dyżurem 8-16 przez cały tydzień, pacjent i rejestrator. */
 abstract class AbstractAppointmentTest extends AbstractApiTest {

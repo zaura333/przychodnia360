@@ -13,7 +13,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import pl.przychodnia360.appointments.api.AppointmentViews.StaffAppointmentView;
 import pl.przychodnia360.appointments.application.AppointmentQueryService;
-import pl.przychodnia360.identity.api.AuthenticatedUser;
+import pl.przychodnia360.common.security.AuthenticatedUser;
 import pl.przychodnia360.shared.NotFoundException;
 import pl.przychodnia360.staff.api.StaffFacade;
 

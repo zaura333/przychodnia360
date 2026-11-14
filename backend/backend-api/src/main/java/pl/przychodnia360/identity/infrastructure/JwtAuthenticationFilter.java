@@ -12,8 +12,8 @@ import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.filter.OncePerRequestFilter;
 import pl.przychodnia360.common.security.ApiAuthenticationFilter;
-import pl.przychodnia360.identity.api.AuthenticatedUser;
-import pl.przychodnia360.identity.api.Role;
+import pl.przychodnia360.common.security.AuthenticatedUser;
+import pl.przychodnia360.common.security.Role;
 import pl.przychodnia360.shared.TenantContext;
 import pl.przychodnia360.shared.TenantId;
 

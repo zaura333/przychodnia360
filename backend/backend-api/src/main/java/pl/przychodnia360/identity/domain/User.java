@@ -2,7 +2,7 @@ package pl.przychodnia360.identity.domain;
 
 import java.time.Instant;
 import java.util.UUID;
-import pl.przychodnia360.identity.api.Role;
+import pl.przychodnia360.common.security.Role;
 
 /** Konto użytkownika. tenantId jest null tylko dla PLATFORM_ADMIN; passwordHash null do czasu ustawienia hasła. */
 public class User {

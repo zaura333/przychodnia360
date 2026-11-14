@@ -5,7 +5,7 @@ import java.util.Optional;
 import java.util.UUID;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.support.TransactionTemplate;
-import pl.przychodnia360.identity.api.Role;
+import pl.przychodnia360.common.security.Role;
 import pl.przychodnia360.identity.application.MailSender.MailMessage;
 import pl.przychodnia360.identity.domain.PasswordPolicy;
 import pl.przychodnia360.identity.domain.User;

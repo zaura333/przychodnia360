@@ -19,8 +19,8 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 import org.springframework.stereotype.Component;
-import pl.przychodnia360.identity.api.AuthenticatedUser;
-import pl.przychodnia360.identity.api.Role;
+import pl.przychodnia360.common.security.AuthenticatedUser;
+import pl.przychodnia360.common.security.Role;
 
 /** Wystawianie i weryfikacja tokenów dostępu (JWT HS256, nagłówek kid, rotacja kluczy). */
 @Component

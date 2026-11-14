@@ -17,8 +17,8 @@ import java.util.Date;
 import java.util.Map;
 import java.util.UUID;
 import org.junit.jupiter.api.Test;
-import pl.przychodnia360.identity.api.AuthenticatedUser;
-import pl.przychodnia360.identity.api.Role;
+import pl.przychodnia360.common.security.AuthenticatedUser;
+import pl.przychodnia360.common.security.Role;
 
 class JwtServiceTest {
 

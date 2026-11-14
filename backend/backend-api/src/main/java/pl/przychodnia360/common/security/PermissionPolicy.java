@@ -1,6 +1,6 @@
-package pl.przychodnia360.identity.api;
+package pl.przychodnia360.common.security;
 
-import static pl.przychodnia360.identity.api.Permission.*;
+import static pl.przychodnia360.common.security.Permission.*;
 
 import java.util.EnumMap;
 import java.util.EnumSet;

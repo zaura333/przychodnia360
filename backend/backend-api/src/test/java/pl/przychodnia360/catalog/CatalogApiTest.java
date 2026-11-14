@@ -5,7 +5,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import java.util.UUID;
 import org.junit.jupiter.api.Test;
 import pl.przychodnia360.AbstractApiTest;
-import pl.przychodnia360.identity.api.Role;
+import pl.przychodnia360.common.security.Role;
 
 class CatalogApiTest extends AbstractApiTest {
 

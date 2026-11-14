@@ -21,7 +21,7 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 import pl.przychodnia360.common.web.PageResponse;
-import pl.przychodnia360.identity.api.AuthenticatedUser;
+import pl.przychodnia360.common.security.AuthenticatedUser;
 import pl.przychodnia360.patients.application.PatientService;
 import pl.przychodnia360.patients.domain.Patient;
 import pl.przychodnia360.shared.NotFoundException;

@@ -8,7 +8,7 @@ import java.util.UUID;
 import org.springframework.dao.DuplicateKeyException;
 import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.stereotype.Repository;
-import pl.przychodnia360.identity.api.Role;
+import pl.przychodnia360.common.security.Role;
 import pl.przychodnia360.identity.application.UserRepository;
 import pl.przychodnia360.identity.domain.User;
 import pl.przychodnia360.identity.domain.UserStatus;

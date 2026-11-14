@@ -1,4 +1,4 @@
-package pl.przychodnia360.identity.api;
+package pl.przychodnia360.common.security;
 
 /** Zdolności przypisywane rolom w {@link PermissionPolicy}. Uprawnienia "własne" wymagają dodatkowo kontroli właściciela. */
 public enum Permission {

@@ -6,9 +6,9 @@ import java.time.Duration;
 import java.time.Instant;
 import java.util.UUID;
 import org.junit.jupiter.api.Test;
-import pl.przychodnia360.identity.api.Permission;
-import pl.przychodnia360.identity.api.PermissionPolicy;
-import pl.przychodnia360.identity.api.Role;
+import pl.przychodnia360.common.security.Permission;
+import pl.przychodnia360.common.security.PermissionPolicy;
+import pl.przychodnia360.common.security.Role;
 import pl.przychodnia360.identity.domain.LoginAttemptPolicy;
 import pl.przychodnia360.identity.domain.User;
 

@@ -5,7 +5,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.support.TransactionTemplate;
-import pl.przychodnia360.identity.api.Role;
+import pl.przychodnia360.common.security.Role;
 import pl.przychodnia360.identity.application.MailSender.MailMessage;
 import pl.przychodnia360.identity.domain.AccountToken;
 import pl.przychodnia360.identity.domain.PasswordPolicy;

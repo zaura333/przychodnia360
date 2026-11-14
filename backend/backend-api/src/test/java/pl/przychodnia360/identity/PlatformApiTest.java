@@ -7,7 +7,7 @@ import java.util.UUID;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import pl.przychodnia360.AbstractApiTest;
-import pl.przychodnia360.identity.api.Role;
+import pl.przychodnia360.common.security.Role;
 import pl.przychodnia360.identity.application.PlatformAccountService;
 import pl.przychodnia360.identity.domain.User;
 import pl.przychodnia360.shared.Ids;

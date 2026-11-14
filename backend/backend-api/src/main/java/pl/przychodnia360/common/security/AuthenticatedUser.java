@@ -1,4 +1,4 @@
-package pl.przychodnia360.identity.api;
+package pl.przychodnia360.common.security;
 
 import java.util.UUID;
 

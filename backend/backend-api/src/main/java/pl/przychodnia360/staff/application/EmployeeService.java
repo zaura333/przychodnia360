@@ -5,7 +5,7 @@ import java.util.UUID;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import pl.przychodnia360.identity.api.IdentityFacade;
-import pl.przychodnia360.identity.api.Role;
+import pl.przychodnia360.common.security.Role;
 import pl.przychodnia360.shared.ConflictException;
 import pl.przychodnia360.shared.Ids;
 import pl.przychodnia360.shared.NotFoundException;

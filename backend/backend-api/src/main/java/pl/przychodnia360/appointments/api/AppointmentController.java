@@ -26,7 +26,7 @@ import pl.przychodnia360.appointments.application.BookingService;
 import pl.przychodnia360.appointments.application.BookingService.BookCommand;
 import pl.przychodnia360.appointments.application.SlotQueryService;
 import pl.przychodnia360.appointments.domain.AppointmentStatus;
-import pl.przychodnia360.identity.api.AuthenticatedUser;
+import pl.przychodnia360.common.security.AuthenticatedUser;
 import pl.przychodnia360.staff.api.TimeSlot;
 
 /** Rezerwacje: umawianie (pacjent, rejestrator), listy wizyt, przesunięcie i odwołanie przez rejestratora, sloty. */

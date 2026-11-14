@@ -1,4 +1,4 @@
-package pl.przychodnia360.identity.api;
+package pl.przychodnia360.common.security;
 
 /** Role stałe (ADR-B03). Rola jest wpisana w token dostępu. */
 public enum Role {

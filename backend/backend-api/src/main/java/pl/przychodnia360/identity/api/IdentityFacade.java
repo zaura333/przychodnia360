@@ -1,6 +1,7 @@
 package pl.przychodnia360.identity.api;
 
 import java.util.UUID;
+import pl.przychodnia360.common.security.Role;
 
 /** Publiczny interfejs modułu identity dla innych modułów (konta pracowników i pacjentów). */
 public interface IdentityFacade {
