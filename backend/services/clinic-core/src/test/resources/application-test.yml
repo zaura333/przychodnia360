@@ -19,9 +19,7 @@ p360:
 
 security:
   jwt:
-    active-kid: test-1
-    keys:
-      test-1: dGVzdC1vbmx5LWp3dC1rZXktMDEyMzQ1Njc4OWFiY2RlZi14eXo=
+    generate-ephemeral-key: true
   password:
     argon2:
       # obniżone parametry tylko w testach (ADR-B06), żeby nie wydłużać builda

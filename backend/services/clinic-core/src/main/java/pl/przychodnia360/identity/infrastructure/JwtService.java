@@ -4,51 +4,83 @@ import com.nimbusds.jose.JOSEException;
 import com.nimbusds.jose.JOSEObjectType;
 import com.nimbusds.jose.JWSAlgorithm;
 import com.nimbusds.jose.JWSHeader;
-import com.nimbusds.jose.crypto.MACSigner;
-import com.nimbusds.jose.crypto.MACVerifier;
+import com.nimbusds.jose.crypto.RSASSASigner;
+import com.nimbusds.jose.jwk.JWKSet;
+import com.nimbusds.jose.jwk.KeyUse;
+import com.nimbusds.jose.jwk.RSAKey;
 import com.nimbusds.jwt.JWTClaimsSet;
 import com.nimbusds.jwt.SignedJWT;
-import java.text.ParseException;
+import java.math.BigInteger;
+import java.security.GeneralSecurityException;
+import java.security.KeyFactory;
+import java.security.KeyPair;
+import java.security.KeyPairGenerator;
+import java.security.interfaces.RSAPrivateCrtKey;
+import java.security.interfaces.RSAPrivateKey;
+import java.security.interfaces.RSAPublicKey;
+import java.security.spec.PKCS8EncodedKeySpec;
+import java.security.spec.RSAPublicKeySpec;
+import java.security.spec.X509EncodedKeySpec;
 import java.time.Clock;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.Base64;
 import java.util.Date;
-import java.util.HashMap;
+import java.util.HexFormat;
+import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Optional;
-import java.util.UUID;
+import java.util.concurrent.ThreadLocalRandom;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
 import pl.przychodnia360.common.security.AccessRevocations;
+import pl.przychodnia360.common.security.AccessTokenVerifier;
 import pl.przychodnia360.common.security.AuthenticatedUser;
-import pl.przychodnia360.common.security.Role;
+import pl.przychodnia360.common.security.RsaAccessTokenVerifier;
 
-/** Wystawianie i weryfikacja tokenów dostępu (JWT HS256, nagłówek kid, rotacja kluczy). */
+/**
+ * Wystawianie i weryfikacja tokenów dostępu (JWT RS256, nagłówek kid, rotacja kluczy). Tylko iam ma klucz
+ * prywatny; klucze publiczne są publikowane w JWKS ({@link #jwks()}), więc inne usługi weryfikują tokeny bez
+ * sekretu (ADR-M04).
+ */
 @Component
-public class JwtService {
+public class JwtService implements AccessTokenVerifier {
+
+    private static final Logger LOG = LoggerFactory.getLogger(JwtService.class);
+    private static final int MIN_KEY_BITS = 2048;
+
+    private record KeyMaterial(RSAPublicKey publicKey, RSAPrivateKey privateKey) {
+    }
 
     private final JwtProperties properties;
     private final Clock clock;
-    private final AccessRevocations revocations;
-    private final Map<String, byte[]> keys = new HashMap<>();
+    private final Map<String, KeyMaterial> keys = new LinkedHashMap<>();
+    private final String activeKid;
+    private final RsaAccessTokenVerifier verifier;
 
     JwtService(JwtProperties properties, Clock clock, AccessRevocations revocations) {
         this.properties = properties;
         this.clock = clock;
-        this.revocations = revocations;
-        if (properties.keys() == null || properties.keys().isEmpty()) {
+        boolean configured = properties.keys() != null && !properties.keys().isEmpty();
+        if (configured) {
+            properties.keys().forEach((kid, key) -> keys.put(kid, load(kid, key)));
+            this.activeKid = properties.activeKid();
+        } else if (properties.generateEphemeralKey()) {
+            this.activeKid = "ephemeral-" + HexFormat.of().formatHex(randomBytes(4));
+            keys.put(activeKid, generate());
+            LOG.warn("Brak kluczy JWT (security.jwt.keys): wygenerowano tymczasowy klucz {} (tylko local i test; "
+                    + "tokeny przestaną być ważne po restarcie)", activeKid);
+        } else {
             throw new IllegalStateException("Brak kluczy JWT (security.jwt.keys)");
         }
-        properties.keys().forEach((kid, value) -> {
-            byte[] secret = Base64.getDecoder().decode(value);
-            if (secret.length < 32) {
-                throw new IllegalStateException("Klucz JWT " + kid + " ma mniej niż 32 bajty");
-            }
-            keys.put(kid, secret);
-        });
-        if (!keys.containsKey(properties.activeKid())) {
-            throw new IllegalStateException("Brak aktywnego klucza JWT: " + properties.activeKid());
+        KeyMaterial active = keys.get(activeKid);
+        if (active == null || active.privateKey() == null) {
+            throw new IllegalStateException("Brak klucza prywatnego dla aktywnego klucza JWT: " + activeKid);
         }
+        this.verifier = new RsaAccessTokenVerifier(
+                kid -> keys.containsKey(kid) ? keys.get(kid).publicKey() : null,
+                properties.issuer(), clock, revocations);
     }
 
     public String issue(AuthenticatedUser user) {
@@ -68,49 +100,30 @@ public class JwtService {
         if (user.patientId() != null) {
             claims.claim("pid", user.patientId().toString());
         }
-        JWSHeader header = new JWSHeader.Builder(JWSAlgorithm.HS256).type(JOSEObjectType.JWT)
-                .keyID(properties.activeKid()).build();
+        JWSHeader header = new JWSHeader.Builder(JWSAlgorithm.RS256).type(JOSEObjectType.JWT)
+                .keyID(activeKid).build();
         try {
             SignedJWT jwt = new SignedJWT(header, claims.build());
-            jwt.sign(new MACSigner(keys.get(properties.activeKid())));
+            jwt.sign(new RSASSASigner(keys.get(activeKid).privateKey()));
             return jwt.serialize();
         } catch (JOSEException e) {
             throw new IllegalStateException("Nie udało się podpisać tokenu", e);
         }
     }
 
-    /** Pusty wynik dla każdego niepoprawnego tokenu (zły podpis, algorytm, kid, wystawca, wygasły). */
+    /** Pusty wynik dla każdego niepoprawnego tokenu (zły podpis, algorytm, kid, wystawca, wygasły, odwołany). */
+    @Override
     public Optional<AuthenticatedUser> verify(String token) {
-        try {
-            SignedJWT jwt = SignedJWT.parse(token);
-            if (!JWSAlgorithm.HS256.equals(jwt.getHeader().getAlgorithm())) {
-                return Optional.empty();
-            }
-            byte[] secret = keys.get(jwt.getHeader().getKeyID());
-            if (secret == null || !jwt.verify(new MACVerifier(secret))) {
-                return Optional.empty();
-            }
-            JWTClaimsSet claims = jwt.getJWTClaimsSet();
-            Date exp = claims.getExpirationTime();
-            if (!properties.issuer().equals(claims.getIssuer()) || exp == null
-                    || !exp.toInstant().isAfter(clock.instant())) {
-                return Optional.empty();
-            }
-            UUID userId = UUID.fromString(claims.getSubject());
-            Date issued = claims.getIssueTime();
-            if (issued == null || revocations.isRevoked(userId, issued.toInstant())) {
-                return Optional.empty();
-            }
-            return Optional.of(new AuthenticatedUser(userId, uuid(claims, "tid"),
-                    Role.valueOf(claims.getStringClaim("role")), uuid(claims, "eid"), uuid(claims, "pid")));
-        } catch (ParseException | JOSEException | IllegalArgumentException | NullPointerException e) {
-            return Optional.empty();
-        }
+        return verifier.verify(token);
     }
 
-    private static UUID uuid(JWTClaimsSet claims, String name) throws ParseException {
-        String value = claims.getStringClaim(name);
-        return value == null ? null : UUID.fromString(value);
+    /** Zestaw kluczy publicznych (JWKS): wyłącznie parametry publiczne, także dla kluczy wycofywanych. */
+    public Map<String, Object> jwks() {
+        var list = keys.entrySet().stream()
+                .map(e -> (com.nimbusds.jose.jwk.JWK) new RSAKey.Builder(e.getValue().publicKey())
+                        .keyID(e.getKey()).keyUse(KeyUse.SIGNATURE).algorithm(JWSAlgorithm.RS256).build())
+                .toList();
+        return new JWKSet(list).toJSONObject(true);
     }
 
     public Duration accessTtl() {
@@ -119,5 +132,53 @@ public class JwtService {
 
     public Duration refreshTtl() {
         return properties.refreshTtl();
+    }
+
+    private static KeyMaterial load(String kid, JwtProperties.Key key) {
+        try {
+            KeyFactory factory = KeyFactory.getInstance("RSA");
+            RSAPrivateKey privateKey = null;
+            RSAPublicKey publicKey = null;
+            if (key.privateKey() != null && !key.privateKey().isBlank()) {
+                privateKey = (RSAPrivateKey) factory.generatePrivate(
+                        new PKCS8EncodedKeySpec(Base64.getDecoder().decode(key.privateKey().trim())));
+                if (privateKey instanceof RSAPrivateCrtKey crt) {
+                    publicKey = (RSAPublicKey) factory.generatePublic(
+                            new RSAPublicKeySpec(crt.getModulus(), crt.getPublicExponent()));
+                }
+            }
+            if (key.publicKey() != null && !key.publicKey().isBlank()) {
+                publicKey = (RSAPublicKey) factory.generatePublic(
+                        new X509EncodedKeySpec(Base64.getDecoder().decode(key.publicKey().trim())));
+            }
+            if (publicKey == null) {
+                throw new IllegalStateException("Klucz JWT " + kid + " nie ma ani klucza prywatnego, ani publicznego");
+            }
+            BigInteger modulus = publicKey.getModulus();
+            if (modulus.bitLength() < MIN_KEY_BITS) {
+                throw new IllegalStateException("Klucz JWT " + kid + " jest krótszy niż " + MIN_KEY_BITS + " bitów");
+            }
+            return new KeyMaterial(publicKey, privateKey);
+        } catch (GeneralSecurityException | IllegalArgumentException | ClassCastException e) {
+            throw new IllegalStateException("Niepoprawny klucz JWT " + kid + " (oczekiwane Base64: PKCS#8 dla "
+                    + "private-key, X.509 dla public-key)", e);
+        }
+    }
+
+    private static KeyMaterial generate() {
+        try {
+            KeyPairGenerator generator = KeyPairGenerator.getInstance("RSA");
+            generator.initialize(MIN_KEY_BITS);
+            KeyPair pair = generator.generateKeyPair();
+            return new KeyMaterial((RSAPublicKey) pair.getPublic(), (RSAPrivateKey) pair.getPrivate());
+        } catch (GeneralSecurityException e) {
+            throw new IllegalStateException("Nie udało się wygenerować klucza JWT", e);
+        }
+    }
+
+    private static byte[] randomBytes(int length) {
+        byte[] bytes = new byte[length];
+        ThreadLocalRandom.current().nextBytes(bytes);
+        return bytes;
     }
 }
