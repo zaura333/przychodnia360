@@ -612,6 +612,52 @@
         "tags" : [ "auth-controller" ]
       }
     },
+    "/api/v1/auth/password-reset/confirm" : {
+      "post" : {
+        "description" : "Dostęp: publiczny (token z e-maila). Dotyczy też pierwszego ustawienia hasła pracownika. Po zmianie unieważnia sesje użytkownika.",
+        "operationId" : "confirmPasswordReset",
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/PasswordResetConfirmRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "204" : {
+            "description" : "No Content"
+          }
+        },
+        "summary" : "Ustawienie hasła z jednorazowego linku",
+        "tags" : [ "account-controller" ]
+      }
+    },
+    "/api/v1/auth/password-reset/request" : {
+      "post" : {
+        "description" : "Dostęp: publiczny. Zawsze 202, niezależnie od tego, czy konto istnieje.",
+        "operationId" : "requestPasswordReset",
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/PasswordResetRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "202" : {
+            "description" : "Accepted"
+          }
+        },
+        "summary" : "Prośba o reset hasła",
+        "tags" : [ "account-controller" ]
+      }
+    },
     "/api/v1/auth/platform/login" : {
       "post" : {
         "description" : "Dostęp: publiczny.",
@@ -668,6 +714,29 @@
         },
         "summary" : "Odświeżenie tokenu",
         "tags" : [ "auth-controller" ]
+      }
+    },
+    "/api/v1/auth/register-patient" : {
+      "post" : {
+        "description" : "Dostęp: publiczny. Zawsze 202 z pustą odpowiedzią (zajęty e-mail nie jest ujawniany); bez automatycznego logowania.",
+        "operationId" : "registerPatient",
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/RegisterPatientRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "202" : {
+            "description" : "Accepted"
+          }
+        },
+        "summary" : "Rejestracja konta pacjenta",
+        "tags" : [ "account-controller" ]
       }
     },
     "/api/v1/doctors" : {
@@ -1005,6 +1074,135 @@
         "tags" : [ "my-schedule-controller" ]
       }
     },
+    "/api/v1/platform/tenants" : {
+      "get" : {
+        "description" : "Dostęp: PLATFORM_MANAGE (PLATFORM_ADMIN).",
+        "operationId" : "listTenants",
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "type" : "array",
+                  "items" : {
+                    "$ref" : "#/components/schemas/TenantResponse"
+                  }
+                }
+              }
+            },
+            "description" : "OK"
+          }
+        },
+        "summary" : "Lista placówek",
+        "tags" : [ "tenant-admin-controller" ]
+      },
+      "post" : {
+        "description" : "Dostęp: PLATFORM_MANAGE. 409 przy zajętym identyfikatorze.",
+        "operationId" : "createTenant",
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/CreateTenantRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "201" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/TenantResponse"
+                }
+              }
+            },
+            "description" : "Created"
+          }
+        },
+        "summary" : "Utworzenie placówki",
+        "tags" : [ "tenant-admin-controller" ]
+      }
+    },
+    "/api/v1/platform/tenants/{id}" : {
+      "patch" : {
+        "description" : "Dostęp: PLATFORM_MANAGE.",
+        "operationId" : "updateTenant",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "id",
+          "required" : true,
+          "schema" : {
+            "type" : "string",
+            "format" : "uuid"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/UpdateTenantRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/TenantResponse"
+                }
+              }
+            },
+            "description" : "OK"
+          }
+        },
+        "summary" : "Edycja lub dezaktywacja placówki",
+        "tags" : [ "tenant-admin-controller" ]
+      }
+    },
+    "/api/v1/platform/tenants/{id}/admins" : {
+      "post" : {
+        "description" : "Dostęp: PLATFORM_MANAGE. Konto bez hasła; administrator dostaje link ustawienia hasła w e-mailu.",
+        "operationId" : "createTenantAdmin",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "id",
+          "required" : true,
+          "schema" : {
+            "type" : "string",
+            "format" : "uuid"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/CreateTenantAdminRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "201" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/TenantAdminResponse"
+                }
+              }
+            },
+            "description" : "Created"
+          }
+        },
+        "summary" : "Utworzenie konta administratora placówki",
+        "tags" : [ "platform-admin-controller" ]
+      }
+    },
     "/api/v1/reception/appointments" : {
       "get" : {
         "description" : "Dostęp: APPOINTMENT_READ_ALL (RECEPTIONIST, TENANT_ADMIN). Okno do 32 dni, daty lokalne placówki.",
@@ -1283,6 +1481,26 @@
         "summary" : "Szczegóły usługi",
         "tags" : [ "service-controller" ]
       }
+    },
+    "/api/v1/tenant" : {
+      "get" : {
+        "description" : "Dostęp: TENANT_READ (każda rola placówki). Placówka wynika wyłącznie z tokenu.",
+        "operationId" : "getOwnTenant",
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/OwnTenantResponse"
+                }
+              }
+            },
+            "description" : "OK"
+          }
+        },
+        "summary" : "Dane własnej placówki",
+        "tags" : [ "me-controller" ]
+      }
     }
   },
   "components" : {
@@ -1434,6 +1652,34 @@
           }
         },
         "required" : [ "birthDate", "firstName", "lastName" ]
+      },
+      "CreateTenantAdminRequest" : {
+        "type" : "object",
+        "properties" : {
+          "email" : {
+            "type" : "string",
+            "format" : "email",
+            "maxLength" : 254,
+            "minLength" : 0
+          }
+        },
+        "required" : [ "email" ]
+      },
+      "CreateTenantRequest" : {
+        "type" : "object",
+        "properties" : {
+          "name" : {
+            "type" : "string",
+            "maxLength" : 200,
+            "minLength" : 0
+          },
+          "slug" : {
+            "type" : "string",
+            "minLength" : 1,
+            "pattern" : "^[a-z0-9][a-z0-9-]{1,62}$"
+          }
+        },
+        "required" : [ "name", "slug" ]
       },
       "DoctorResponse" : {
         "type" : "object",
@@ -1638,6 +1884,21 @@
           }
         }
       },
+      "OwnTenantResponse" : {
+        "type" : "object",
+        "properties" : {
+          "id" : {
+            "type" : "string",
+            "format" : "uuid"
+          },
+          "name" : {
+            "type" : "string"
+          },
+          "slug" : {
+            "type" : "string"
+          }
+        }
+      },
       "PageResponsePatientResponse" : {
         "type" : "object",
         "properties" : {
@@ -1684,6 +1945,39 @@
           }
         }
       },
+      "PasswordResetConfirmRequest" : {
+        "type" : "object",
+        "properties" : {
+          "newPassword" : {
+            "type" : "string",
+            "maxLength" : 200,
+            "minLength" : 0
+          },
+          "token" : {
+            "type" : "string",
+            "maxLength" : 200,
+            "minLength" : 0
+          }
+        },
+        "required" : [ "newPassword", "token" ]
+      },
+      "PasswordResetRequest" : {
+        "type" : "object",
+        "properties" : {
+          "email" : {
+            "type" : "string",
+            "format" : "email",
+            "maxLength" : 254,
+            "minLength" : 0
+          },
+          "tenantSlug" : {
+            "type" : "string",
+            "maxLength" : 63,
+            "minLength" : 0
+          }
+        },
+        "required" : [ "email", "tenantSlug" ]
+      },
       "PatientResponse" : {
         "type" : "object",
         "properties" : {
@@ -1725,6 +2019,42 @@
           }
         },
         "required" : [ "email", "password" ]
+      },
+      "RegisterPatientRequest" : {
+        "type" : "object",
+        "properties" : {
+          "birthDate" : {
+            "type" : "string",
+            "format" : "date"
+          },
+          "email" : {
+            "type" : "string",
+            "format" : "email",
+            "maxLength" : 254,
+            "minLength" : 0
+          },
+          "firstName" : {
+            "type" : "string",
+            "maxLength" : 100,
+            "minLength" : 0
+          },
+          "lastName" : {
+            "type" : "string",
+            "maxLength" : 100,
+            "minLength" : 0
+          },
+          "password" : {
+            "type" : "string",
+            "maxLength" : 200,
+            "minLength" : 0
+          },
+          "tenantSlug" : {
+            "type" : "string",
+            "maxLength" : 63,
+            "minLength" : 0
+          }
+        },
+        "required" : [ "birthDate", "email", "firstName", "lastName", "password", "tenantSlug" ]
       },
       "RescheduleRequest" : {
         "type" : "object",
@@ -1900,6 +2230,36 @@
           }
         }
       },
+      "TenantAdminResponse" : {
+        "type" : "object",
+        "properties" : {
+          "email" : {
+            "type" : "string"
+          },
+          "userId" : {
+            "type" : "string",
+            "format" : "uuid"
+          }
+        }
+      },
+      "TenantResponse" : {
+        "type" : "object",
+        "properties" : {
+          "active" : {
+            "type" : "boolean"
+          },
+          "id" : {
+            "type" : "string",
+            "format" : "uuid"
+          },
+          "name" : {
+            "type" : "string"
+          },
+          "slug" : {
+            "type" : "string"
+          }
+        }
+      },
       "TokenResponse" : {
         "type" : "object",
         "properties" : {
@@ -1935,6 +2295,19 @@
           }
         },
         "required" : [ "firstName", "lastName" ]
+      },
+      "UpdateTenantRequest" : {
+        "type" : "object",
+        "properties" : {
+          "active" : {
+            "type" : "boolean"
+          },
+          "name" : {
+            "type" : "string",
+            "maxLength" : 200,
+            "minLength" : 1
+          }
+        }
       },
       "WeeklyEntryRequest" : {
         "type" : "object",

@@ -10,7 +10,7 @@ import java.util.UUID;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.transaction.support.TransactionTemplate;
-import pl.przychodnia360.identity.api.Role;
+import pl.przychodnia360.common.security.Role;
 import pl.przychodnia360.identity.application.PasswordHasher;
 import pl.przychodnia360.identity.application.UserRepository;
 import pl.przychodnia360.identity.domain.User;
