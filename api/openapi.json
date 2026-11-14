@@ -1538,7 +1538,8 @@
             "type" : "string",
             "enum" : [ "SCHEDULED", "CANCELLED", "COMPLETED" ]
           }
-        }
+        },
+        "required" : [ "employeeId", "employeeName", "endAt", "id", "serviceId", "serviceName", "startAt", "status" ]
       },
       "BookRequest" : {
         "type" : "object",
@@ -1583,7 +1584,8 @@
           "name" : {
             "type" : "string"
           }
-        }
+        },
+        "required" : [ "id", "name" ]
       },
       "ContactRequest" : {
         "type" : "object",
@@ -1703,7 +1705,8 @@
               "$ref" : "#/components/schemas/WeeklyEntryResponse"
             }
           }
-        }
+        },
+        "required" : [ "firstName", "id", "lastName", "weekly" ]
       },
       "EmployeeResponse" : {
         "type" : "object",
@@ -1732,7 +1735,8 @@
             "type" : "string",
             "format" : "uuid"
           }
-        }
+        },
+        "required" : [ "active", "firstName", "id", "lastName", "type" ]
       },
       "ExceptionRequest" : {
         "type" : "object",
@@ -1779,7 +1783,8 @@
             "type" : "string",
             "enum" : [ "ABSENCE", "EXTRA_SHIFT" ]
           }
-        }
+        },
+        "required" : [ "date", "id", "type" ]
       },
       "FacilityResponse" : {
         "type" : "object",
@@ -1790,7 +1795,8 @@
           "slug" : {
             "type" : "string"
           }
-        }
+        },
+        "required" : [ "name", "slug" ]
       },
       "HealthResponse" : {
         "type" : "object",
@@ -1798,7 +1804,8 @@
           "status" : {
             "type" : "string"
           }
-        }
+        },
+        "required" : [ "status" ]
       },
       "IntervalResponse" : {
         "type" : "object",
@@ -1811,7 +1818,8 @@
             "type" : "string",
             "format" : "date-time"
           }
-        }
+        },
+        "required" : [ "end", "start" ]
       },
       "LoginRequest" : {
         "type" : "object",
@@ -1865,7 +1873,8 @@
             "type" : "string",
             "format" : "uuid"
           }
-        }
+        },
+        "required" : [ "role", "userId" ]
       },
       "MyScheduleResponse" : {
         "type" : "object",
@@ -1882,7 +1891,8 @@
               "$ref" : "#/components/schemas/IntervalResponse"
             }
           }
-        }
+        },
+        "required" : [ "appointments", "intervals" ]
       },
       "OwnTenantResponse" : {
         "type" : "object",
@@ -1897,7 +1907,8 @@
           "slug" : {
             "type" : "string"
           }
-        }
+        },
+        "required" : [ "id", "name", "slug" ]
       },
       "PageResponsePatientResponse" : {
         "type" : "object",
@@ -1920,7 +1931,8 @@
             "type" : "integer",
             "format" : "int64"
           }
-        }
+        },
+        "required" : [ "items", "page", "size", "total" ]
       },
       "PageResponseServiceResponse" : {
         "type" : "object",
@@ -1943,7 +1955,8 @@
             "type" : "integer",
             "format" : "int64"
           }
-        }
+        },
+        "required" : [ "items", "page", "size", "total" ]
       },
       "PasswordResetConfirmRequest" : {
         "type" : "object",
@@ -2001,7 +2014,8 @@
           "lastName" : {
             "type" : "string"
           }
-        }
+        },
+        "required" : [ "birthDate", "firstName", "hasAccount", "id", "lastName" ]
       },
       "PlatformLoginRequest" : {
         "type" : "object",
@@ -2087,7 +2101,8 @@
               "$ref" : "#/components/schemas/WeeklyEntryResponse"
             }
           }
-        }
+        },
+        "required" : [ "exceptions", "intervals", "weekly" ]
       },
       "SearchRequest" : {
         "type" : "object",
@@ -2173,7 +2188,8 @@
           "price" : {
             "type" : "number"
           }
-        }
+        },
+        "required" : [ "active", "categoryId", "durationMinutes", "id", "name", "performerType", "price" ]
       },
       "SlotResponse" : {
         "type" : "object",
@@ -2186,7 +2202,8 @@
             "type" : "string",
             "format" : "date-time"
           }
-        }
+        },
+        "required" : [ "end", "start" ]
       },
       "StaffAppointmentView" : {
         "type" : "object",
@@ -2228,7 +2245,8 @@
             "type" : "string",
             "enum" : [ "SCHEDULED", "CANCELLED", "COMPLETED" ]
           }
-        }
+        },
+        "required" : [ "employeeId", "employeeName", "endAt", "id", "patientId", "patientName", "serviceId", "serviceName", "startAt", "status" ]
       },
       "TenantAdminResponse" : {
         "type" : "object",
@@ -2240,7 +2258,8 @@
             "type" : "string",
             "format" : "uuid"
           }
-        }
+        },
+        "required" : [ "email", "userId" ]
       },
       "TenantResponse" : {
         "type" : "object",
@@ -2258,7 +2277,8 @@
           "slug" : {
             "type" : "string"
           }
-        }
+        },
+        "required" : [ "active", "id", "name", "slug" ]
       },
       "TokenResponse" : {
         "type" : "object",
@@ -2273,7 +2293,8 @@
           "tokenType" : {
             "type" : "string"
           }
-        }
+        },
+        "required" : [ "accessToken", "expiresIn", "tokenType" ]
       },
       "UpdateEmployeeRequest" : {
         "type" : "object",
@@ -2362,7 +2383,8 @@
             "type" : "string",
             "format" : "date"
           }
-        }
+        },
+        "required" : [ "dayOfWeek", "endTime", "id", "startTime", "validFrom" ]
       },
       "WeeklyScheduleRequest" : {
         "type" : "object",
