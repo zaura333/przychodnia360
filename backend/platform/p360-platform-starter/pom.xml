@@ -12,6 +12,10 @@
   <artifactId>p360-platform-starter</artifactId>
   <name>p360-platform-starter (security, tenant/RLS, Problem Details, logowanie, czas)</name>
 
+  <properties>
+    <skipTests>${p360.platform.skipTests}</skipTests>
+  </properties>
+
   <dependencies>
     <dependency>
       <groupId>pl.przychodnia360</groupId>

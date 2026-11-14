@@ -17,6 +17,10 @@
     które usługa dziedziczy pustą podklasą.
   </description>
 
+  <properties>
+    <skipTests>${p360.platform.skipTests}</skipTests>
+  </properties>
+
   <dependencies>
     <dependency>
       <groupId>pl.przychodnia360</groupId>

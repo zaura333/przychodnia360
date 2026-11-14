@@ -12,6 +12,10 @@
   <artifactId>p360-shared-core</artifactId>
   <name>p360-shared-core (czysta Java, bez Springa)</name>
 
+  <properties>
+    <skipTests>${p360.platform.skipTests}</skipTests>
+  </properties>
+
   <dependencies>
     <dependency>
       <groupId>org.junit.jupiter</groupId>
