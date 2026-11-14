@@ -132,14 +132,14 @@ public class ServiceCatalogService implements CatalogFacade {
     @Transactional(readOnly = true)
     public Optional<ServiceInfo> service(UUID serviceId) {
         return repository.findService(serviceId).map(s -> new ServiceInfo(s.id(), s.name(), s.price(),
-                s.durationMinutes(), s.performerType(), s.active()));
+                s.durationMinutes(), s.performerType().name(), s.active()));
     }
 
     @Override
     @Transactional(readOnly = true)
     public Map<UUID, ServiceInfo> services(Collection<UUID> ids) {
         return repository.findServices(ids).stream().collect(Collectors.toMap(MedicalService::id,
-                s -> new ServiceInfo(s.id(), s.name(), s.price(), s.durationMinutes(), s.performerType(), s.active()),
+                s -> new ServiceInfo(s.id(), s.name(), s.price(), s.durationMinutes(), s.performerType().name(), s.active()),
                 (a, b) -> a));
     }
 }
