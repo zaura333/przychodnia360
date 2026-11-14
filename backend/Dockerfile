@@ -2,7 +2,8 @@
 #   runtime  (domyślny): buduje jar wewnątrz obrazu (lokalnie, osoby bez Javy)
 #   from-jar: kopiuje gotowy backend/app.jar z zadania `package` (CI i wdrożenie: ten sam jar w e2e i na Fargate)
 # Obraz wdrożeniowy: x86_64, użytkownik nie-root, Alpine (musl) także na Fargate.
-ARG MODULE=backend-api
+ARG MODULE=services/clinic-core
+ARG JAR=clinic-core
 
 # --- wspólna baza uruchomieniowa ---
 FROM eclipse-temurin:21-jre-alpine AS base
@@ -24,11 +25,12 @@ WORKDIR /build
 COPY mvnw ./
 COPY .mvn .mvn
 COPY pom.xml ./
-COPY shared-core/pom.xml shared-core/
-COPY backend-api/pom.xml backend-api/
+COPY platform/p360-shared-core/pom.xml platform/p360-shared-core/
+COPY platform/p360-platform-starter/pom.xml platform/p360-platform-starter/
+COPY services/clinic-core/pom.xml services/clinic-core/
 RUN --mount=type=cache,target=/root/.m2 sh ./mvnw -B -q dependency:go-offline -pl ${MODULE} -am || true
-COPY shared-core shared-core
-COPY backend-api backend-api
+COPY platform platform
+COPY services services
 # Testy robi CI i `mvn verify`, nie budowa obrazu
 RUN --mount=type=cache,target=/root/.m2 sh ./mvnw -B -q -pl ${MODULE} -am package -DskipTests
 
@@ -39,4 +41,5 @@ COPY --chown=app:app app.jar /app/app.jar
 # --- cel domyślny: jar zbudowany w obrazie ---
 FROM base AS runtime
 ARG MODULE
-COPY --from=builder --chown=app:app /build/${MODULE}/target/${MODULE}.jar /app/app.jar
+ARG JAR
+COPY --from=builder --chown=app:app /build/${MODULE}/target/${JAR}.jar /app/app.jar

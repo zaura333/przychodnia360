@@ -1,0 +1,30 @@
+# Profil testowy: baza z Testcontainers (adresy i hasła ustawia AbstractIntegrationTest).
+spring:
+  flyway:
+    # migracja testowa tworzy tabelę wzorcową _tenant_probe (nie istnieje w produkcji)
+    locations: classpath:db/migration,classpath:db/testmigration
+
+logging:
+  structured:
+    format:
+      console: logstash
+    json:
+      customizer: pl.przychodnia360.common.logging.PeselMaskingCustomizer
+
+p360:
+  events:
+    relay:
+      # w testach przekaźnik uruchamiają testy (OutboxRelay.runOnce), nie harmonogram
+      enabled: false
+
+security:
+  jwt:
+    active-kid: test-1
+    keys:
+      test-1: dGVzdC1vbmx5LWp3dC1rZXktMDEyMzQ1Njc4OWFiY2RlZi14eXo=
+  password:
+    argon2:
+      # obniżone parametry tylko w testach (ADR-B06), żeby nie wydłużać builda
+      memory-kib: 1024
+      iterations: 1
+      parallelism: 1
