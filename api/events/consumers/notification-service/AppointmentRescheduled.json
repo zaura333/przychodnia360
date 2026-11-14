@@ -1,0 +1,11 @@
+{
+  "consumer": "notification-service",
+  "event": "AppointmentRescheduled",
+  "note": "Oczekiwania planowanego konsumenta (zadanie 1.11): informacja o nowym terminie. Usługa jeszcze nie istnieje.",
+  "requires": {
+    "tenantId": { "type": "string", "format": "uuid" },
+    "aggregateId": { "type": "string", "format": "uuid" },
+    "patientId": { "type": "string", "format": "uuid" },
+    "startAt": { "type": "string", "format": "date-time" }
+  }
+}

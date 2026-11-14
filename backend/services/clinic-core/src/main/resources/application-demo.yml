@@ -9,6 +9,9 @@ logging:
     format:
       console: logstash
     json:
+      # nazwa usługi w każdym wpisie (korelacja logów wielu usług)
+      add:
+        service: ${spring.application.name}
       customizer: pl.przychodnia360.common.logging.PeselMaskingCustomizer
 
 springdoc:
@@ -20,8 +23,11 @@ springdoc:
 security:
   jwt:
     active-kid: ${JWT_ACTIVE_KID}
+    # JWT_ACTIVE_KEY: klucz prywatny RSA (PKCS#8, Base64) z Parameter Store; klucze wycofywane po rotacji
+    # dochodzą jako kolejne wpisy z samym public-key (X.509, Base64)
     keys:
-      "[${JWT_ACTIVE_KID}]": ${JWT_ACTIVE_KEY}
+      "[${JWT_ACTIVE_KID}]":
+        private-key: ${JWT_ACTIVE_KEY}
 
 seed:
   password: ${SEED_PASSWORD:}   # pusty = seed pominięty; hasło z Parameter Store

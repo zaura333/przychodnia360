@@ -39,10 +39,14 @@ class SnsSqsTransportIntegrationTest extends AbstractApiTest {
     @Autowired JsonMapper mapper;
     @Autowired PlatformTransactionManager transactionManager;
     @Autowired InboxGuard inbox;
+    @Autowired EventTracing eventTracing;
+    @Autowired io.micrometer.tracing.Tracer tracer;
 
     /** Handler zapamiętujący odebrane zdarzenia PatientRegistered. */
     private static class Recorder implements EventHandler {
         final List<EventEnvelope> received = new CopyOnWriteArrayList<>();
+        final List<String> traceIds = new CopyOnWriteArrayList<>();
+        io.micrometer.tracing.Tracer tracer;
 
         @Override
         public String eventType() {
@@ -52,6 +56,9 @@ class SnsSqsTransportIntegrationTest extends AbstractApiTest {
         @Override
         public void handle(EventEnvelope event) {
             received.add(event);
+            if (tracer != null && tracer.currentSpan() != null) {
+                traceIds.add(tracer.currentSpan().context().traceId());
+            }
         }
     }
 
@@ -98,7 +105,7 @@ class SnsSqsTransportIntegrationTest extends AbstractApiTest {
 
     private SqsEventConsumer consumer(Infra infra, Recorder recorder) {
         return new SqsEventConsumer(sqs, infra.queueUrl(), "test-consumer", mapper, inbox, transactionManager,
-                List.of(recorder), 1);
+                List.of(recorder), eventTracing, 1);
     }
 
     private static void await(BooleanSupplier condition, int seconds) throws InterruptedException {
@@ -137,6 +144,38 @@ class SnsSqsTransportIntegrationTest extends AbstractApiTest {
         Integer processed = inTenantResult(tenant, () -> jdbc.sql("SELECT count(*) FROM processed_events")
                 .query(Integer.class).single());
         assertThat(processed).as("inbox zapisał dostawę").isEqualTo(1);
+    }
+
+    @Test
+    void traceIdSurvivesOutboxSnsAndSqsAndIsRestoredInTheConsumer() throws InterruptedException {
+        String traceId = "4bf92f3577b34da6a3ce929d0e0e4736";
+        Infra infra = infra();
+        UUID tenant = newTenant();
+        var context = tracer.traceContextBuilder().traceId(traceId).spanId("00f067aa0ba902b7").sampled(true).build();
+        var span = tracer.spanBuilder().setParent(context).name("test").start();
+        try (var ignored = tracer.withSpan(span)) {
+            inTenantResult(tenant, () -> patientFacade.create("Anna", "Nowak", LocalDate.of(1990, 1, 1), null));
+        } finally {
+            span.end();
+        }
+
+        var relay = new OutboxRelay(jdbc, transactionManager, new SnsEventTransport(sns, infra.topicArn(), mapper),
+                mapper, 50);
+        int guard = 0;
+        while (relay.runOnce() > 0 && guard++ < 100) {
+            // opróżnij kolejkę outboxu
+        }
+        Recorder recorder = new Recorder();
+        recorder.tracer = tracer;
+        SqsEventConsumer consumer = consumer(infra, recorder);
+        await(() -> {
+            consumer.pollOnce();
+            return recorder.received.stream().anyMatch(e -> e.tenantId().equals(tenant));
+        }, 20);
+
+        var envelope = recorder.received.stream().filter(e -> e.tenantId().equals(tenant)).findFirst().orElseThrow();
+        assertThat(envelope.traceparent()).startsWith("00-" + traceId + "-");
+        assertThat(recorder.traceIds).as("handler działa w śladzie zdarzenia").contains(traceId);
     }
 
     @Test

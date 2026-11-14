@@ -1,0 +1,22 @@
+# Statyczna konfiguracja krawędzi (Traefik v3). Reguły: dynamic/routes.yml (generowane z docker/edge).
+entryPoints:
+  web:
+    address: ":80"
+  traefik:
+    address: ":8080"
+
+ping:
+  entryPoint: traefik
+
+providers:
+  file:
+    directory: /etc/traefik/dynamic
+    watch: true
+
+api:
+  dashboard: false
+
+log:
+  level: INFO
+
+accessLog: {}

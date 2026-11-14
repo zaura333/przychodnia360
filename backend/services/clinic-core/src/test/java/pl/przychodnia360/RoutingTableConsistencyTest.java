@@ -17,7 +17,7 @@ import tools.jackson.databind.json.JsonMapper;
 
 /**
  * Fala 0R, 0R.7 (ADR-M06): każda ścieżka z api/openapi.json ma dokładnie jedną regułę routingu (usługę docelową),
- * a żadna reguła nie jest martwa. Tabela routing-table.csv jest wzorcem dla reguł Traefik/ALB z fali 1.5.
+ * a żadna reguła nie jest martwa. Tabela docker/edge/routing-table.csv jest źródłem reguł Traefika (EdgeRoutesTest), używanego lokalnie i w AWS.
  * Prefiksy /admin, /me i /reception łączą kilka usług, więc reguły są na poziomie podścieżek.
  */
 class RoutingTableConsistencyTest {
@@ -28,14 +28,12 @@ class RoutingTableConsistencyTest {
     @Test
     void everyApiPathHasExactlyOneRoutingRule() throws IOException {
         List<Rule> rules = new ArrayList<>();
-        try (var in = getClass().getResourceAsStream("/routing-table.csv")) {
-            assertThat(in).as("routing-table.csv").isNotNull();
-            String[] lines = new String(in.readAllBytes(), StandardCharsets.UTF_8).split("\\R");
-            for (int i = 1; i < lines.length; i++) {
-                if (!lines[i].isBlank()) {
-                    String[] cells = lines[i].split(",");
-                    rules.add(new Rule(cells[0], cells[1], PathPatternParser.defaultInstance.parse(cells[0])));
-                }
+        String[] lines = Files.readString(repoRoot().resolve("docker/edge/routing-table.csv"),
+                StandardCharsets.UTF_8).split("\\R");
+        for (int i = 1; i < lines.length; i++) {
+            if (!lines[i].isBlank()) {
+                String[] cells = lines[i].split(",");
+                rules.add(new Rule(cells[0], cells[1], PathPatternParser.defaultInstance.parse(cells[0])));
             }
         }
         JsonNode spec = JsonMapper.builder().build().readTree(Files.readString(repoRoot().resolve("api/openapi.json")));

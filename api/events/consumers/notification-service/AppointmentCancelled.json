@@ -1,0 +1,10 @@
+{
+  "consumer": "notification-service",
+  "event": "AppointmentCancelled",
+  "note": "Oczekiwania planowanego konsumenta (zadanie 1.11): e-mail o odwołaniu wizyty (FR-16). Usługa jeszcze nie istnieje.",
+  "requires": {
+    "tenantId": { "type": "string", "format": "uuid" },
+    "aggregateId": { "type": "string", "format": "uuid" },
+    "patientId": { "type": "string", "format": "uuid" }
+  }
+}

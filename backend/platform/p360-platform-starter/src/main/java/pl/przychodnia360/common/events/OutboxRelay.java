@@ -28,7 +28,7 @@ public class OutboxRelay {
     private static final long LOCK_KEY = 0x70333630_6f757462L;
 
     private record Row(UUID id, UUID tenantId, UUID aggregateId, String type, int schemaVersion, String payload,
-            java.time.Instant occurredAt) {
+            java.time.Instant occurredAt, String traceparent) {
     }
 
     private final JdbcClient jdbc;
@@ -62,18 +62,18 @@ public class OutboxRelay {
         }
         jdbc.sql("SELECT set_config('app.relay', 'on', true)").query(String.class).single();
         List<Row> rows = jdbc.sql("""
-                SELECT id, tenant_id, aggregate_id, type, schema_version, payload::text AS payload, occurred_at
+                SELECT id, tenant_id, aggregate_id, type, schema_version, payload::text AS payload, occurred_at, traceparent
                   FROM outbox WHERE published_at IS NULL ORDER BY created_at, id LIMIT ? FOR UPDATE
                 """).param(batchSize).query((rs, n) -> new Row(rs.getObject("id", UUID.class),
                 rs.getObject("tenant_id", UUID.class), rs.getObject("aggregate_id", UUID.class),
                 rs.getString("type"), rs.getInt("schema_version"), rs.getString("payload"),
-                rs.getTimestamp("occurred_at").toInstant())).list();
+                rs.getTimestamp("occurred_at").toInstant(), rs.getString("traceparent"))).list();
         int published = 0;
         for (Row row : rows) {
             try {
                 JsonNode payload = mapper.readTree(row.payload());
                 transport.publish(new EventEnvelope(row.id(), row.type(), row.schemaVersion(), row.tenantId(),
-                        row.aggregateId(), row.occurredAt(), null, payload));
+                        row.aggregateId(), row.occurredAt(), row.traceparent(), payload));
                 jdbc.sql("UPDATE outbox SET published_at = now(), attempts = attempts + 1, last_error = NULL WHERE id = ?")
                         .param(row.id()).update();
                 published++;

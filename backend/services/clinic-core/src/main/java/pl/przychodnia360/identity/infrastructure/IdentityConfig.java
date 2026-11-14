@@ -6,6 +6,7 @@ import org.springframework.boot.context.properties.EnableConfigurationProperties
 import org.springframework.boot.web.servlet.FilterRegistrationBean;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import pl.przychodnia360.common.security.BearerAuthenticationFilter;
 import pl.przychodnia360.identity.domain.LoginAttemptPolicy;
 
 @Configuration
@@ -13,14 +14,14 @@ import pl.przychodnia360.identity.domain.LoginAttemptPolicy;
 class IdentityConfig {
 
     @Bean
-    JwtAuthenticationFilter jwtAuthenticationFilter(JwtService jwtService) {
-        return new JwtAuthenticationFilter(jwtService);
+    BearerAuthenticationFilter bearerAuthenticationFilter(JwtService jwtService) {
+        return new BearerAuthenticationFilter(jwtService);
     }
 
     /** Filtr działa wyłącznie w łańcuchu Spring Security, nie jako osobny filtr kontenera. */
     @Bean
-    FilterRegistrationBean<JwtAuthenticationFilter> jwtFilterRegistration(JwtAuthenticationFilter filter) {
-        FilterRegistrationBean<JwtAuthenticationFilter> registration = new FilterRegistrationBean<>(filter);
+    FilterRegistrationBean<BearerAuthenticationFilter> jwtFilterRegistration(BearerAuthenticationFilter filter) {
+        FilterRegistrationBean<BearerAuthenticationFilter> registration = new FilterRegistrationBean<>(filter);
         registration.setEnabled(false);
         return registration;
     }

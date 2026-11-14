@@ -1,0 +1,20 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://schemas.przychodnia360.example/events/envelope.schema.json",
+  "title": "EventEnvelope",
+  "description": "Koperta zdarzenia przesyłana przez SNS i SQS (ADR-M03). Ładunek (payload) opisuje schemat zdarzenia o danym type: api/events/<type>.schema.json. Zdarzenie bez tenantId jest odrzucane (DLQ).",
+  "x-schemaVersion": 1,
+  "type": "object",
+  "properties": {
+    "eventId": { "type": "string", "format": "uuid", "description": "Klucz idempotencji konsumenta (inbox)" },
+    "type": { "type": "string", "pattern": "^[A-Z][A-Za-z0-9]+$", "description": "Nazwa typu zdarzenia" },
+    "schemaVersion": { "type": "integer", "minimum": 1, "description": "Wersja schematu ładunku" },
+    "tenantId": { "type": "string", "format": "uuid" },
+    "aggregateId": { "type": "string", "format": "uuid" },
+    "occurredAt": { "type": "string", "format": "date-time" },
+    "traceparent": { "type": ["string", "null"], "pattern": "^00-[0-9a-f]{32}-[0-9a-f]{16}-[0-9a-f]{2}$", "description": "W3C Trace Context; null, gdy zdarzenie powstało poza śladem" },
+    "payload": { "type": "object" }
+  },
+  "required": ["eventId", "type", "schemaVersion", "tenantId", "aggregateId", "occurredAt", "payload"],
+  "additionalProperties": false
+}

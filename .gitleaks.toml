@@ -12,7 +12,10 @@ paths = ['''(^|/)\.env\.example$''']
 
 [[allowlists]]
 description = "Hasła testowe kontenera Testcontainers (syntetyczne, tylko w testach)"
-paths = ['''backend/(backend-api|services/clinic-core)/src/test/java/pl/przychodnia360/AbstractIntegrationTest\.java''']
+paths = [
+  '''backend/(backend-api|services/clinic-core)/src/test/java/pl/przychodnia360/AbstractIntegrationTest\.java''',
+  '''backend/platform/p360-test-support/src/main/java/pl/przychodnia360/testsupport/PostgresIntegrationTest\.java''',
+]
 
 [[allowlists]]
 description = "Klucze JWT i hasła demo tylko lokalne i testowe (syntetyczne, profile local i test)"

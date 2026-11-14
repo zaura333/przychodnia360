@@ -1,6 +1,6 @@
 # ADR-B07: Tokeny dostępu (JWT HS256) i odświeżanie z rotacją
 
-Status: przyjęte (etap 1a, 2026-11-14)
+Status: przyjęte (etap 1a, 2026-11-14); **zmienione 2026-11-14 (ADR-M04, zadanie 1.2): podpis RS256 zamiast HS256, patrz sekcja „Zmiana" na końcu**
 
 ## Kontekst
 
@@ -32,3 +32,13 @@ API jest bezstanowe, a przeglądarka trzyma token dostępu tylko w pamięci (ADR
 - Token odświeżania w `localStorage`: dostępny dla skryptów (XSS).
 - Odświeżanie bez rotacji: kradzież tokenu daje 7 dni dostępu bez śladu.
 - Sesje serwerowe: wymagają współdzielonego magazynu sesji, zbędnego przy jednym zadaniu i modelu bezstanowym.
+
+## Zmiana (2026-11-14, ADR-M04, zadanie 1.2): podpis asymetryczny RS256 i JWKS
+
+Podział na usługi wymaga, żeby tokeny weryfikowała każda usługa bez wspólnego sekretu, więc symetryczny HS256 został zastąpiony przez **RS256** (RSA, klucz co najmniej 2048 bitów). Wybór RS256, a nie EdDSA, wynika z natywnej obsługi w JDK i Nimbus (EdDSA wymagałby dodatkowej biblioteki Tink) i zamyka decyzję otwartą w ADR-M04.
+
+- **Wystawca (iam)** podpisuje kluczem prywatnym i publikuje klucze publiczne w `GET /api/v1/auth/jwks` (publiczny, tylko parametry publiczne, także klucze wycofywane po rotacji). Pozostałe usługi mają wyłącznie adres JWKS (`security.jwt.jwks-url`), nie mają żadnego sekretu.
+- **Weryfikacja** (`RsaAccessTokenVerifier` w starterze) wymaga algorytmu RS256, więc odrzuca `none`, HS* (w tym klasyczny atak z podpisem HMAC kluczem publicznym) i inne algorytmy; klucz wynika z `kid`; następnie sprawdzane są podpis, wystawca, `exp`, obecność `iat` i lista odwołań (ADR-M04).
+- **Klucze** (`security.jwt.keys.<kid>.private-key` PKCS#8 i `public-key` X.509, Base64): aktywny klucz musi mieć część prywatną; wycofywane po rotacji wystarczy podać wyłącznie publicznie. W profilach `local` i `test` klucz jest generowany przy starcie (`generate-ephemeral-key`), więc w repozytorium nie ma kluczy prywatnych; w profilu `demo` klucz prywatny pochodzi z Parameter Store (`JWT_ACTIVE_KID`, `JWT_ACTIVE_KEY`), a brak kluczy zatrzymuje start.
+- **Rotacja:** nowy klucz dochodzi jako aktywny, poprzedni zostaje w JWKS jako publiczny na czas życia tokenów dostępu (10 minut) i tokenów w obiegu. Konsumenci JWKS buforują zestaw (5 minut) i po nieznanym `kid` pobierają go ponownie z ograniczeniem częstotliwości; przy niedostępności wystawcy używają ostatniego zestawu.
+- Pozostałe ustalenia tego ADR (czas życia tokenu 10 minut, claimy, token odświeżania, unieważnianie, ochrona przed CSRF) bez zmian.

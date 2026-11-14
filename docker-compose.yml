@@ -1,5 +1,14 @@
-# Zależności lokalne: `docker compose up -d` startuje postgres i mailpit.
-# Backend działa z IDE, frontend z Vite. Kolejne profile (full, web, async, p1) dochodzą z etapami.
+# Zależności lokalne: `docker compose up -d` startuje postgres i mailpit (backend z IDE, frontend z Vite).
+#
+# Profile (zadanie 1.10), łączone flagą --profile:
+#   core    rdzeń: usługi biznesowe (dziś monolit clinic-core jako "backend") i krawędź Traefik. To zestaw dla e2e
+#           i dla osób bez Javy: `docker compose --profile core up -d --build --wait`.
+#   finance zarezerwowany dla billing i integration-hub (fala 2 i 3); na razie bez usług.
+#   edge    sama krawędź (Traefik), gdy backend działa z IDE.
+#   async   SNS i SQS lokalnie (LocalStack, obraz ok. 2 GB), nie wchodzi do core, żeby e2e go nie pobierało.
+#   full    wszystko: core + finance + async.
+# Nowa usługa dostaje wpis w profilu core (lub finance), bazę z P360_SERVICE_DATABASES (docker/postgres/init) i
+# upstream w docker/edge/upstreams.csv.
 name: przychodnia360
 
 services:
@@ -12,6 +21,11 @@ services:
       POSTGRES_DB: ${POSTGRES_DB:-postgres}
       P360_DB_NAME: ${P360_DB_NAME:-p360}
       P360_OWNER_PASSWORD: ${P360_OWNER_PASSWORD:?ustaw w .env (skopiuj .env.example)}
+      # Baza per usługa (zadanie 1.10): lista nazw usług, np. "notification,integration-hub"; hasła właścicieli
+      # P360_<NAZWA>_OWNER_PASSWORD trafiają do kontenera z .env (env_file poniżej). Puste = tylko baza główna.
+      P360_SERVICE_DATABASES: ${P360_SERVICE_DATABASES:-}
+    env_file:
+      - .env
     ports:
       - "127.0.0.1:${POSTGRES_PORT:-5432}:5432"
     volumes:
@@ -36,9 +50,11 @@ services:
       timeout: 3s
       retries: 10
 
-  # Profil full: cała platforma w kontenerach (osoby bez Javy, e2e). Domyślnie backend działa z IDE.
+  # Usługa clinic-core (monolit; docelowo iam, patient, catalog, scheduling). Profile core i full; domyślnie backend
+  # działa z IDE. Limit 0,5 vCPU i 2 GB jak zadanie Fargate: start trwa dłużej niż na laptopie, stąd tolerancyjny
+  # healthcheck w Dockerfile (M-7).
   backend:
-    profiles: ["full"]
+    profiles: ["core", "full"]
     build:
       context: ./backend
       target: runtime
@@ -62,12 +78,29 @@ services:
     mem_limit: 2g
     # Bez restart: błędy backendu mają być widoczne
 
-  # Profil async (osobny od full: e2e go nie potrzebuje, a obraz ma ok. 2 GB): SNS i SQS lokalnie (LocalStack,
+  # Krawędź (Traefik, fala 1.5) przed backendem; reguły z docker/edge (generowane do docker/traefik/dynamic/routes.yml).
+  # Wchodzi do core i full; profil edge uruchamia ją samą (np. przy backendzie z IDE).
+  traefik:
+    profiles: ["core", "full", "edge"]
+    image: traefik:v3.2.3
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:${EDGE_PORT:-8090}:80"
+    volumes:
+      - ./docker/traefik/traefik.yml:/etc/traefik/traefik.yml:ro
+      - ./docker/traefik/dynamic:/etc/traefik/dynamic:ro
+    healthcheck:
+      test: ["CMD", "traefik", "healthcheck", "--ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  # Profil async (poza core: e2e go nie potrzebuje, a obraz ma ok. 2 GB; wchodzi do full): SNS i SQS lokalnie (LocalStack,
   # fala 1.4). Temat, kolejki i DLQ tworzy docker/localstack/init (skrypt musi mieć bit wykonywalności w git).
   # Wersja przypięta (community, bez tokenu); `latest` wymaga konta. Backend włącza transport zmiennymi
   # P360_EVENTS_SNS_TOPIC_ARN i P360_EVENTS_AWS_ENDPOINT (patrz README).
   localstack:
-    profiles: ["async"]
+    profiles: ["async", "full"]
     image: localstack/localstack:3.8.1
     restart: unless-stopped
     environment:

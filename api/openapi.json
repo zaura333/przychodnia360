@@ -561,6 +561,27 @@
         "tags" : [ "appointment-controller" ]
       }
     },
+    "/api/v1/auth/jwks" : {
+      "get" : {
+        "description" : "Dostęp: publiczny. Zawiera wyłącznie parametry publiczne kluczy RSA (aktywnych i wycofywanych).",
+        "operationId" : "getJwks",
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "type" : "object",
+                  "additionalProperties" : { }
+                }
+              }
+            },
+            "description" : "OK"
+          }
+        },
+        "summary" : "Klucze publiczne tokenów (JWKS)",
+        "tags" : [ "jwks-controller" ]
+      }
+    },
     "/api/v1/auth/login" : {
       "post" : {
         "description" : "Dostęp: publiczny. Zwraca token dostępu i ustawia ciasteczko odświeżania.",

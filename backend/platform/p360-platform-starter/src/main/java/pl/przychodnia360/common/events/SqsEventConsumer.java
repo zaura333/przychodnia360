@@ -36,12 +36,14 @@ public class SqsEventConsumer implements SmartLifecycle {
     private final InboxGuard inbox;
     private final TransactionTemplate tx;
     private final Map<String, EventHandler> handlers;
+    private final EventTracing tracing;
     private final int waitSeconds;
     private volatile boolean running;
     private Thread worker;
 
     public SqsEventConsumer(SqsClient sqs, String queueUrl, String consumerName, JsonMapper mapper, InboxGuard inbox,
-            PlatformTransactionManager transactionManager, List<EventHandler> handlers, int waitSeconds) {
+            PlatformTransactionManager transactionManager, List<EventHandler> handlers, EventTracing tracing,
+            int waitSeconds) {
         this.sqs = sqs;
         this.queueUrl = queueUrl;
         this.consumerName = consumerName;
@@ -49,6 +51,7 @@ public class SqsEventConsumer implements SmartLifecycle {
         this.inbox = inbox;
         this.tx = new TransactionTemplate(transactionManager);
         this.handlers = handlers.stream().collect(Collectors.toMap(EventHandler::eventType, Function.identity()));
+        this.tracing = tracing;
         this.waitSeconds = waitSeconds;
     }
 
@@ -81,8 +84,9 @@ public class SqsEventConsumer implements SmartLifecycle {
             return;
         }
         try (var scope = TenantContext.open(new TenantId(envelope.tenantId()))) {
-            tx.executeWithoutResult(status -> inbox.runOnce(consumerName, envelope.eventId(),
-                    () -> handler.handle(envelope)));
+            tracing.runInContext(envelope.traceparent(), "consume " + envelope.type(),
+                    () -> tx.executeWithoutResult(status -> inbox.runOnce(consumerName, envelope.eventId(),
+                            () -> handler.handle(envelope))));
         }
     }
 

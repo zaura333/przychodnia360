@@ -1,6 +1,6 @@
 # ADR-M04: Tożsamość usług i odwołanie dostępu
 
-Status: przyjęte warunkowo (fala 0R, 2026-11-14; zlecenie właściciela „zrób 0R"). Część JWKS i token usługowy dojdzie w fali 1.2 i wymaga potwierdzenia po spike'u.
+Status: przyjęte (fala 0R i zadanie 1.2, 2026-11-14; zlecenie właściciela). JWKS i podpis RS256 zaimplementowane w 1.2; token usługowy (`aud`, `tenant_id`, `on_behalf_of`) dla wywołań między usługami jeszcze nie.
 
 ## Kontekst
 
@@ -11,7 +11,7 @@ Dziś token dostępu (JWT HS256, 10 minut, ADR-B07) weryfikuje ta sama aplikacja
 1. **Odwołanie dostępu zdarzeniem.** Dezaktywacja konta publikuje zdarzenie domenowe `UserDeactivated` (identyfikatory, bez danych osobowych). Każda usługa utrzymuje listę odwołań (`AccessRevocations`): token użytkownika wystawiony (`iat`) nie później niż w chwili odwołania jest odrzucany. Wpis żyje tyle, ile najdłuższy token dostępu plus zapas na rozjazd zegarów.
 2. **W fali 0R** zdarzenie jest w procesie (po commit), a listę zasila nasłuchiwanie w module `identity`; weryfikacja tokenu w `JwtService` sprawdza listę. Dostęp ustaje od razu, a nie po 10 minutach. W fali 1.3 publikację przejmuje outbox z dostarczaniem do SNS/SQS; usługi dostają zdarzenie i zasilają własną listę tym samym kodem.
 3. **TTL tokenu dostępu bez zmian** (10 minut): lista odwołań jest pierwszą linią, krótki TTL ogranicza wielkość listy i skutki zgubionego zdarzenia.
-4. **Fala 1.2 (do potwierdzenia):** podpis asymetryczny (EdDSA lub RS256, decyzja po spike'u zgodności z Nimbus), `kid` i JWKS, rotacja kluczy zachowana; token usługowy z `aud`, `tenant_id`, `on_behalf_of`.
+4. **Fala 1.2 (zrobione):** podpis asymetryczny **RS256** (RSA 2048; EdDSA odrzucony, bo wymaga dodatkowej biblioteki Tink, a RS256 jest natywny w JDK i Nimbus), `kid` i JWKS pod `/api/v1/auth/jwks`, rotacja kluczy zachowana (szczegóły w ADR-B07, sekcja „Zmiana"). **Do zrobienia:** token usługowy z `aud`, `tenant_id`, `on_behalf_of` dla wywołań między usługami.
 
 ## Konsekwencje
 

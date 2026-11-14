@@ -29,7 +29,7 @@ Plan (`plan-microservices.md`, sekcja 4) zakłada, że fakty (np. wizyta zarezer
 ## Do zrobienia
 
 - Schematy zdarzeń i koperty w `api/events/` oraz sprawdzanie zgodności w CI (zadanie 1.8).
-- `traceparent` w kopercie (zadanie 1.6; dziś null).
+- ~~`traceparent` w kopercie~~ zrobione w zadaniu 1.6: outbox zapisuje bieżący `traceparent` (kolumna z V11), przekaźnik wkłada go do koperty, a konsument odtwarza go jako rodzica nowego zakresu (`EventTracing`); test na LocalStack. Zostaje eksport śladów do collectora (wybór narzędzia otwarty).
 - Alarm długości DLQ i wieku najstarszej wiadomości (observability, 1.6).
 - Weryfikacja LocalStack na runnerze CI (obraz ok. 2 GB, test ok. 24 s po pobraniu).
 

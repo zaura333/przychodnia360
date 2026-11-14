@@ -1,5 +1,5 @@
 // Uruchamia testy e2e na prawdziwym backendzie (e2e/real). Wymaga działającego docker compose z backendem
-// (profil full, seed `local`) oraz Mailpit. Dodatkowe argumenty trafiają do Playwright.
+// (profil core, seed `local`, krawędź na porcie 8090: VITE_DEV_BACKEND) oraz Mailpit. Dodatkowe argumenty trafiają do Playwright.
 import { spawnSync } from 'node:child_process';
 import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
