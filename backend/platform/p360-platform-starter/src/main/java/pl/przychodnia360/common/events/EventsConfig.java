@@ -16,8 +16,10 @@ import tools.jackson.databind.json.JsonMapper;
 @EnableScheduling
 class EventsConfig {
 
+    /** Domyślny transport bez brokera; gdy skonfigurowano SNS, używany jest SnsEventTransport. */
     @Bean
     @ConditionalOnMissingBean(EventTransport.class)
+    @org.springframework.boot.autoconfigure.condition.ConditionalOnExpression("'${p360.events.sns.topic-arn:}'.isEmpty()")
     EventTransport loggingEventTransport() {
         return new LoggingEventTransport();
     }
