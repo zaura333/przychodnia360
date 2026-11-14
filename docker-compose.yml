@@ -62,6 +62,23 @@ services:
     mem_limit: 2g
     # Bez restart: błędy backendu mają być widoczne
 
+  # Profil edge: krawędź (Traefik, fala 1.5) przed backendem; reguły z docker/edge (generowane do
+  # docker/traefik/dynamic/routes.yml). Uruchom razem z full: `docker compose --profile full --profile edge up -d`.
+  traefik:
+    profiles: ["edge"]
+    image: traefik:v3.2.3
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:${EDGE_PORT:-8090}:80"
+    volumes:
+      - ./docker/traefik/traefik.yml:/etc/traefik/traefik.yml:ro
+      - ./docker/traefik/dynamic:/etc/traefik/dynamic:ro
+    healthcheck:
+      test: ["CMD", "traefik", "healthcheck", "--ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
   # Profil async (osobny od full: e2e go nie potrzebuje, a obraz ma ok. 2 GB): SNS i SQS lokalnie (LocalStack,
   # fala 1.4). Temat, kolejki i DLQ tworzy docker/localstack/init (skrypt musi mieć bit wykonywalności w git).
   # Wersja przypięta (community, bez tokenu); `latest` wymaga konta. Backend włącza transport zmiennymi
