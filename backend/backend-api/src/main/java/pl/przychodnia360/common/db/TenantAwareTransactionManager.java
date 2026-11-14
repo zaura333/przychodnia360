@@ -23,6 +23,7 @@ import pl.przychodnia360.shared.TenantId;
 public class TenantAwareTransactionManager extends DataSourceTransactionManager {
 
     private static final String SET_TENANT_SQL = "SELECT set_config('app.tenant_id', ?, true)";
+    private static final String SET_PLATFORM_SCOPE_SQL = "SELECT set_config('app.scope', 'platform', true)";
 
     public TenantAwareTransactionManager(DataSource dataSource) {
         super(dataSource);
@@ -34,17 +35,25 @@ public class TenantAwareTransactionManager extends DataSourceTransactionManager 
         if (tenant == null && !TenantContext.isExplicitlyWithoutTenant()) {
             throw new MissingTenantContextException();
         }
+        boolean platform = TenantContext.isPlatformScope();
         super.doBegin(transaction, definition);
-        if (tenant == null) {
+        if (tenant == null && !platform) {
             return;
         }
         try {
             ConnectionHolder holder =
                     (ConnectionHolder) TransactionSynchronizationManager.getResource(obtainDataSource());
             Connection connection = holder.getConnection();
-            try (PreparedStatement ps = connection.prepareStatement(SET_TENANT_SQL)) {
-                ps.setString(1, tenant.toString());
-                ps.execute();
+            if (tenant != null) {
+                try (PreparedStatement ps = connection.prepareStatement(SET_TENANT_SQL)) {
+                    ps.setString(1, tenant.toString());
+                    ps.execute();
+                }
+            }
+            if (platform) {
+                try (PreparedStatement ps = connection.prepareStatement(SET_PLATFORM_SCOPE_SQL)) {
+                    ps.execute();
+                }
             }
         } catch (SQLException | RuntimeException e) {
             doCleanupAfterCompletion(transaction);
