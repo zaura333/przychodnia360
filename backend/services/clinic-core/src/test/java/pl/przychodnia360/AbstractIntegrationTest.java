@@ -24,7 +24,7 @@ import org.testcontainers.utility.MountableFile;
  */
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 @ActiveProfiles("test")
-@Import(RecordingMailSender.Config.class)
+@Import({RecordingMailSender.Config.class, RecordingEventTransport.Config.class})
 public abstract class AbstractIntegrationTest {
 
     /** Wersja musi być równa wersji w docker-compose.yml i w ADR (pilnuje tego ComposeConsistencyTest, zadanie DK3). */

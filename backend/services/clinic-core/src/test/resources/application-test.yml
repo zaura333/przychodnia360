@@ -11,6 +11,12 @@ logging:
     json:
       customizer: pl.przychodnia360.common.logging.PeselMaskingCustomizer
 
+p360:
+  events:
+    relay:
+      # w testach przekaźnik uruchamiają testy (OutboxRelay.runOnce), nie harmonogram
+      enabled: false
+
 security:
   jwt:
     active-kid: test-1

@@ -28,7 +28,10 @@ class ModuleBoundariesFkTest extends AbstractIntegrationTest {
             Map.entry("employees", "scheduling"),
             Map.entry("work_schedules", "scheduling"),
             Map.entry("schedule_exceptions", "scheduling"),
-            Map.entry("appointments", "scheduling"));
+            Map.entry("appointments", "scheduling"),
+            // tabele platformowe (starter): bez kluczy obcych, kopiowane do każdej usługi
+            Map.entry("outbox", "platform"),
+            Map.entry("processed_events", "platform"));
 
     /** Tabele pomocnicze, poza modułami. */
     static final Set<String> IGNORED = Set.of("flyway_schema_history", "_tenant_probe");

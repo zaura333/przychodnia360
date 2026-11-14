@@ -68,4 +68,13 @@ class RlsCoverageTest extends AbstractIntegrationTest {
                         + "AND (qual LIKE '%app_scope%' OR with_check LIKE '%app_scope%')").query(String.class).list();
         assertThat(tables).containsExactlyInAnyOrder("users", "refresh_tokens", "password_reset_tokens");
     }
+
+    /** Dostęp przekaźnika (app_relay) do wierszy wszystkich placówek ma wyłącznie outbox. */
+    @Test
+    void onlyOutboxKnowsRelayScope() {
+        List<String> tables = JdbcClient.create(dataSource).sql(
+                "SELECT DISTINCT tablename FROM pg_policies WHERE schemaname = 'public' "
+                        + "AND (qual LIKE '%app_relay%' OR with_check LIKE '%app_relay%')").query(String.class).list();
+        assertThat(tables).containsExactly("outbox");
+    }
 }
