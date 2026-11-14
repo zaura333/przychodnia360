@@ -9,6 +9,9 @@ logging:
     format:
       console: logstash
     json:
+      # nazwa usługi w każdym wpisie (korelacja logów wielu usług)
+      add:
+        service: ${spring.application.name}
       customizer: pl.przychodnia360.common.logging.PeselMaskingCustomizer
 
 springdoc:

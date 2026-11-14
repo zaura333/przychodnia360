@@ -31,6 +31,27 @@ server:
     include-stacktrace: never
     include-binding-errors: never
 
+management:
+  tracing:
+    # Mały ruch demo: próbkujemy wszystko; traceId trafia do logów (MDC) i do zdarzeń (outbox, koperta)
+    sampling:
+      probability: 1.0
+    export:
+      otlp:
+        # Eksport śladów do collectora OTLP włącza flaga; domyślnie wyłączony (brak collectora, bez błędów w logach)
+        enabled: ${P360_OTLP_TRACES_ENABLED:false}
+  otlp:
+    tracing:
+      export:
+        enabled: ${P360_OTLP_TRACES_ENABLED:false}
+    metrics:
+      export:
+        enabled: false
+  logging:
+    export:
+      otlp:
+        enabled: false
+
 p360:
   events:
     relay:
