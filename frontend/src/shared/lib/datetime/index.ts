@@ -136,3 +136,9 @@ export const shortTime = (time: string): string => time.slice(0, 5);
 export function isLocalDate(value: string): value is LocalDate {
   return LOCAL_DATE.test(value);
 }
+
+/** Minuty od północy (czas lokalny Warszawy) dla chwili. */
+export function minutesOfDay(instant: Instant): number {
+  const [h, m] = formatTime(instant).split(':').map(Number);
+  return (h ?? 0) * 60 + (m ?? 0);
+}

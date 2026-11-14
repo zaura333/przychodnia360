@@ -32,6 +32,49 @@ export const testData = {
     };
   },
 
+  doctor(overrides: Record<string, unknown> = {}) {
+    return {
+      id: 'd-1',
+      firstName: 'Jan',
+      lastName: 'Kowalski',
+      specialization: 'Internista',
+      weekly: [
+        {
+          id: 'w-1',
+          dayOfWeek: 'MONDAY',
+          startTime: '08:00:00',
+          endTime: '14:00:00',
+          validFrom: '2026-01-01',
+        },
+        {
+          id: 'w-2',
+          dayOfWeek: 'WEDNESDAY',
+          startTime: '10:00:00',
+          endTime: '18:00:00',
+          validFrom: '2026-01-01',
+        },
+      ],
+      ...overrides,
+    };
+  },
+
+  /** Wizyta w widoku pracowniczym (StaffAppointmentView). */
+  staffAppointment(overrides: Record<string, unknown> = {}) {
+    return {
+      id: 'a-1',
+      employeeId: 'd-1',
+      employeeName: 'Jan Kowalski',
+      patientId: 'p-1',
+      patientName: 'Anna Nowak',
+      serviceId: 's-1',
+      serviceName: 'Konsultacja',
+      startAt: '2026-11-16T09:00:00Z',
+      endAt: '2026-11-16T09:30:00Z',
+      status: 'SCHEDULED',
+      ...overrides,
+    };
+  },
+
   /** Problem Details w formacie backendu: type, title, status, detail, traceId. */
   problem(type: string, status: number, extra: Record<string, unknown> = {}) {
     return {

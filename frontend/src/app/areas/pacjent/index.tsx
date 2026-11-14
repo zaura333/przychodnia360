@@ -1,6 +1,7 @@
 import { Navigate, Route, Routes } from 'react-router';
 import { RoleGate } from '@/app/RoleGate';
 import { NotFoundPage, SoonPage } from '@/app/pages/pages';
+import { DoctorsPage } from '@/features/staff';
 import { ServiceDetailsPage, ServicesPage } from '@/features/catalog';
 
 /** Obszar pacjenta: osobny chunk ładowany leniwie. Dostęp do tras określa ROUTE_TABLE. */
@@ -44,7 +45,7 @@ export function Component() {
         path="lekarze"
         element={
           <RoleGate path="/pacjent/lekarze">
-            <SoonPage title="Lekarze" />
+            <DoctorsPage />
           </RoleGate>
         }
       />

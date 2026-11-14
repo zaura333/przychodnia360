@@ -1,6 +1,7 @@
 import { Navigate, Route, Routes } from 'react-router';
 import { RoleGate } from '@/app/RoleGate';
 import { NotFoundPage, SoonPage } from '@/app/pages/pages';
+import { MySchedulePage } from '@/features/staff';
 import { ServicesPage } from '@/features/catalog';
 import { useAuth } from '@/shared/api/session';
 
@@ -31,7 +32,7 @@ export function Component() {
         path="grafik"
         element={
           <RoleGate path="/pracownik/grafik">
-            <SoonPage title="Mój grafik" />
+            <MySchedulePage />
           </RoleGate>
         }
       />
