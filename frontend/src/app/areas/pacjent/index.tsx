@@ -1,15 +1,60 @@
-import { Route, Routes } from 'react-router';
-import { subpathsFor } from '@/app/navigation';
+import { Navigate, Route, Routes } from 'react-router';
+import { RoleGate } from '@/app/RoleGate';
 import { NotFoundPage, SoonPage } from '@/app/pages/pages';
 
-/** Obszar "Panel pacjenta": osobny chunk ładowany leniwie. W etapie 0 wszystkie ekrany to SoonPage. */
+/** Obszar pacjenta: osobny chunk ładowany leniwie. Dostęp do tras określa ROUTE_TABLE. */
 export function Component() {
   return (
     <Routes>
-      <Route index element={<SoonPage title="Panel pacjenta" />} />
-      {subpathsFor('/pacjent').map((sub) => (
-        <Route key={sub} path={sub} element={<SoonPage title="Panel pacjenta" />} />
-      ))}
+      <Route index element={<Navigate to="wizyty" replace />} />
+      <Route
+        path="wizyty"
+        element={
+          <RoleGate path="/pacjent/wizyty">
+            <SoonPage title="Moje wizyty" />
+          </RoleGate>
+        }
+      />
+      <Route
+        path="rezerwacja"
+        element={
+          <RoleGate path="/pacjent/rezerwacja">
+            <SoonPage title="Umów wizytę" />
+          </RoleGate>
+        }
+      />
+      <Route
+        path="uslugi"
+        element={
+          <RoleGate path="/pacjent/uslugi">
+            <SoonPage title="Usługi" />
+          </RoleGate>
+        }
+      />
+      <Route
+        path="uslugi/:id"
+        element={
+          <RoleGate path="/pacjent/uslugi/:id">
+            <SoonPage title="Szczegóły usługi" />
+          </RoleGate>
+        }
+      />
+      <Route
+        path="lekarze"
+        element={
+          <RoleGate path="/pacjent/lekarze">
+            <SoonPage title="Lekarze" />
+          </RoleGate>
+        }
+      />
+      <Route
+        path="moje-dane"
+        element={
+          <RoleGate path="/pacjent/moje-dane">
+            <SoonPage title="Moje dane" />
+          </RoleGate>
+        }
+      />
       <Route path="*" element={<NotFoundPage />} />
     </Routes>
   );

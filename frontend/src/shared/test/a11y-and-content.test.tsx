@@ -22,8 +22,8 @@ describe('dostępność (axe)', () => {
   });
 
   it('area page for a logged-in user has no violations', async () => {
-    const { container } = renderApp(createTestRouter(['/pracownik']), 'RECEPTIONIST');
-    await screen.findByRole('heading', { name: 'Panel pracownika' });
+    const { container } = renderApp(createTestRouter(['/pracownik']), 'MEDICAL_STAFF');
+    await screen.findByRole('heading', { name: 'Funkcja będzie dostępna wkrótce' });
     await expectNoA11yViolations(container);
   });
 
