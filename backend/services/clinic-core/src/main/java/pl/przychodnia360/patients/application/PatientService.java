@@ -1,5 +1,6 @@
 package pl.przychodnia360.patients.application;
 
+import java.time.Clock;
 import java.time.LocalDate;
 import java.util.Arrays;
 import java.util.Collection;
@@ -12,9 +13,12 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import pl.przychodnia360.common.web.PageResponse;
 import pl.przychodnia360.patients.api.PatientFacade;
+import pl.przychodnia360.patients.api.PatientRegistered;
 import pl.przychodnia360.patients.domain.Patient;
+import pl.przychodnia360.shared.DomainEventPublisher;
 import pl.przychodnia360.shared.Ids;
 import pl.przychodnia360.shared.NotFoundException;
+import pl.przychodnia360.shared.TenantContext;
 import pl.przychodnia360.shared.ValidationException;
 
 @Service
@@ -24,9 +28,13 @@ public class PatientService implements PatientFacade {
     private static final int MAX_TOKENS = 4;
 
     private final PatientRepository repository;
+    private final DomainEventPublisher events;
+    private final Clock clock;
 
-    PatientService(PatientRepository repository) {
+    PatientService(PatientRepository repository, DomainEventPublisher events, Clock clock) {
         this.repository = repository;
+        this.events = events;
+        this.clock = clock;
     }
 
     @Override
@@ -35,6 +43,7 @@ public class PatientService implements PatientFacade {
         Patient patient = new Patient(Ids.newId(), null, firstName.trim(), lastName.trim(), birthDate,
                 blankToNull(contactEmail), 0);
         repository.insert(patient);
+        events.publish(new PatientRegistered(TenantContext.requireTenant().value(), patient.id(), clock.instant()));
         return patient.id();
     }
 

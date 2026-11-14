@@ -6,6 +6,9 @@ import java.util.UUID;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import pl.przychodnia360.appointments.api.AppointmentBooked;
+import pl.przychodnia360.appointments.api.AppointmentCancelled;
+import pl.przychodnia360.appointments.api.AppointmentRescheduled;
 import pl.przychodnia360.appointments.api.AppointmentViews.AppointmentView;
 import pl.przychodnia360.appointments.api.AppointmentViews.StaffAppointmentView;
 import pl.przychodnia360.appointments.domain.Appointment;
@@ -18,9 +21,11 @@ import pl.przychodnia360.common.security.AuthenticatedUser;
 import pl.przychodnia360.common.security.Permission;
 import pl.przychodnia360.common.security.PermissionPolicy;
 import pl.przychodnia360.patients.api.PatientFacade;
+import pl.przychodnia360.shared.DomainEventPublisher;
 import pl.przychodnia360.shared.ForbiddenException;
 import pl.przychodnia360.shared.Ids;
 import pl.przychodnia360.shared.NotFoundException;
+import pl.przychodnia360.shared.TenantContext;
 import pl.przychodnia360.shared.UnprocessableException;
 import pl.przychodnia360.shared.ValidationException;
 import pl.przychodnia360.staff.api.StaffFacade;
@@ -44,16 +49,19 @@ public class BookingService {
     private final PatientFacade patients;
     private final ViewAssembler views;
     private final Clock clock;
+    private final DomainEventPublisher events;
     private final int stepMinutes;
 
     BookingService(AppointmentRepository repository, CatalogFacade catalog, StaffFacade staff, PatientFacade patients,
-            ViewAssembler views, Clock clock, @Value("${appointments.slot-step-minutes:15}") int stepMinutes) {
+            ViewAssembler views, Clock clock, DomainEventPublisher events,
+            @Value("${appointments.slot-step-minutes:15}") int stepMinutes) {
         this.repository = repository;
         this.catalog = catalog;
         this.staff = staff;
         this.patients = patients;
         this.views = views;
         this.clock = clock;
+        this.events = events;
         this.stepMinutes = stepMinutes;
     }
 
@@ -72,6 +80,8 @@ public class BookingService {
         Appointment appointment = new Appointment(Ids.newId(), patientId, employee.id(), service.id(), slot,
                 AppointmentStatus.SCHEDULED, user.userId(), null, null, 0);
         repository.insert(appointment);
+        events.publish(new AppointmentBooked(TenantContext.requireTenant().value(), appointment.id(), patientId,
+                employee.id(), service.id(), slot.start(), clock.instant()));
         return views.staffViews(java.util.List.of(appointment)).getFirst();
     }
 
@@ -83,6 +93,8 @@ public class BookingService {
         Appointment moved = current.rescheduleTo(newStart, clock.instant());
         checkedSlot(moved.startAt(), (int) moved.slot().duration().toMinutes(), moved.employeeId());
         repository.update(moved);
+        events.publish(new AppointmentRescheduled(TenantContext.requireTenant().value(), moved.id(), moved.patientId(),
+                moved.employeeId(), moved.serviceId(), moved.startAt(), clock.instant()));
         return views.staffViews(java.util.List.of(repository.findById(id).orElseThrow())).getFirst();
     }
 
@@ -92,6 +104,8 @@ public class BookingService {
         requirePermission(user, Permission.APPOINTMENT_CANCEL_ANY);
         Appointment current = repository.findById(id).orElseThrow(() -> new NotFoundException("Nie znaleziono wizyty."));
         repository.update(current.cancel(user.userId(), clock.instant()));
+        events.publish(new AppointmentCancelled(TenantContext.requireTenant().value(), current.id(),
+                current.patientId(), current.employeeId(), current.serviceId(), clock.instant()));
     }
 
     /** Termin w przyszłości, na siatce, w całości w dyżurze wykonawcy. */
