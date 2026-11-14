@@ -19,6 +19,7 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 import org.springframework.stereotype.Component;
+import pl.przychodnia360.common.security.AccessRevocations;
 import pl.przychodnia360.common.security.AuthenticatedUser;
 import pl.przychodnia360.common.security.Role;
 
@@ -28,11 +29,13 @@ public class JwtService {
 
     private final JwtProperties properties;
     private final Clock clock;
+    private final AccessRevocations revocations;
     private final Map<String, byte[]> keys = new HashMap<>();
 
-    JwtService(JwtProperties properties, Clock clock) {
+    JwtService(JwtProperties properties, Clock clock, AccessRevocations revocations) {
         this.properties = properties;
         this.clock = clock;
+        this.revocations = revocations;
         if (properties.keys() == null || properties.keys().isEmpty()) {
             throw new IllegalStateException("Brak kluczy JWT (security.jwt.keys)");
         }
@@ -93,7 +96,12 @@ public class JwtService {
                     || !exp.toInstant().isAfter(clock.instant())) {
                 return Optional.empty();
             }
-            return Optional.of(new AuthenticatedUser(UUID.fromString(claims.getSubject()), uuid(claims, "tid"),
+            UUID userId = UUID.fromString(claims.getSubject());
+            Date issued = claims.getIssueTime();
+            if (issued == null || revocations.isRevoked(userId, issued.toInstant())) {
+                return Optional.empty();
+            }
+            return Optional.of(new AuthenticatedUser(userId, uuid(claims, "tid"),
                     Role.valueOf(claims.getStringClaim("role")), uuid(claims, "eid"), uuid(claims, "pid")));
         } catch (ParseException | JOSEException | IllegalArgumentException | NullPointerException e) {
             return Optional.empty();

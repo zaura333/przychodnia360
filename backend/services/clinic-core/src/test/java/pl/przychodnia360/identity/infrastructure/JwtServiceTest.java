@@ -28,7 +28,9 @@ class JwtServiceTest {
 
     private static JwtService service(String activeKid, Map<String, String> keys, Instant now) {
         return new JwtService(new JwtProperties(activeKid, keys, "przychodnia360", Duration.ofMinutes(10),
-                Duration.ofDays(7)), Clock.fixed(now, ZoneOffset.UTC));
+                Duration.ofDays(7)), Clock.fixed(now, ZoneOffset.UTC),
+                new pl.przychodnia360.common.security.AccessRevocations(Clock.fixed(now, ZoneOffset.UTC),
+                        Duration.ofMinutes(10)));
     }
 
     private final AuthenticatedUser user = new AuthenticatedUser(UUID.randomUUID(), UUID.randomUUID(),

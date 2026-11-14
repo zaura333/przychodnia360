@@ -1,15 +1,18 @@
 package pl.przychodnia360.identity.application;
 
+import java.time.Clock;
 import java.util.Set;
 import java.util.UUID;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import pl.przychodnia360.identity.api.IdentityFacade;
+import pl.przychodnia360.identity.api.UserDeactivated;
 import pl.przychodnia360.common.security.Role;
 import pl.przychodnia360.identity.application.MailSender.MailMessage;
 import pl.przychodnia360.identity.domain.AccountToken;
 import pl.przychodnia360.identity.domain.User;
 import pl.przychodnia360.tenant.api.TenantFacade;
+import pl.przychodnia360.shared.DomainEventPublisher;
 import pl.przychodnia360.shared.Ids;
 import pl.przychodnia360.shared.NotFoundException;
 import pl.przychodnia360.shared.TenantContext;
@@ -24,13 +27,17 @@ class IdentityService implements IdentityFacade {
     private final TokenService tokens;
     private final PasswordResetService passwordResets;
     private final TenantFacade tenants;
+    private final DomainEventPublisher events;
+    private final Clock clock;
 
     IdentityService(UserRepository users, TokenService tokens, PasswordResetService passwordResets,
-            TenantFacade tenants) {
+            TenantFacade tenants, DomainEventPublisher events, Clock clock) {
         this.users = users;
         this.tokens = tokens;
         this.passwordResets = passwordResets;
         this.tenants = tenants;
+        this.events = events;
+        this.clock = clock;
     }
 
     @Override
@@ -64,5 +71,6 @@ class IdentityService implements IdentityFacade {
         user.deactivate();
         users.update(user);
         tokens.revokeAll(userId);
+        events.publish(new UserDeactivated(user.tenantId(), userId, clock.instant()));
     }
 }
