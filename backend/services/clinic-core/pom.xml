@@ -6,15 +6,20 @@
     <groupId>pl.przychodnia360</groupId>
     <artifactId>przychodnia360-backend</artifactId>
     <version>0.1.0-SNAPSHOT</version>
+    <relativePath>../../pom.xml</relativePath>
   </parent>
 
-  <artifactId>backend-api</artifactId>
-  <name>backend-api</name>
+  <artifactId>clinic-core</artifactId>
+  <name>clinic-core (monolit modułowy)</name>
 
   <dependencies>
     <dependency>
       <groupId>pl.przychodnia360</groupId>
-      <artifactId>shared-core</artifactId>
+      <artifactId>p360-shared-core</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>pl.przychodnia360</groupId>
+      <artifactId>p360-platform-starter</artifactId>
     </dependency>
     <dependency>
       <groupId>org.springframework.boot</groupId>
@@ -87,7 +92,7 @@
   </dependencies>
 
   <build>
-    <finalName>backend-api</finalName>
+    <finalName>clinic-core</finalName>
     <plugins>
       <plugin>
         <groupId>org.springframework.boot</groupId>

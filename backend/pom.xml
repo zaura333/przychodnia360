@@ -18,8 +18,9 @@
   <name>Przychodnia360 backend</name>
 
   <modules>
-    <module>shared-core</module>
-    <module>backend-api</module>
+    <module>platform/p360-shared-core</module>
+    <module>platform/p360-platform-starter</module>
+    <module>services/clinic-core</module>
   </modules>
 
   <properties>
@@ -36,7 +37,12 @@
     <dependencies>
       <dependency>
         <groupId>pl.przychodnia360</groupId>
-        <artifactId>shared-core</artifactId>
+        <artifactId>p360-shared-core</artifactId>
+        <version>${project.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>pl.przychodnia360</groupId>
+        <artifactId>p360-platform-starter</artifactId>
         <version>${project.version}</version>
       </dependency>
       <dependency>
