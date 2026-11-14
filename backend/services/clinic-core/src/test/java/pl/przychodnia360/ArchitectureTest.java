@@ -14,8 +14,21 @@ import java.util.List;
  * Reguły architektury. Napisane tak, żeby działały od razu przy pustych modułach i nie wymagały zmian w 1a
  * (stąd {@code allowEmptyShould}). Moduły domenowe mają pakiety api, application, domain, infrastructure.
  */
-@AnalyzeClasses(packages = "pl.przychodnia360", importOptions = ImportOption.DoNotIncludeTests.class)
+@AnalyzeClasses(packages = "pl.przychodnia360",
+        importOptions = {ImportOption.DoNotIncludeTests.class, ArchitectureTest.ExcludeTestSupport.class})
 class ArchitectureTest {
+
+    /**
+     * Biblioteka testowa (p360-test-support) nie należy do architektury aplikacji: jej klasy leżą w pakietach
+     * pl.przychodnia360.common.* (dostęp do składowych pakietowych) i zależą od startera, więc w analizie cykli
+     * tworzyłyby sztuczny cykl common - testsupport.
+     */
+    public static final class ExcludeTestSupport implements ImportOption {
+        @Override
+        public boolean includes(com.tngtech.archunit.core.importer.Location location) {
+            return !location.contains("p360-test-support");
+        }
+    }
 
     private static final String BASE = "pl.przychodnia360";
     private static final List<String> MODULES = List.of(
