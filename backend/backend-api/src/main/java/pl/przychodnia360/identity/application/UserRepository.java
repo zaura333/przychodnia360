@@ -17,4 +17,10 @@ public interface UserRepository {
     Optional<User> findByEmail(UUID tenantId, String email);
 
     Optional<User> findPlatformAdminByEmail(String email);
+
+    /**
+     * Zakłada konto TENANT_ADMIN bez hasła w wybranej placówce przez funkcję SECURITY DEFINER (wywołanie w zakresie
+     * platformy, który nie ma kontekstu placówki). Zajęty e-mail to ConflictException (email-taken).
+     */
+    void createTenantAdmin(UUID id, UUID tenantId, String email);
 }

@@ -10,4 +10,10 @@ public interface TenantFacade {
     Optional<UUID> resolveActiveSlug(String slug);
 
     Optional<String> name(UUID tenantId);
+
+    /** Dane placówki (także nieaktywnej). */
+    record TenantInfo(UUID id, String slug, String name, boolean active) {
+    }
+
+    Optional<TenantInfo> info(UUID tenantId);
 }

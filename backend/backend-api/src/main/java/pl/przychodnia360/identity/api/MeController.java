@@ -18,6 +18,10 @@ public class MeController {
             int slotStepMinutes) {
     }
 
+    /** Dane własnej placówki (FR-43, odczyt dla każdej roli placówki). */
+    public record OwnTenantResponse(UUID id, String slug, String name) {
+    }
+
     private final TenantFacade tenants;
     private final int slotStepMinutes;
 
@@ -33,5 +37,14 @@ public class MeController {
         String tenantName = user.tenantId() == null ? null : tenants.name(user.tenantId()).orElse(null);
         return new MeResponse(user.userId(), user.role(), user.tenantId(), tenantName, user.employeeId(),
                 user.patientId(), slotStepMinutes);
+    }
+
+    @GetMapping(value = "/api/v1/tenant", produces = MediaType.APPLICATION_JSON_VALUE)
+    @PreAuthorize("@permissions.has(authentication, 'TENANT_READ')")
+    @Operation(operationId = "getOwnTenant", summary = "Dane własnej placówki",
+            description = "Dostęp: TENANT_READ (każda rola placówki). Placówka wynika wyłącznie z tokenu.")
+    public OwnTenantResponse tenant(@AuthenticationPrincipal AuthenticatedUser user) {
+        return tenants.info(user.tenantId()).map(t -> new OwnTenantResponse(t.id(), t.slug(), t.name()))
+                .orElseThrow(() -> new pl.przychodnia360.shared.NotFoundException("Nie znaleziono placówki."));
     }
 }

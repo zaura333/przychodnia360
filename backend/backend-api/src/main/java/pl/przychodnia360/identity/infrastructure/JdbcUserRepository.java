@@ -75,6 +75,16 @@ class JdbcUserRepository implements UserRepository {
                 .param(email).query(JdbcUserRepository::map).optional();
     }
 
+    @Override
+    public void createTenantAdmin(UUID id, UUID tenantId, String email) {
+        try {
+            jdbc.sql("SELECT platform_create_tenant_admin(?, ?, ?, ?::text)").params(id, tenantId, email, null)
+                    .query().singleValue();
+        } catch (DuplicateKeyException e) {
+            throw new ConflictException("email-taken", "Konto z tym adresem e-mail już istnieje.");
+        }
+    }
+
     private static User map(ResultSet rs, int row) throws SQLException {
         Timestamp locked = rs.getTimestamp("locked_until");
         return new User(rs.getObject("id", UUID.class), rs.getObject("tenant_id", UUID.class), rs.getString("email"),
