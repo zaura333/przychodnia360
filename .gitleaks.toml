@@ -19,3 +19,11 @@ paths = [
   '''backend/backend-api/src/test/resources/application-test\.yml''',
   '''backend/backend-api/src/test/java/.*Test\.java''',
 ]
+
+[[allowlists]]
+description = "Testy e2e: hasła syntetyczne zakładanych kont testowych (tylko lokalnie, dane demo)"
+paths = ['''frontend/e2e/.*\.ts''']
+
+[[allowlists]]
+description = "Fałszywe trafienie: nazwa klucza localStorage z kodem placówki (nie jest sekretem)"
+paths = ['''frontend/src/features/auth/components/TenantPicker\.tsx''']
