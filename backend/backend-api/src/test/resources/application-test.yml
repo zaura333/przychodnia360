@@ -10,3 +10,11 @@ logging:
       console: logstash
     json:
       customizer: pl.przychodnia360.common.logging.PeselMaskingCustomizer
+
+security:
+  password:
+    argon2:
+      # obniżone parametry tylko w testach (ADR-B06), żeby nie wydłużać builda
+      memory-kib: 1024
+      iterations: 1
+      parallelism: 1
