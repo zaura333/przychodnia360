@@ -142,3 +142,11 @@ export function minutesOfDay(instant: Instant): number {
   const [h, m] = formatTime(instant).split(':').map(Number);
   return (h ?? 0) * 60 + (m ?? 0);
 }
+
+/** Data z API (YYYY-MM-DD) jako LocalDate; niepoprawny format to błąd. */
+export function parseLocalDate(value: string): LocalDate {
+  if (!isLocalDate(value)) {
+    throw new Error(`Niepoprawna data: ${value}`);
+  }
+  return value;
+}
