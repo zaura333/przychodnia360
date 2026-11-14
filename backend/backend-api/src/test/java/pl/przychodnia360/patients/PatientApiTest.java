@@ -60,7 +60,7 @@ class PatientApiTest extends AbstractApiTest {
         }
         String token = login(tenant, user);
 
-        Resp me = get("/api/v1/me/patient", token);
+        Resp me = fetch("/api/v1/me/patient", token);
         assertThat(me.json().get("id").asString()).isEqualTo(patientId.toString());
         assertThat(me.json().get("hasAccount").asBoolean()).isTrue();
         assertThat(call("PATCH", "/api/v1/me/patient", token, "{\"contactEmail\":\"ewa@example.test\"}").json()
@@ -71,8 +71,8 @@ class PatientApiTest extends AbstractApiTest {
     @Test
     void patientWithoutRecordAndOtherRolesAreRejected() {
         UUID tenant = newTenant();
-        assertThat(get("/api/v1/me/patient", tokenFor(tenant, Role.PATIENT)).status()).isEqualTo(404);
-        assertThat(get("/api/v1/me/patient", tokenFor(tenant, Role.RECEPTIONIST)).status()).isEqualTo(403);
+        assertThat(fetch("/api/v1/me/patient", tokenFor(tenant, Role.PATIENT)).status()).isEqualTo(404);
+        assertThat(fetch("/api/v1/me/patient", tokenFor(tenant, Role.RECEPTIONIST)).status()).isEqualTo(403);
         assertThat(call("POST", "/api/v1/reception/patients", tokenFor(tenant, Role.DOCTOR),
                 "{\"firstName\":\"A\",\"lastName\":\"B\",\"birthDate\":\"1990-01-01\"}").status()).isEqualTo(403);
     }

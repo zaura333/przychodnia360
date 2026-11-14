@@ -110,7 +110,7 @@ public abstract class AbstractApiTest extends AbstractIntegrationTest {
         }
     }
 
-    protected Resp get(String path, String token) {
+    protected Resp fetch(String path, String token) {
         return call("GET", path, token, null);
     }
 }

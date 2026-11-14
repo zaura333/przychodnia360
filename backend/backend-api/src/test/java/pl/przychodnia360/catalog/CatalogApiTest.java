@@ -32,13 +32,13 @@ class CatalogApiTest extends AbstractApiTest {
         assertThat(call("POST", "/api/v1/admin/services", admin, body(diag, "Pobranie krwi", "40.00", 15, "MEDICAL_STAFF")).status()).isEqualTo(201);
         assertThat(call("POST", "/api/v1/admin/services", admin, body(diag, "USG", "200.00", 45, "DOCTOR")).status()).isEqualTo(201);
 
-        assertThat(get("/api/v1/services", patient).json().get("total").asLong()).isEqualTo(3);
-        assertThat(get("/api/v1/services?categoryId=" + diag, patient).json().get("total").asLong()).isEqualTo(2);
-        assertThat(get("/api/v1/services?performerType=MEDICAL_STAFF", patient).json().get("total").asLong()).isEqualTo(1);
-        assertThat(get("/api/v1/services?minPrice=100&maxPrice=160", patient).json().get("items").get(0).get("name").asString())
+        assertThat(fetch("/api/v1/services", patient).json().get("total").asLong()).isEqualTo(3);
+        assertThat(fetch("/api/v1/services?categoryId=" + diag, patient).json().get("total").asLong()).isEqualTo(2);
+        assertThat(fetch("/api/v1/services?performerType=MEDICAL_STAFF", patient).json().get("total").asLong()).isEqualTo(1);
+        assertThat(fetch("/api/v1/services?minPrice=100&maxPrice=160", patient).json().get("items").get(0).get("name").asString())
                 .isEqualTo("Konsultacja");
-        assertThat(get("/api/v1/services?minPrice=300&maxPrice=100", patient).status()).isEqualTo(400);
-        assertThat(get("/api/v1/service-categories", patient).json()).hasSize(2);
+        assertThat(fetch("/api/v1/services?minPrice=300&maxPrice=100", patient).status()).isEqualTo(400);
+        assertThat(fetch("/api/v1/service-categories", patient).json()).hasSize(2);
     }
 
     @Test
@@ -50,8 +50,8 @@ class CatalogApiTest extends AbstractApiTest {
         String id = created.json().get("id").asString();
 
         assertThat(call("DELETE", "/api/v1/admin/services/" + id, admin, null).status()).isEqualTo(204);
-        assertThat(get("/api/v1/services/" + id, admin).status()).isEqualTo(404);
-        assertThat(get("/api/v1/services", admin).json().get("total").asLong()).isZero();
+        assertThat(fetch("/api/v1/services/" + id, admin).status()).isEqualTo(404);
+        assertThat(fetch("/api/v1/services", admin).json().get("total").asLong()).isZero();
     }
 
     @Test
@@ -90,8 +90,8 @@ class CatalogApiTest extends AbstractApiTest {
         UUID cat = category(adminA, "Prywatna");
         String id = call("POST", "/api/v1/admin/services", adminA, body(cat, "Usługa A", "10", 20, "DOCTOR")).json().get("id").asString();
 
-        assertThat(get("/api/v1/services/" + id, adminB).status()).isEqualTo(404);
-        assertThat(get("/api/v1/services", adminB).json().get("total").asLong()).isZero();
+        assertThat(fetch("/api/v1/services/" + id, adminB).status()).isEqualTo(404);
+        assertThat(fetch("/api/v1/services", adminB).json().get("total").asLong()).isZero();
         assertThat(call("PUT", "/api/v1/admin/services/" + id, adminB, body(cat, "Zmiana", "1", 20, "DOCTOR")).status()).isEqualTo(404);
         assertThat(call("DELETE", "/api/v1/admin/services/" + id, adminB, null).status()).isEqualTo(404);
         assertThat(call("DELETE", "/api/v1/admin/service-categories/" + cat, adminB, null).status()).isEqualTo(404);
