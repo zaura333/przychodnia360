@@ -1,0 +1,161 @@
+name: e2e
+
+# E2E na prawdziwym backendzie: docker compose (profil full: Postgres, Mailpit, backend z seedem `local`)
+# + frontend z `vite preview` + Playwright (frontend/e2e/real). Plan fali 0, zadanie A2.
+# Status `e2e` dodać do wymaganych w rulesetach dopiero po 3 kolejnych zielonych przebiegach.
+
+on:
+  pull_request:
+  push:
+    branches: [main, develop]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: e2e-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+jobs:
+  changes:
+    runs-on: ubuntu-24.04
+    # paths-filter na PR pobiera listę plików z API GitHuba (wymaga pull-requests: read)
+    permissions:
+      contents: read
+      pull-requests: read
+    outputs:
+      e2e: ${{ steps.filter.outputs.e2e }}
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - id: filter
+        uses: dorny/paths-filter@0e4a8c6effa4802afeda77dc8d303f8176d7dfad # v3
+        with:
+          filters: |
+            e2e:
+              - 'backend/**'
+              - 'frontend/**'
+              - 'api/**'
+              - 'docker/**'
+              - 'docker-compose.yml'
+              - '.env.example'
+              - '.github/actions/setup-frontend/**'
+              - '.github/workflows/e2e.yml'
+
+  run:
+    needs: changes
+    if: needs.changes.outputs.e2e == 'true'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    env:
+      # Origin dopuszczony przez OriginGuard w profilu `local`
+      BASE_URL: http://localhost:4173
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - uses: ./.github/actions/setup-frontend
+
+      - name: Środowisko compose
+        run: cp .env.example .env
+
+      - name: Start platformy (postgres, mailpit, backend)
+        run: docker compose --profile full up -d --build --wait
+
+      # `--wait` nie widzi seedu (kilka sekund po starcie), więc czekamy na zdolność do zalogowania
+      # na koncie z seedu zamiast stałego opóźnienia.
+      - name: Oczekiwanie na backend i seed
+        run: |
+          set -u
+          SEED_PASSWORD="${SEED_PASSWORD:-demo-przychodnia-2026}"
+          for i in $(seq 1 60); do
+            code=$(curl -s -o /dev/null -w '%{http_code}' \
+              -H 'Content-Type: application/json' -H "Origin: ${BASE_URL}" \
+              -d "{\"tenantSlug\":\"klinika-a\",\"email\":\"rejestracja@klinika-a.example.test\",\"password\":\"${SEED_PASSWORD}\"}" \
+              http://localhost:8080/api/v1/auth/login || true)
+            echo "próba ${i}: HTTP ${code}"
+            if [ "${code}" = "200" ]; then exit 0; fi
+            sleep 3
+          done
+          echo "::error::Backend lub seed nie są gotowe po 180 s"
+          docker compose --profile full logs backend | tail -n 100
+          exit 1
+
+      - name: Wersja Playwright
+        id: pw
+        working-directory: frontend
+        run: echo "version=$(npx --no-install playwright --version | awk '{print $2}')" >> "$GITHUB_OUTPUT"
+      - name: Cache przeglądarek Playwright
+        uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-${{ runner.os }}-${{ steps.pw.outputs.version }}
+      - name: Instalacja Chromium
+        working-directory: frontend
+        run: npx playwright install --with-deps chromium
+
+      - name: Generowanie klienta API i build
+        working-directory: frontend
+        run: |
+          npm run api:generate
+          npm run build
+
+      - name: Serwer podglądu frontendu
+        working-directory: frontend
+        env:
+          VITE_DEV_BACKEND: http://127.0.0.1:8080
+        run: |
+          nohup npm run preview -- --port 4173 --strictPort > "$RUNNER_TEMP/preview.log" 2>&1 &
+          for i in $(seq 1 30); do
+            if curl -sf http://localhost:4173/ > /dev/null; then exit 0; fi
+            sleep 1
+          done
+          echo "::error::Serwer podglądu nie wystartował"
+          cat "$RUNNER_TEMP/preview.log"
+          exit 1
+
+      - name: Playwright e2e na prawdziwym backendzie
+        working-directory: frontend
+        run: npm run test:e2e:real
+
+      - name: Raporty i ślady Playwright
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: e2e-playwright
+          path: |
+            frontend/playwright-report/
+            frontend/test-results/
+          if-no-files-found: ignore
+          retention-days: 14
+
+      - name: Logi backendu przy błędzie
+        if: failure()
+        run: docker compose --profile full logs --no-color > "$RUNNER_TEMP/compose.log" || true
+      - name: Logi compose (artefakt)
+        if: failure()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: e2e-compose-logs
+          path: ${{ runner.temp }}/compose.log
+          if-no-files-found: ignore
+          retention-days: 7
+
+      - name: Sprzątanie
+        if: always()
+        run: docker compose --profile full down -v
+
+  # Wymagany status (po 3 zielonych przebiegach). Zawsze raportuje: zielony także, gdy zadanie pominięto filtrem.
+  e2e:
+    needs: [changes, run]
+    if: always()
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Agregacja wyników
+        env:
+          RESULTS: ${{ join(needs.*.result, ' ') }}
+        run: |
+          echo "Wyniki: $RESULTS"
+          for r in $RESULTS; do
+            if [ "$r" != "success" ] && [ "$r" != "skipped" ]; then
+              echo "::error::Co najmniej jedno zadanie zakończyło się wynikiem: $r"
+              exit 1
+            fi
+          done

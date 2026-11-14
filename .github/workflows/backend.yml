@@ -73,7 +73,8 @@ jobs:
           if-no-files-found: ignore
           retention-days: 14
 
-  # Etap 0: tylko ostrzeżenie (continue-on-error). Od 1a: usunąć continue-on-error (blokada).
+  # Blokada (fala 0, A3): złamanie kontraktu względem bazy PR daje czerwony wynik.
+  # W fali 1.8 kontrakt dzieli się na per usługa i agregat; krok trzeba wtedy dostosować.
   openapi-breaking:
     needs: changes
     if: needs.changes.outputs.backend == 'true' && github.event_name == 'pull_request'
@@ -83,7 +84,6 @@ jobs:
         with:
           fetch-depth: 0
       - name: oasdiff breaking względem bazy PR
-        continue-on-error: true
         env:
           BASE_REF: ${{ github.base_ref }}
         run: |
@@ -107,7 +107,7 @@ jobs:
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
       - uses: ./.github/actions/setup-backend
-      # osv-scanner nie rozwiązuje zależności od modułu z reaktora (shared-core), więc skanujemy SBOM
+      # osv-scanner nie rozwiązuje zależności od modułów z reaktora (p360-shared-core, p360-platform-starter), więc skanujemy SBOM
       # wygenerowany przez Mavena (pełne drzewo zależności, także przechodnie).
       - name: SBOM zależności Mavena
         working-directory: backend
@@ -133,9 +133,9 @@ jobs:
       - name: Build jar i SBOM
         working-directory: backend
         run: |
-          ./mvnw -B -q -pl backend-api -am package -DskipTests
+          ./mvnw -B -q -pl services/clinic-core -am package -DskipTests
           ./mvnw -B -q org.cyclonedx:cyclonedx-maven-plugin:makeAggregateBom -DskipTests
-          cp backend-api/target/backend-api.jar app.jar
+          cp services/clinic-core/target/clinic-core.jar app.jar
           cp target/bom.json "$GITHUB_WORKSPACE/backend-${GITHUB_SHA}.sbom.json" 2>/dev/null \
             || echo "::warning::Brak target/bom.json (SBOM nie powstał)."
       - name: Obraz Docker (cel from-jar, x86_64)
