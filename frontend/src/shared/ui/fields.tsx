@@ -14,7 +14,7 @@ export function Input({
   className,
   ref,
   ...props
-}: InputHTMLAttributes<HTMLInputElement> & { ref?: Ref<HTMLInputElement> }) {
+}: InputHTMLAttributes<HTMLInputElement> & { ref?: Ref<HTMLInputElement> | undefined }) {
   return <input ref={ref} className={cn(field, className)} {...props} />;
 }
 
@@ -22,7 +22,7 @@ export function Textarea({
   className,
   ref,
   ...props
-}: TextareaHTMLAttributes<HTMLTextAreaElement> & { ref?: Ref<HTMLTextAreaElement> }) {
+}: TextareaHTMLAttributes<HTMLTextAreaElement> & { ref?: Ref<HTMLTextAreaElement> | undefined }) {
   return <textarea ref={ref} className={cn(field, 'min-h-24 py-2', className)} {...props} />;
 }
 
@@ -31,7 +31,7 @@ export function Select({
   className,
   ref,
   ...props
-}: SelectHTMLAttributes<HTMLSelectElement> & { ref?: Ref<HTMLSelectElement> }) {
+}: SelectHTMLAttributes<HTMLSelectElement> & { ref?: Ref<HTMLSelectElement> | undefined }) {
   return <select ref={ref} className={cn(field, className)} {...props} />;
 }
 

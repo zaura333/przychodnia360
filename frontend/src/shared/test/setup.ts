@@ -1,8 +1,11 @@
 import '@testing-library/jest-dom/vitest';
-import { cleanup } from '@testing-library/react';
+import { cleanup, configure } from '@testing-library/react';
 import { afterAll, afterEach, beforeAll } from 'vitest';
 import { server } from './server';
 import { tokenStore } from '@/shared/api/tokenStore';
+
+// Pierwsze wejście w obszar ładuje chunk leniwie, co w jsdom bywa wolne
+configure({ asyncUtilTimeout: 5000 });
 
 beforeAll(() => {
   // Nieobsłużone żądania sieciowe w testach są błędem (testy nie wychodzą do sieci)

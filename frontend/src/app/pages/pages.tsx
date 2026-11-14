@@ -1,5 +1,4 @@
 import { isRouteErrorResponse, Link, useRouteError } from 'react-router';
-import { useAuth } from '@/shared/api/session';
 import { Button } from '@/shared/ui/button';
 import { Skeleton } from '@/shared/ui/display';
 
@@ -68,20 +67,5 @@ export function StartupScreen() {
       <Skeleton className="h-8 w-1/2" />
       <Skeleton className="mt-4 h-32 w-full" />
     </div>
-  );
-}
-
-/** Szkielet ekranu logowania (formularz dochodzi w 1a); pokazuje komunikat, gdy backend jest niedostępny. */
-export function LoginPage() {
-  const { backendUnavailable } = useAuth();
-  return (
-    <Page title="Logowanie">
-      {backendUnavailable ? (
-        <p role="alert" className="mb-3 rounded-md border border-destructive p-3 text-destructive">
-          Nie można połączyć z serwerem. Spróbuj ponownie za chwilę.
-        </p>
-      ) : null}
-      <p>Formularz logowania powstaje w kolejnych etapach.</p>
-    </Page>
   );
 }

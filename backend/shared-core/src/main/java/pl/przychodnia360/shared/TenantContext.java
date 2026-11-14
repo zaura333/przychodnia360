@@ -16,7 +16,7 @@ public final class TenantContext {
     }
 
     /** Stan kontekstu. {@code tenant == null} oznacza jawny brak placówki. */
-    private record Scope(TenantId tenant) {
+    private record Scope(TenantId tenant, boolean platform) {
     }
 
     /** Zamykany uchwyt przywracający poprzedni stan. */
@@ -47,20 +47,40 @@ public final class TenantContext {
             throw new IllegalArgumentException("tenant");
         }
         Handle handle = new Handle(CURRENT.get());
-        CURRENT.set(new Scope(tenant));
+        CURRENT.set(new Scope(tenant, false));
         return handle;
     }
 
     /** Jawny brak placówki: wywołania, które nie dotyczą danych jednej placówki. */
     public static Handle openWithoutTenant() {
         Handle handle = new Handle(CURRENT.get());
-        CURRENT.set(new Scope(null));
+        CURRENT.set(new Scope(null, false));
         return handle;
+    }
+
+    /**
+     * Zakres platformy (administrator platformy): bez placówki, ale z dostępem do wierszy platformy
+     * (np. konta administratorów platformy). Tabele danych placówki pozostają niedostępne.
+     */
+    public static Handle openPlatformScope() {
+        Handle handle = new Handle(CURRENT.get());
+        CURRENT.set(new Scope(null, true));
+        return handle;
+    }
+
+    public static boolean isPlatformScope() {
+        Scope scope = CURRENT.get();
+        return scope != null && scope.platform();
     }
 
     public static Optional<TenantId> current() {
         Scope scope = CURRENT.get();
         return scope == null ? Optional.empty() : Optional.ofNullable(scope.tenant());
+    }
+
+    /** Placówka bieżącego żądania; brak kontekstu to błąd programisty (nie dane użytkownika). */
+    public static TenantId requireTenant() {
+        return current().orElseThrow(() -> new IllegalStateException("Brak kontekstu placówki"));
     }
 
     public static boolean isExplicitlyWithoutTenant() {

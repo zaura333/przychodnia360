@@ -5,7 +5,11 @@ const baseURL = process.env.BASE_URL ?? 'http://localhost:4173';
 
 export default defineConfig({
   testDir: './e2e',
-  fullyParallel: true,
+  // Testy na prawdziwym backendzie (e2e/real) zmieniają dane i idą po kolei; uruchamia je `npm run test:e2e:real`
+  testIgnore: process.env.E2E_REAL ? [] : ['**/real/**'],
+  testMatch: process.env.E2E_REAL ? ['**/real/**/*.spec.ts'] : ['**/*.spec.ts'],
+  fullyParallel: !process.env.E2E_REAL,
+  ...(process.env.E2E_REAL ? { workers: 1, timeout: 60_000 } : {}),
   forbidOnly: !!process.env.CI,
   retries: process.env.CI ? 1 : 0,
   reporter: process.env.CI ? [['github'], ['html', { open: 'never' }]] : 'list',
@@ -24,6 +28,7 @@ export default defineConfig({
     : {
         webServer: {
           command: 'npm run build && npm run preview -- --port 4173 --strictPort',
+          env: { VITE_DEV_BACKEND: process.env.VITE_DEV_BACKEND ?? 'http://127.0.0.1:8080' },
           url: baseURL,
           reuseExistingServer: !process.env.CI,
           timeout: 180_000,

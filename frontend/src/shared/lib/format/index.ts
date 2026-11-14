@@ -7,6 +7,15 @@ export function formatPln(grosze: number): string {
   return pln.format(grosze / 100);
 }
 
+/** Cena z API (PLN jako liczba dziesiętna) na grosze (liczba całkowita), bez błędów zmiennoprzecinkowych. */
+export const plnToGrosze = (pln: number): number => Math.round(pln * 100);
+
+/** Grosze na wartość wysyłaną do API (PLN z dwoma miejscami). */
+export const groszeToPln = (grosze: number): number => grosze / 100;
+
+/** Cena z odpowiedzi API, np. 125 -> "125,00 zł". */
+export const formatPrice = (pln: number): string => formatPln(plnToGrosze(pln));
+
 export function formatDuration(minutes: number): string {
   const total = Math.max(0, Math.round(minutes));
   const h = Math.floor(total / 60);

@@ -1,2 +1,2 @@
-// Moduł funkcji "platform": dopiero szkielet. Import z innych funkcji wyłącznie przez ten plik.
-export {};
+// Publiczny interfejs funkcji "platform". Import z innych funkcji wyłącznie przez ten plik.
+export { TenantsPage } from './pages/TenantsPage';

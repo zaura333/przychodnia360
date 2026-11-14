@@ -12,6 +12,15 @@ export const ROLES = [
 ] as const;
 export type Role = (typeof ROLES)[number];
 
+export const ROLE_LABELS: Record<Role, string> = {
+  PATIENT: 'Pacjent',
+  DOCTOR: 'Lekarz',
+  MEDICAL_STAFF: 'Personel medyczny',
+  RECEPTIONIST: 'Rejestracja',
+  TENANT_ADMIN: 'Administrator placówki',
+  PLATFORM_ADMIN: 'Administrator platformy',
+};
+
 /** W etapie 0 akcje to wejścia do obszarów; kolejne dochodzą razem z funkcjami. */
 export type Action = 'area:patient' | 'area:staff' | 'area:admin' | 'area:platform';
 

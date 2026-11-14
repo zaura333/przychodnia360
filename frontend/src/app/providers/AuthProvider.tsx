@@ -34,7 +34,9 @@ export function AuthProvider({ children, initialState }: Props) {
   const clearSession = useCallback(
     (backendUnavailable = false) => {
       tokenStore.clear();
-      queryClient.clear();
+      // Cache czyścimy tylko po sesji użytkownika. Przy starcie bez sesji nie ma czego czyścić, a clear()
+      // usuwałby trwające zapytania publiczne (np. lista placówek), które wtedy nigdy się nie kończą.
+      if (lastUserId.current !== null) queryClient.clear();
       setState({ status: 'anonymous', backendUnavailable });
     },
     [queryClient],

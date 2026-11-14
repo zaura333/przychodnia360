@@ -11,19 +11,22 @@ npm ci               # instaluje zależności i generuje klienta API (postinstal
 npm run dev          # http://localhost:5173, proxy /api -> http://localhost:8080 (VITE_DEV_BACKEND)
 ```
 
-| Skrypt                   | Opis                                                                                    |
-| ------------------------ | --------------------------------------------------------------------------------------- |
-| `npm run typecheck`      | TypeScript `strict` (aplikacja i konfiguracja)                                          |
-| `npm run lint`           | ESLint z regułami projektowymi                                                          |
-| `npm run format:check`   | Prettier                                                                                |
-| `npm test`               | Vitest (jsdom, `TZ=America/Los_Angeles`, MSW)                                           |
-| `npm run build`          | typecheck + build produkcyjny z manifestem                                              |
-| `npm run check:bundle`   | budżet rozmiaru i test manifestu (obszary w osobnych chunkach)                          |
-| `npm run test:e2e`       | Playwright (Chromium) przeciw `vite preview` z nagłówkami CSP; `BASE_URL` pomija serwer |
-| `npm run bench:schedule` | pomiary prototypu terminarza (Playwright, build produkcyjny z CSP, `dist-bench`)        |
-| `npm run api:generate`   | klient API (Orval) z `../api/openapi.json`; wynik nie jest commitowany                  |
+| Skrypt                   | Opis                                                                                                                                                               |
+| ------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `npm run typecheck`      | TypeScript `strict` (aplikacja i konfiguracja)                                                                                                                     |
+| `npm run lint`           | ESLint z regułami projektowymi                                                                                                                                     |
+| `npm run format:check`   | Prettier                                                                                                                                                           |
+| `npm test`               | Vitest (jsdom, `TZ=America/Los_Angeles`, MSW)                                                                                                                      |
+| `npm run build`          | typecheck + build produkcyjny z manifestem                                                                                                                         |
+| `npm run check:bundle`   | budżet rozmiaru i test manifestu (obszary w osobnych chunkach)                                                                                                     |
+| `npm run test:e2e`       | Playwright (Chromium) przeciw `vite preview` z nagłówkami CSP; `BASE_URL` pomija serwer                                                                            |
+| `npm run test:e2e:real`  | e2e na prawdziwym backendzie (`docker compose --profile full up -d --wait`, seed `local`, Mailpit); opcjonalnie `PLATFORM_ADMIN_EMAIL` i `PLATFORM_ADMIN_PASSWORD` |
+| `npm run bench:schedule` | pomiary prototypu terminarza (Playwright, build produkcyjny z CSP, `dist-bench`)                                                                                   |
+| `npm run api:generate`   | klient API (Orval) z `../api/openapi.json`; wynik nie jest commitowany                                                                                             |
 
 Pierwsze uruchomienie e2e: `npx playwright install chromium`.
+
+**Windows:** `npm test` uruchamiaj z PowerShella lub terminala VS Code. Vitest 5 nie znajduje runnera ("failed to find the runner"), gdy katalog zaczyna się od małej litery dysku (`c:/...`), jak w Git Bash.
 
 ## Struktura
 
@@ -56,7 +59,7 @@ e2e/                       testy Playwright (smoke, CSP)
 2. Klucze zapytań budować z `qk.user(userId).scoped(...)`.
 3. Obsłuż `403`, `404`, `409`, `422` przez `describeError` (nowe typy Problem Details dopisz do słownika w `shared/lib/errors`).
 4. Etykiety i komunikaty po polsku; pola formularzy przez `FormField` (etykieta, błąd, `aria-*`).
-5. Dopisz wiersz do `NAVIGATION` i do tabeli tras; testy "rola x trasa x wynik" i "rola x pozycja menu" generują się z tych tabel.
+5. Dopisz wiersz do `ROUTE_TABLE` (`app/routeTable.ts`, role i przykładowy adres), owiń stronę w `RoleGate` w obszarze i dodaj pozycję do `NAVIGATION`; testy "rola x trasa x wynik" i "rola x pozycja menu" generują się z tych tabel.
 6. Żadnych danych osobowych ani medycznych w URL (identyfikatory, nie PESEL).
 7. Test dostępności: `expectNoA11yViolations(container)`.
 
@@ -66,4 +69,4 @@ Orval generuje hooki TanStack Query z `../api/openapi.json` do `src/shared/api/g
 
 ## Architecture Decision Records
 
-W `../docs/adr/` (prefiks `ADR-F`): stos i struktura, sesja i tokeny, klient API, czas i strefy, CSP i motyw, strategia testów. ADR-F04 opisuje wybór komponentu terminarza (własny `ScheduleGrid`); pomiary powtórzysz przez `npm run bench:schedule`.
+W `../docs/adr/` (prefiks `ADR-F`): stos i struktura, sesja i tokeny, klient API, czas i strefy, CSP i motyw, strategia testów, rezerwacja i kolizje (F08), terminarz i odświeżanie (F09), tabela tras i kontrakt API (F10). ADR-F04 opisuje wybór komponentu terminarza (własny `ScheduleGrid`); pomiary powtórzysz przez `npm run bench:schedule`.

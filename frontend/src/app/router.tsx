@@ -6,7 +6,14 @@ import {
   RequireRole,
   RootLayout,
 } from '@/app/layouts/layouts';
-import { ErrorPage, LoginPage, NotFoundPage, StartupScreen } from '@/app/pages/pages';
+import { ErrorPage, NotFoundPage, StartupScreen } from '@/app/pages/pages';
+import {
+  ForgotPasswordPage,
+  LoginPage,
+  PlatformLoginPage,
+  RegisterPage,
+  ResetPasswordPage,
+} from '@/features/auth';
 import { defaultAreaFor } from '@/app/areas';
 import { useAuth } from '@/shared/api/session';
 
@@ -30,7 +37,16 @@ export const appRoutes: RouteObject[] = [
         errorElement: <ErrorPage />,
         children: [
           { path: '/', element: <HomeRedirect /> },
-          { element: <PublicLayout />, children: [{ path: '/logowanie', element: <LoginPage /> }] },
+          {
+            element: <PublicLayout />,
+            children: [
+              { path: '/logowanie', element: <LoginPage /> },
+              { path: '/rejestracja', element: <RegisterPage /> },
+              { path: '/nie-pamietam-hasla', element: <ForgotPasswordPage /> },
+              { path: '/reset-hasla', element: <ResetPasswordPage /> },
+              { path: '/platforma/logowanie', element: <PlatformLoginPage /> },
+            ],
+          },
           {
             element: <RequireRole />,
             children: [

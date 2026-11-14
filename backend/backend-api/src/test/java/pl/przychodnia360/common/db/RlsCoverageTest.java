@@ -59,4 +59,13 @@ class RlsCoverageTest extends AbstractIntegrationTest {
 
         assertThat(names).isNotEmpty().allSatisfy(n -> assertThat(TABLES_WITHOUT_TENANT_ID).contains(n));
     }
+
+    /** Zakres platformy (app_scope) znają wyłącznie tabele tożsamości; żadna tabela danych placówki go nie zna. */
+    @Test
+    void onlyIdentityTablesKnowPlatformScope() {
+        List<String> tables = JdbcClient.create(dataSource).sql(
+                "SELECT DISTINCT tablename FROM pg_policies WHERE schemaname = 'public' "
+                        + "AND (qual LIKE '%app_scope%' OR with_check LIKE '%app_scope%')").query(String.class).list();
+        assertThat(tables).containsExactlyInAnyOrder("users", "refresh_tokens", "password_reset_tokens");
+    }
 }
