@@ -34,6 +34,16 @@
       <artifactId>springdoc-openapi-starter-webmvc-ui</artifactId>
     </dependency>
 
+    <!-- transport zdarzeń: SNS (publikacja) i SQS (konsumpcja), lokalnie LocalStack -->
+    <dependency>
+      <groupId>software.amazon.awssdk</groupId>
+      <artifactId>sns</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>software.amazon.awssdk</groupId>
+      <artifactId>sqs</artifactId>
+    </dependency>
+
     <!-- testy -->
     <dependency>
       <groupId>org.springframework.boot</groupId>

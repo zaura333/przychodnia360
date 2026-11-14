@@ -31,10 +31,18 @@
     <archunit.version>1.5.1</archunit.version>
     <bouncycastle.version>1.85</bouncycastle.version>
     <enforcer.version>3.7.0</enforcer.version>
+    <awssdk.version>2.29.52</awssdk.version>
   </properties>
 
   <dependencyManagement>
     <dependencies>
+      <dependency>
+        <groupId>software.amazon.awssdk</groupId>
+        <artifactId>bom</artifactId>
+        <version>${awssdk.version}</version>
+        <type>pom</type>
+        <scope>import</scope>
+      </dependency>
       <dependency>
         <groupId>pl.przychodnia360</groupId>
         <artifactId>p360-shared-core</artifactId>
