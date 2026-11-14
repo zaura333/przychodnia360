@@ -9,7 +9,6 @@ export const testData = {
       userId: `user-${role.toLowerCase()}`,
       role,
       tenantId: 'tenant-1',
-      displayName: 'Jan Testowy',
       tenantName: 'Przychodnia Testowa',
       ...overrides,
     };
@@ -31,3 +30,27 @@ export const testData = {
     };
   },
 };
+
+/** Odpowiedź GET /me w kształcie backendu. */
+export function meResponse(role: Role = 'PATIENT', overrides: Record<string, unknown> = {}) {
+  return {
+    userId: `user-${role.toLowerCase()}`,
+    role,
+    tenantId: role === 'PLATFORM_ADMIN' ? null : 'tenant-1',
+    tenantName: role === 'PLATFORM_ADMIN' ? null : 'Klinika A',
+    slotStepMinutes: 15,
+    ...overrides,
+  };
+}
+
+/** Problem Details jako odpowiedź MSW. */
+export function problemResponse(
+  type: string,
+  status: number,
+  extra: Record<string, unknown> = {},
+): Response {
+  return new Response(JSON.stringify(testData.problem(type, status, extra)), {
+    status,
+    headers: { 'Content-Type': 'application/problem+json' },
+  });
+}

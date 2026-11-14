@@ -102,3 +102,37 @@ export const formatDateTime = (instant: Instant): string =>
 export function formatRelative(instant: Instant, reference: Instant = now()): string {
   return formatDistance(instant, reference, { addSuffix: true, locale: pl, in: inWarsaw });
 }
+
+/** Dzisiejsza data w Warszawie. */
+export const today = (): LocalDate => toLocalDate(now());
+
+/** Indeks dnia tygodnia: poniedziałek = 0, niedziela = 6. */
+export function weekdayIndex(localDate: LocalDate): number {
+  const [y, m, d] = parts(localDate);
+  return (new Date(Date.UTC(y, m - 1, d)).getUTCDay() + 6) % 7;
+}
+
+/** Poniedziałek tygodnia, w którym leży data. */
+export const weekStart = (localDate: LocalDate): LocalDate =>
+  addDays(localDate, -weekdayIndex(localDate));
+
+export function formatLocalDate(localDate: LocalDate): string {
+  const [y, m, d] = parts(localDate);
+  return `${String(d).padStart(2, '0')}.${String(m).padStart(2, '0')}.${String(y)}`;
+}
+
+/** Np. "poniedziałek, 3 listopada". */
+export function formatDayLong(localDate: LocalDate): string {
+  const [y, m, d] = parts(localDate);
+  return format(new TZDate(y, m - 1, d, 12, 0, 0, 0, TIME_ZONE), 'EEEE, d MMMM', {
+    locale: pl,
+    in: inWarsaw,
+  });
+}
+
+/** Godzina "na ścianie" bez sekund: "08:00:00" -> "08:00". */
+export const shortTime = (time: string): string => time.slice(0, 5);
+
+export function isLocalDate(value: string): value is LocalDate {
+  return LOCAL_DATE.test(value);
+}

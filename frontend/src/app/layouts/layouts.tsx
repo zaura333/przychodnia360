@@ -1,9 +1,9 @@
-import { Link, NavLink, Navigate, Outlet, useLocation } from 'react-router';
+import { Link, NavLink, Navigate, Outlet, useLocation, useNavigate } from 'react-router';
 import { StartupScreen, ForbiddenPage } from '@/app/pages/pages';
 import { NAVIGATION } from '@/app/navigation';
 import { areaForPath } from '@/app/areas';
 import { useAuth } from '@/shared/api/session';
-import { can } from '@/shared/lib/permissions';
+import { can, ROLE_LABELS } from '@/shared/lib/permissions';
 import { Button } from '@/shared/ui/button';
 import { DemoBanner } from '@/shared/ui/demo-banner';
 import { ErrorBoundary } from '@/shared/ui/error-boundary';
@@ -35,6 +35,7 @@ export function PublicLayout() {
 /** Nagłówek z placówką i użytkownikiem, menu z navigation.ts i wylogowanie. */
 export function AppLayout() {
   const { user, logout } = useAuth();
+  const navigate = useNavigate();
   if (!user) return null;
   return (
     <div>
@@ -54,11 +55,11 @@ export function AppLayout() {
             </NavLink>
           ))}
         </nav>
-        <span className="text-sm text-muted-foreground">{user.displayName ?? user.userId}</span>
+        <span className="text-sm text-muted-foreground">{ROLE_LABELS[user.role]}</span>
         <Button
           variant="outline"
           onClick={() => {
-            void logout();
+            void logout().then(() => navigate('/logowanie', { replace: true }));
           }}
         >
           Wyloguj

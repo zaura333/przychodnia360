@@ -6,6 +6,12 @@ import { testData } from './testData';
  * handlerami generowanymi przez Orval. Domyślnie: brak sesji (refresh -> 401).
  */
 export const baseHandlers = [
+  http.get('/api/v1/facilities', () =>
+    HttpResponse.json([
+      { slug: 'klinika-a', name: 'Klinika A' },
+      { slug: 'klinika-b', name: 'Klinika B' },
+    ]),
+  ),
   http.get('/api/v1/health', () => HttpResponse.json({ status: 'UP' })),
   http.post('/api/v1/auth/refresh', () =>
     HttpResponse.json(testData.problem('unauthorized', 401), {
