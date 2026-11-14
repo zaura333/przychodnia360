@@ -6,7 +6,7 @@ Platforma webowa dla małych i średnich przychodni: rezerwacja wizyt, dokumenta
 
 ## Status
 
-Etap 0 w toku: gotowe szkielety backendu (Spring Boot, Flyway, RLS, testy) i frontendu (React, Vite, testy, CSP), obraz Dockera backendu, prototyp terminarza. Decyzje architektoniczne: `docs/adr/`.
+Etap 0 gotowy (szkielety, CI, Docker). Podetap 1a lokalnie: backend (logowanie, katalog, pracownicy z grafikami, rezerwacje z ochroną przed kolizjami, placówki platformy) i frontend (logowanie i rejestracja, kreator rezerwacji, terminarz rejestratora, panele administracji i platformy). Wdrożenie do AWS po etapie 1. Decyzje architektoniczne: `docs/adr/`.
 
 ## Technologie
 
@@ -54,7 +54,7 @@ Po zmianie endpointów `./mvnw verify` aktualizuje `api/openapi.json`; plik trze
 - zero danych osobowych w logach (PESEL maskowany),
 - `./mvnw verify` i zatwierdzony `api/openapi.json`.
 
-**Decyzje architektoniczne** są w `docs/adr/`: backend `ADR-B01` (PostgreSQL i role), `B02` (logowanie ze slugiem), `B03` (uprawnienia), `B04` (przedział czasu), `B05` (reguła 24 h), `B06` (Argon2id, wstępnie), `B07` (tokeny JWT i odświeżanie), `B08` (grafiki i ograniczenia wizyt); frontend `ADR-F01` do `F07`.
+**Decyzje architektoniczne** są w `docs/adr/`: backend `ADR-B01` (PostgreSQL i role), `B02` (logowanie ze slugiem), `B03` (uprawnienia), `B04` (przedział czasu), `B05` (reguła 24 h), `B06` (Argon2id, wstępnie), `B07` (tokeny JWT i odświeżanie), `B08` (grafiki i ograniczenia wizyt); frontend `ADR-F01` do `F10` (`F08` rezerwacja i kolizje, `F09` terminarz rejestratora i odświeżanie, `F10` tabela tras i kontrakt API).
 
 ## Frontend: uruchomienie lokalne
 
