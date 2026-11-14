@@ -35,6 +35,10 @@ java -jar backend-api/target/backend-api.jar --spring.profiles.active=local
 curl http://localhost:8080/api/v1/health
 ```
 
+**Dane demo (profil `local`).** Przy starcie `SeedRunner` zakłada (idempotentnie) placówki `klinika-a` i `klinika-b` z administratorem, dwoma lekarzami, pielęgniarką, rejestratorem, trzema pacjentami, katalogiem, grafikami i wizytami. Konta mają adresy w domenie `<slug>.example.test`: `admin@`, `lekarz1@`, `lekarz2@`, `pielegniarka@`, `rejestracja@`, `pacjent1@` do `pacjent3@`; hasło wszystkich to wartość `SEED_PASSWORD` (lokalnie domyślnie `demo-przychodnia-2026`). Seed trwa kilka sekund po starcie. Wiadomości e-mail (linki ustawienia hasła) trafiają do Mailpit: http://localhost:8025. Przykład logowania: `POST /api/v1/auth/login` z `{"tenantSlug":"klinika-a","email":"rejestracja@klinika-a.example.test","password":"..."}`.
+
+**Pierwszy administrator platformy** (bez migracji i bez hasła w repozytorium): jednorazowe uruchomienie z profilem `bootstrap-admin`, np. `BOOTSTRAP_ADMIN_EMAIL=root@platform.example.test BOOTSTRAP_ADMIN_PASSWORD=... java -jar backend-api/target/backend-api.jar --spring.profiles.active=local,bootstrap-admin`. Konto powstaje idempotentnie, po czym proces kończy pracę.
+
 Po zmianie endpointów `./mvnw verify` aktualizuje `api/openapi.json`; plik trzeba zatwierdzić (CI sprawdza zgodność). Konwencje bazy: `docs/db-conventions.md`.
 
 **Lista kontrolna: nowa tabela danych placówki**
@@ -50,7 +54,7 @@ Po zmianie endpointów `./mvnw verify` aktualizuje `api/openapi.json`; plik trze
 - zero danych osobowych w logach (PESEL maskowany),
 - `./mvnw verify` i zatwierdzony `api/openapi.json`.
 
-**Decyzje architektoniczne** są w `docs/adr/`: backend `ADR-B01` (PostgreSQL i role), `B02` (logowanie ze slugiem), `B03` (uprawnienia), `B04` (przedział czasu), `B05` (reguła 24 h), `B06` (Argon2id, wstępnie); frontend `ADR-F01` do `F07`.
+**Decyzje architektoniczne** są w `docs/adr/`: backend `ADR-B01` (PostgreSQL i role), `B02` (logowanie ze slugiem), `B03` (uprawnienia), `B04` (przedział czasu), `B05` (reguła 24 h), `B06` (Argon2id, wstępnie), `B07` (tokeny JWT i odświeżanie), `B08` (grafiki i ograniczenia wizyt); frontend `ADR-F01` do `F07`.
 
 ## Frontend: uruchomienie lokalne
 
