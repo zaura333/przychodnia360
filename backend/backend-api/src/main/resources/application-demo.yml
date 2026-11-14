@@ -16,3 +16,9 @@ springdoc:
     enabled: false
   swagger-ui:
     enabled: false
+
+security:
+  jwt:
+    active-kid: ${JWT_ACTIVE_KID}
+    keys:
+      "[${JWT_ACTIVE_KID}]": ${JWT_ACTIVE_KEY}

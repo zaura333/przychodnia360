@@ -11,3 +11,9 @@ spring:
 logging:
   pattern:
     level: "%5p [%X{requestId:-}]"
+
+security:
+  jwt:
+    active-kid: local-1
+    keys:
+      local-1: bG9jYWwtZGV2LW9ubHktand0LWtleS0wMTIzNDU2Nzg5YWJjZGVm
