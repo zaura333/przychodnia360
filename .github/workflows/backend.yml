@@ -16,65 +16,104 @@ env:
   OASDIFF_VERSION: "1.37.0"
   OSV_SCANNER_VERSION: "2.7.1"
 
+# Macierz usług (zadanie 1.9). Plan wylicza .github/scripts/backend_matrix.py z listy zmienionych plików:
+# zmiana tylko w backend/services/<usługa> buduje tylko tę usługę, zmiana w platform/*, wspólnych plikach
+# budowania, kontraktach (api/), dockerze lub w tym pliku buduje wszystkie usługi i testy platformy.
+# Na pushu do main i develop budowane jest wszystko. Nowa usługa (katalog z pom.xml w backend/services) trafia do
+# macierzy sama, bez zmian w tym pliku.
 jobs:
   changes:
     runs-on: ubuntu-24.04
-    # paths-filter na PR pobiera listę plików z API GitHuba (wymaga pull-requests: read)
     permissions:
       contents: read
-      pull-requests: read
     outputs:
-      backend: ${{ steps.filter.outputs.backend }}
+      backend: ${{ steps.plan.outputs.run }}
+      platform: ${{ steps.plan.outputs.platform }}
+      services: ${{ steps.plan.outputs.services }}
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
-      - id: filter
-        uses: dorny/paths-filter@0e4a8c6effa4802afeda77dc8d303f8176d7dfad # v3
         with:
-          filters: |
-            backend:
-              - 'backend/**'
-              - 'api/**'
-              - '.java-version'
-              - '.github/actions/setup-backend/**'
-              - '.github/workflows/backend.yml'
+          fetch-depth: 0
+      - name: Testy skryptu planu
+        run: python3 -m unittest discover -s .github/scripts -p 'test_*.py'
+      - id: plan
+        env:
+          EVENT: ${{ github.event_name }}
+          BASE_REF: ${{ github.base_ref }}
+        run: |
+          if [ "$EVENT" = "pull_request" ]; then
+            git diff --name-only "origin/${BASE_REF}...HEAD" | python3 .github/scripts/backend_matrix.py >> "$GITHUB_OUTPUT"
+          else
+            python3 .github/scripts/backend_matrix.py --all < /dev/null >> "$GITHUB_OUTPUT"
+          fi
+          echo "Plan:"
+          cat "$GITHUB_OUTPUT"
 
-  build-test:
+  # Biblioteki platform/* (shared-core, starter, test-support): testy raz, poza macierzą usług (zadania usług
+  # pomijają je właściwością p360.platform.skipTests). W test-support są też bramki kontraktów zdarzeń i OpenAPI.
+  platform:
     needs: changes
-    if: needs.changes.outputs.backend == 'true'
+    if: needs.changes.outputs.backend == 'true' && needs.changes.outputs.platform == 'true'
     runs-on: ubuntu-24.04
-    timeout-minutes: 30
+    timeout-minutes: 15
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
       - uses: ./.github/actions/setup-backend
-      # verify: testy jednostkowe, Testcontainers, ArchUnit, RLS, role, macierz uprawnień.
-      # Faza integration-test generuje api/openapi.json (springdoc-openapi-maven-plugin).
-      - name: Maven verify
+      - name: Maven verify (platform)
         working-directory: backend
-        run: ./mvnw -B verify
-      - name: Kontrakt api/openapi.json zgodny z kodem
+        run: ./mvnw -B verify -pl platform/p360-shared-core,platform/p360-platform-starter,platform/p360-test-support
+      - name: Raporty testów
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: backend-test-reports-platform
+          path: backend/platform/**/target/surefire-reports/
+          if-no-files-found: ignore
+          retention-days: 14
+
+  build-test:
+    name: build-test (${{ matrix.service }})
+    needs: changes
+    if: needs.changes.outputs.backend == 'true' && needs.changes.outputs.services != '[]'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        service: ${{ fromJSON(needs.changes.outputs.services) }}
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - uses: ./.github/actions/setup-backend
+      # verify usługi z zależnościami z reaktora (-am); testy platform/* biegną w zadaniu "platform".
+      # Testy: jednostkowe, Testcontainers, ArchUnit, RLS, role, macierz uprawnień, kontrakty.
+      # Faza testów generuje api/openapi.json (OpenApiExportTest).
+      - name: Maven verify (${{ matrix.service }})
+        working-directory: backend
+        run: ./mvnw -B verify -pl services/${{ matrix.service }} -am -Dp360.platform.skipTests=true
+      - name: Kontrakty api/ zgodne z kodem
         run: |
-          if ! git diff --exit-code -- api/openapi.json; then
-            echo "::error::api/openapi.json różni się od wygenerowanego z kodu. Uruchom './mvnw verify' w backend/ i zatwierdź zmianę."
+          if ! git diff --exit-code -- api/; then
+            echo "::error::Pliki w api/ różnią się od wygenerowanych z kodu. Uruchom './mvnw verify' w backend/ i zatwierdź zmianę."
             exit 1
           fi
-          if [ -n "$(git ls-files --others --exclude-standard -- api/openapi.json)" ]; then
-            echo "::error::api/openapi.json został wygenerowany, ale nie jest zatwierdzony w repozytorium."
+          if [ -n "$(git ls-files --others --exclude-standard -- api/)" ]; then
+            echo "::error::W api/ powstał plik, który nie jest zatwierdzony w repozytorium."
             exit 1
           fi
       - name: Raporty testów
         if: always()
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
-          name: backend-test-reports
+          name: backend-test-reports-${{ matrix.service }}
           path: |
-            backend/**/target/surefire-reports/
-            backend/**/target/failsafe-reports/
-            backend/**/target/site/jacoco/
+            backend/services/${{ matrix.service }}/target/surefire-reports/
+            backend/services/${{ matrix.service }}/target/failsafe-reports/
+            backend/services/${{ matrix.service }}/target/site/jacoco/
           if-no-files-found: ignore
           retention-days: 14
 
   # Blokada (fala 0, A3): złamanie kontraktu względem bazy PR daje czerwony wynik.
-  # W fali 1.8 kontrakt dzieli się na per usługa i agregat; krok trzeba wtedy dostosować.
+  # Sprawdzany jest kontrakt zagregowany; pliki per usługa (api/services) są z niego wyprowadzane.
   openapi-breaking:
     needs: changes
     if: needs.changes.outputs.backend == 'true' && github.event_name == 'pull_request'
@@ -147,41 +186,47 @@ jobs:
           chmod +x "$RUNNER_TEMP/osv-scanner"
           "$RUNNER_TEMP/osv-scanner" scan source -L backend/target/bom.json
 
-  # Jar Spring Boot + obraz Dockera z celu from-jar (DK2) na każdym przebiegu, także na PR: e2e.yml uruchamia
-  # ten sam jar, z którego powstaje obraz wdrożeniowy (ECS Fargate). Push do ECR (rola gha-ecr-push, OIDC)
-  # tylko na main i dopiero po powstaniu infrastruktury (CD2.3); do tego czasu zadanie push-image jest wyłączone.
+  # Jar Spring Boot + obraz Dockera z celu from-jar (DK2) dla każdej usługi z macierzy, także na PR: e2e.yml
+  # uruchamia ten sam jar, z którego powstaje obraz wdrożeniowy (ECS Fargate). Konwencja: usługa services/<nazwa>
+  # ma artefakt <nazwa> (jar <nazwa>.jar) i obraz p360/<nazwa>. Push do ECR (rola gha-ecr-push, OIDC) tylko na main
+  # i dopiero po powstaniu infrastruktury (CD2.3); do tego czasu zadanie push-image jest wyłączone.
   package:
+    name: package (${{ matrix.service }})
     needs: [changes, build-test]
-    if: needs.changes.outputs.backend == 'true'
+    if: needs.changes.outputs.backend == 'true' && needs.changes.outputs.services != '[]'
     runs-on: ubuntu-24.04
     timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        service: ${{ fromJSON(needs.changes.outputs.services) }}
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
       - uses: ./.github/actions/setup-backend
       - name: Build jar i SBOM
         working-directory: backend
         run: |
-          ./mvnw -B -q -pl services/clinic-core -am package -DskipTests
+          ./mvnw -B -q -pl services/${{ matrix.service }} -am package -DskipTests
           ./mvnw -B -q org.cyclonedx:cyclonedx-maven-plugin:makeAggregateBom -DskipTests
-          cp services/clinic-core/target/clinic-core.jar app.jar
-          cp target/bom.json "$GITHUB_WORKSPACE/backend-${GITHUB_SHA}.sbom.json" 2>/dev/null \
+          cp services/${{ matrix.service }}/target/${{ matrix.service }}.jar app.jar
+          cp target/bom.json "$GITHUB_WORKSPACE/${{ matrix.service }}-${GITHUB_SHA}.sbom.json" 2>/dev/null \
             || echo "::warning::Brak target/bom.json (SBOM nie powstał)."
       - name: Obraz Docker (cel from-jar, x86_64)
         working-directory: backend
-        run: docker build --target from-jar -t "p360/backend:${GITHUB_SHA}" .
+        run: docker build --target from-jar -t "p360/${{ matrix.service }}:${GITHUB_SHA}" .
       - name: Skan obrazu (trivy, blokada przy HIGH i CRITICAL z poprawką)
         uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
         with:
-          image-ref: p360/backend:${{ github.sha }}
+          image-ref: p360/${{ matrix.service }}:${{ github.sha }}
           severity: HIGH,CRITICAL
           ignore-unfixed: true
           exit-code: "1"
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
-          name: backend-package
+          name: backend-package-${{ matrix.service }}
           path: |
             backend/app.jar
-            backend-${{ github.sha }}.sbom.json
+            ${{ matrix.service }}-${{ github.sha }}.sbom.json
           if-no-files-found: error
           retention-days: 14
 
@@ -193,9 +238,10 @@ jobs:
     steps:
       - run: echo 'Push obrazu do ECR - patrz plan CI/CD, zadanie CD2.3'
 
-  # Wymagany status. Zawsze raportuje: zielony także wtedy, gdy zadania pominięto zgodnie z filtrem.
+  # Wymagany status. Zawsze raportuje: zielony także wtedy, gdy zadania pominięto zgodnie z planem.
+  # Wynik zadania z macierzą jest zbiorczy (porażka dowolnej usługi daje porażkę całości).
   backend:
-    needs: [changes, build-test, openapi-breaking, events-breaking, security, package]
+    needs: [changes, platform, build-test, openapi-breaking, events-breaking, security, package]
     if: always()
     runs-on: ubuntu-24.04
     steps:
