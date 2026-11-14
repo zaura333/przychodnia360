@@ -111,7 +111,7 @@ public class PasswordResetService {
     }
 
     String link(String rawToken) {
-        return baseUrl + "/ustaw-haslo?token=" + rawToken;
+        return baseUrl + "/reset-hasla?token=" + rawToken;
     }
 
     /** Wysyła wiadomość po zatwierdzeniu transakcji (gdy jest aktywna), żeby wycofanie nie zostawiło wysłanego linku. */
