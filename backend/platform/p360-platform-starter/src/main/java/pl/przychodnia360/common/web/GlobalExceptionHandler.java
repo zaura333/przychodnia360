@@ -20,6 +20,7 @@ import pl.przychodnia360.shared.ConflictException;
 import pl.przychodnia360.shared.DomainException;
 import pl.przychodnia360.shared.ForbiddenException;
 import pl.przychodnia360.shared.NotFoundException;
+import pl.przychodnia360.shared.ServiceUnavailableException;
 import pl.przychodnia360.shared.TooManyRequestsException;
 import pl.przychodnia360.shared.UnauthorizedException;
 import pl.przychodnia360.shared.UnprocessableException;
@@ -68,6 +69,11 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
     @ExceptionHandler(UnauthorizedException.class)
     ResponseEntity<ProblemDetail> unauthorized(UnauthorizedException ex) {
         return of(HttpStatus.UNAUTHORIZED, ex, "Brak uwierzytelnienia");
+    }
+
+    @ExceptionHandler(ServiceUnavailableException.class)
+    ResponseEntity<ProblemDetail> serviceUnavailable(ServiceUnavailableException ex) {
+        return of(HttpStatus.SERVICE_UNAVAILABLE, ex, "Usługa chwilowo niedostępna");
     }
 
     @ExceptionHandler(TooManyRequestsException.class)

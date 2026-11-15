@@ -17,7 +17,8 @@ import pl.przychodnia360.shared.TenantId;
 /**
  * Uwierzytelnia żądanie tokenem Bearer ({@link AccessTokenVerifier}) i na czas żądania ustawia kontekst placówki
  * z tokenu (tylko z tokenu, nigdy ze ścieżki ani z parametrów). Dla administratora platformy ustawia zakres
- * platformy. Wspólny dla wszystkich usług.
+ * platformy. Wspólny dla wszystkich usług. Surowy token zostaje w poświadczeniach uwierzytelnienia, żeby wywołanie
+ * innej usługi w ramach tego samego żądania mogło go przekazać dalej ({@code RemoteServiceClient}).
  */
 public class BearerAuthenticationFilter extends OncePerRequestFilter implements ApiAuthenticationFilter {
 
@@ -33,15 +34,14 @@ public class BearerAuthenticationFilter extends OncePerRequestFilter implements 
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain chain)
             throws ServletException, IOException {
         String header = request.getHeader("Authorization");
-        Optional<AuthenticatedUser> user = header != null && header.startsWith(PREFIX)
-                ? verifier.verify(header.substring(PREFIX.length()).trim())
-                : Optional.empty();
+        String token = header != null && header.startsWith(PREFIX) ? header.substring(PREFIX.length()).trim() : null;
+        Optional<AuthenticatedUser> user = token != null ? verifier.verify(token) : Optional.empty();
         if (user.isEmpty()) {
             chain.doFilter(request, response);
             return;
         }
         AuthenticatedUser principal = user.get();
-        SecurityContextHolder.getContext().setAuthentication(new UsernamePasswordAuthenticationToken(principal, null,
+        SecurityContextHolder.getContext().setAuthentication(new UsernamePasswordAuthenticationToken(principal, token,
                 List.of(new SimpleGrantedAuthority("ROLE_" + principal.role().name()))));
         try (TenantContext.Handle ignored = principal.role() == Role.PLATFORM_ADMIN
                 ? TenantContext.openPlatformScope()
