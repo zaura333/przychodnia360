@@ -1,13 +1,13 @@
 #!/bin/sh
 # Jednorazowe kopiowanie danych wydzielonych modułów (S1 katalog, S2 pacjenci, S3 konta i placówki) z bazy głównej
-# clinic-core do baz usług (p360_catalog, p360_patient, p360_iam). Dotyczy środowisk, które mają dane w starych tabelach
+# clinic-core (dziś scheduling) do baz usług (p360_catalog, p360_patient, p360_iam). Dotyczy środowisk, które mają dane w starych tabelach
 # (service_categories, services, patients, tenants, users, tokeny) sprzed wydzielenia; środowiska z danymi z seedu można po prostu zresetować (docker compose down -v).
 #
 # Dla S3 uruchom iam pierwszy raz z SEED_ENABLED=false (inaczej seed iam założy placówki z innymi identyfikatorami, a
-# skrypt odmówi nadpisania). Migracje V12 i V13 w clinic-core odmawiają usunięcia tabel, które mają wiersze, więc kolejność jest taka:
+# skrypt odmówi nadpisania). Migracje V12 i V13 w scheduling odmawiają usunięcia tabel, które mają wiersze, więc kolejność jest taka:
 #   1. uruchom bazy i usługi catalog oraz patient (ich migracje tworzą tabele docelowe),
 #   2. uruchom ten skrypt (kopiuje, sprawdza liczności; dodaj CLEAR_SOURCE=yes, żeby opróżnić tabele źródłowe),
-#   3. uruchom clinic-core: migracje V12 i V13 usuną puste tabele.
+#   3. uruchom scheduling: migracje V12 i V13 usuną puste tabele.
 #
 # Uruchomienie z korzenia repozytorium (skrypt działa wewnątrz kontenera postgres jako superużytkownik, który omija RLS):
 #   docker compose exec -T postgres sh -s < docker/scripts/copy-extracted-data.sh
@@ -85,7 +85,7 @@ if [ "${CLEAR_SOURCE:-no}" = "yes" ]; then
     psql -U "$USER_NAME" -d "$SOURCE_DB" -v ON_ERROR_STOP=1 -q -c "TRUNCATE $tables"
     echo "Opróżniono źródło: $tables"
   fi
-  echo "Gotowe: clinic-core z migracjami V12 i V13 usunie puste tabele przy starcie."
+  echo "Gotowe: scheduling z migracjami V12 i V13 usunie puste tabele przy starcie."
 else
   echo "Skopiowano. Źródło nietknięte: uruchom ponownie z CLEAR_SOURCE=yes po sprawdzeniu danych w usługach."
 fi

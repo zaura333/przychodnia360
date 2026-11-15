@@ -1,7 +1,7 @@
 # Zależności lokalne: `docker compose up -d` startuje postgres i mailpit (backend z IDE, frontend z Vite).
 #
 # Profile (zadanie 1.10), łączone flagą --profile:
-#   core    rdzeń: usługi biznesowe (dziś monolit clinic-core jako "backend") i krawędź Traefik. To zestaw dla e2e
+#   core    rdzeń: usługi biznesowe (iam, catalog, patient, scheduling) i krawędź Traefik. To zestaw dla e2e
 #           i dla osób bez Javy: `docker compose --profile core up -d --build --wait`.
 #   finance zarezerwowany dla billing i integration-hub (fala 2 i 3); na razie bez usług.
 #   edge    sama krawędź (Traefik), gdy backend działa z IDE.
@@ -53,21 +53,24 @@ services:
       timeout: 3s
       retries: 10
 
-  # Usługa clinic-core (po S1–S3 zostały w niej pracownicy, grafiki i wizyty; docelowo scheduling). Profile core i full;
-  # domyślnie backend działa z IDE. Limit 0,5 vCPU i 2 GB jak zadanie Fargate: start trwa dłużej niż na laptopie, stąd
+  # scheduling-service (S4, dawniej clinic-core): pracownicy, grafiki i wizyty; baza p360 (łańcuch migracji V1+ zachowany,
+  # ADR-M12). Profile core i full; domyślnie usługa działa z IDE. Limit 0,5 vCPU i 2 GB jak zadanie Fargate: start trwa dłużej niż na laptopie, stąd
   # tolerancyjny healthcheck w Dockerfile (M-7).
-  backend:
+  scheduling:
     profiles: ["core", "full"]
     build:
       context: ./backend
       target: runtime
+      args:
+        MODULE: services/scheduling
+        JAR: scheduling
     environment:
       SPRING_PROFILES_ACTIVE: local
       # W sieci compose baza ma nazwę usługi (z IDE: localhost)
       DB_URL: jdbc:postgresql://postgres:5432/${P360_DB_NAME:-p360}
       P360_OWNER_PASSWORD: ${P360_OWNER_PASSWORD:?ustaw w .env (skopiuj .env.example)}
       P360_APP_PASSWORD: ${P360_APP_PASSWORD:?ustaw w .env (skopiuj .env.example)}
-      # Konta, placówki, katalog i pacjenci to osobne usługi (S1 ADR-M14, S2, S3 ADR-M17): clinic-core woła je przez REST
+      # Konta, placówki, katalog i pacjenci to osobne usługi (S1 ADR-M14, S2, S3 ADR-M17): scheduling woła je przez REST
       # z tokenem usługowym pobranym od iam za swoim sekretem, a tokeny użytkowników weryfikuje z JWKS iam. Seed loguje
       # się w iam jako administrator placówki. Adresy w sieci compose (z IDE: localhost:8084, 8082 i 8083).
       P360_IAM_URL: http://iam:8080
@@ -76,7 +79,7 @@ services:
       P360_CATALOG_URL: http://catalog:8080
       P360_PATIENT_URL: http://patient:8080
     ports:
-      - "127.0.0.1:${BACKEND_PORT:-8080}:8080"
+      - "127.0.0.1:${SCHEDULING_PORT:-8080}:8080"
     depends_on:
       postgres:
         condition: service_healthy
@@ -90,7 +93,7 @@ services:
     # Punkt wyjścia zbliżony do zadania Fargate (0,5 vCPU, 2 GB); finalnie z ADR-006
     cpus: 0.5
     mem_limit: 2g
-    # Bez restart: błędy backendu mają być widoczne
+    # Bez restart: błędy usługi mają być widoczne
 
   # iam-service (S3, ADR-M17): placówki, konta, logowanie, tokeny (JWKS) i tokeny usługowe; własna baza p360_iam.
   # Krawędź kieruje do niej /auth/**, /me, /tenant, /facilities i /platform/** (docker/edge/upstreams.csv). Wysyła
@@ -111,7 +114,7 @@ services:
       SPRING_MAIL_HOST: mailpit
       SPRING_MAIL_PORT: "1025"
       P360_PATIENT_URL: http://patient:8080
-      # sekret, za który usługa scheduling (dziś clinic-core) dostaje tokeny usługowe
+      # sekret, za który usługa scheduling dostaje tokeny usługowe
       P360_SCHEDULING_CLIENT_SECRET: ${P360_SCHEDULING_CLIENT_SECRET:-p360_scheduling_client_local_dev}
     ports:
       - "127.0.0.1:${IAM_PORT:-8084}:8080"

@@ -5,7 +5,7 @@ import react from '@vitejs/plugin-react';
 import { defineConfig, type Plugin } from 'vite';
 
 // Adres krawędzi (Traefik) dla proxy /api (konfigurowalny zmienną środowiskową). Katalog i pacjenci są osobnymi
-// usługami, więc clinic-core (port 8080) sam nie obsłuży całego API: frontend musi iść przez krawędź (docker compose --profile core).
+// usługami, więc scheduling (port 8080) sam nie obsłuży całego API: frontend musi iść przez krawędź (docker compose --profile core).
 const backend = process.env.VITE_DEV_BACKEND ?? 'http://localhost:8090';
 
 interface SecurityHeaders {

@@ -7,8 +7,8 @@ import unittest
 sys.path.insert(0, os.path.dirname(__file__))
 import backend_matrix as bm  # noqa: E402
 
-TWO = ['clinic-core', 'notification-service']
-ONE = ['clinic-core']
+TWO = ['scheduling', 'notification-service']
+ONE = ['scheduling']
 
 
 class PlanTest(unittest.TestCase):
@@ -25,8 +25,8 @@ class PlanTest(unittest.TestCase):
         self.assertEqual(r, {'run': True, 'platform': False, 'services': ['notification-service']})
 
     def test_changes_in_two_services_build_both_without_platform(self):
-        r = bm.plan(['backend/services/notification-service/pom.xml', 'backend/services/clinic-core/x.yml'], TWO)
-        self.assertEqual(r, {'run': True, 'platform': False, 'services': ['clinic-core', 'notification-service']})
+        r = bm.plan(['backend/services/notification-service/pom.xml', 'backend/services/scheduling/x.yml'], TWO)
+        self.assertEqual(r, {'run': True, 'platform': False, 'services': ['scheduling', 'notification-service']})
 
     def test_a_platform_change_builds_every_service_and_the_platform(self):
         r = bm.plan(['backend/platform/p360-platform-starter/src/main/java/A.java'], TWO)
@@ -50,7 +50,7 @@ class PlanTest(unittest.TestCase):
         self.assertEqual((r['platform'], r['services']), (True, TWO))
 
     def test_a_shared_change_wins_over_a_single_service_change(self):
-        r = bm.plan(['backend/services/clinic-core/A.java', 'backend/platform/p360-shared-core/B.java'], TWO)
+        r = bm.plan(['backend/services/scheduling/A.java', 'backend/platform/p360-shared-core/B.java'], TWO)
         self.assertEqual((r['platform'], r['services']), (True, TWO))
 
     def test_a_removed_or_unknown_service_builds_nothing(self):
@@ -62,13 +62,13 @@ class PlanTest(unittest.TestCase):
         self.assertEqual(r, {'run': True, 'platform': True, 'services': TWO})
 
     def test_windows_separators_and_blank_lines_are_tolerated(self):
-        r = bm.plan(['', '  ', 'backend\\services\\clinic-core\\A.java'], ONE)
+        r = bm.plan(['', '  ', 'backend\\services\\scheduling\\A.java'], ONE)
         self.assertEqual(r, {'run': True, 'platform': False, 'services': ONE})
 
 
 class CliTest(unittest.TestCase):
 
-    def run_cli(self, stdin, *args, services=('clinic-core',)):
+    def run_cli(self, stdin, *args, services=('scheduling',)):
         with tempfile.TemporaryDirectory() as tmp:
             for name in services:
                 os.makedirs(os.path.join(tmp, name))
@@ -80,8 +80,8 @@ class CliTest(unittest.TestCase):
         return dict(line.split('=', 1) for line in out.splitlines())
 
     def test_output_format_for_github_output(self):
-        out = self.run_cli('backend/services/clinic-core/A.java\n')
-        self.assertEqual(out, {'run': 'true', 'platform': 'false', 'services': '["clinic-core"]'})
+        out = self.run_cli('backend/services/scheduling/A.java\n')
+        self.assertEqual(out, {'run': 'true', 'platform': 'false', 'services': '["scheduling"]'})
 
     def test_only_directories_with_a_pom_are_services(self):
         out = self.run_cli('', '--all', services=('a-service', 'b-service'))

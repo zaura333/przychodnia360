@@ -2,8 +2,8 @@
 #   runtime  (domyślny): buduje jar wewnątrz obrazu (lokalnie, osoby bez Javy)
 #   from-jar: kopiuje gotowy backend/app.jar z zadania `package` (CI i wdrożenie: ten sam jar w e2e i na Fargate)
 # Obraz wdrożeniowy: x86_64, użytkownik nie-root, Alpine (musl) także na Fargate.
-ARG MODULE=services/clinic-core
-ARG JAR=clinic-core
+ARG MODULE=services/scheduling
+ARG JAR=scheduling
 
 # --- wspólna baza uruchomieniowa ---
 FROM eclipse-temurin:21-jre-alpine AS base
@@ -34,7 +34,7 @@ COPY pom.xml ./
 COPY platform/p360-shared-core/pom.xml platform/p360-shared-core/
 COPY platform/p360-platform-starter/pom.xml platform/p360-platform-starter/
 COPY platform/p360-test-support/pom.xml platform/p360-test-support/
-COPY services/clinic-core/pom.xml services/clinic-core/
+COPY services/scheduling/pom.xml services/scheduling/
 COPY services/catalog/pom.xml services/catalog/
 COPY services/patient/pom.xml services/patient/
 COPY services/iam/pom.xml services/iam/

@@ -1,6 +1,6 @@
 name: e2e
 
-# E2E na prawdziwym backendzie: docker compose (profil core: Postgres, Mailpit, backend z seedem `local` i krawędź
+# E2E na prawdziwym backendzie: docker compose (profil core: Postgres, Mailpit, usługi iam, catalog, patient i scheduling z seedem `local` i krawędź
 # Traefik) + frontend z `vite preview` kierowany na krawędź (port 8090) + Playwright (frontend/e2e/real).
 # Plan fali 0 (A2) i zadanie 1.10: e2e idzie przez krawędź, jak w AWS.
 # Status `e2e` dodać do wymaganych w rulesetach dopiero po 3 kolejnych zielonych przebiegach.
@@ -57,26 +57,30 @@ jobs:
       - name: Środowisko compose
         run: cp .env.example .env
 
-      - name: Start platformy (postgres, mailpit, backend)
+      - name: Start platformy (postgres, mailpit, iam, catalog, patient, scheduling)
         run: docker compose --profile core up -d --build --wait
 
-      # `--wait` nie widzi seedu (kilka sekund po starcie), więc czekamy na zdolność do zalogowania
-      # na koncie z seedu zamiast stałego opóźnienia.
-      - name: Oczekiwanie na backend i seed
+      # `--wait` nie widzi seedu (kilka sekund po starcie). Seed iam zakłada konta, a seed scheduling (później)
+      # lekarzy, więc gotowość to: logowanie na koncie z seedu działa i lista lekarzy nie jest pusta.
+      - name: Oczekiwanie na usługi i seed
         run: |
           set -u
           SEED_PASSWORD="${SEED_PASSWORD:-demo-przychodnia-2026}"
           for i in $(seq 1 60); do
-            code=$(curl -s -o /dev/null -w '%{http_code}' \
-              -H 'Content-Type: application/json' -H "Origin: ${BASE_URL}" \
+            token=$(curl -s -H 'Content-Type: application/json' -H "Origin: ${BASE_URL}" \
               -d "{\"tenantSlug\":\"klinika-a\",\"email\":\"rejestracja@klinika-a.example.test\",\"password\":\"${SEED_PASSWORD}\"}" \
-              http://localhost:8090/api/v1/auth/login || true)
-            echo "próba ${i}: HTTP ${code}"
-            if [ "${code}" = "200" ]; then exit 0; fi
+              http://localhost:8090/api/v1/auth/login | sed -n 's/.*"accessToken":"\([^"]*\)".*/\1/p' || true)
+            doctors=0
+            if [ -n "${token}" ]; then
+              doctors=$(curl -s -H "Authorization: Bearer ${token}" http://localhost:8090/api/v1/doctors \
+                | grep -o '"id"' | wc -l || true)
+            fi
+            echo "próba ${i}: token ${token:+jest}, lekarzy ${doctors}"
+            if [ "${doctors}" -ge 2 ]; then exit 0; fi
             sleep 3
           done
-          echo "::error::Backend lub seed nie są gotowe po 180 s"
-          docker compose --profile core logs backend traefik | tail -n 150
+          echo "::error::Usługi lub seed nie są gotowe po 180 s"
+          docker compose --profile core logs iam scheduling catalog patient traefik | tail -n 200
           exit 1
 
       - name: Wersja Playwright

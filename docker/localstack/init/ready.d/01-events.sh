@@ -8,8 +8,10 @@ create_topic() {
   awslocal sns create-topic --name "$1" --region "$REGION" --query TopicArn --output text
 }
 
-# Jeden temat na usługę-producenta (ADR-M03). clinic-core (iam) publikuje UserDeactivated, catalog i patient własne fakty.
-TOPIC_ARN=$(create_topic p360-clinic-core-events)
+# Jeden temat na usługę-producenta (ADR-M03): iam publikuje UserDeactivated, scheduling fakty wizyt, catalog i patient
+# własne fakty.
+IAM_TOPIC_ARN=$(create_topic p360-iam-events)
+SCHEDULING_TOPIC_ARN=$(create_topic p360-scheduling-events)
 CATALOG_TOPIC_ARN=$(create_topic p360-catalog-events)
 PATIENT_TOPIC_ARN=$(create_topic p360-patient-events)
 
@@ -31,11 +33,12 @@ create_consumer_queue() {
   done
 }
 
-# Konsumenci: notification (planowany) czyta zdarzenia clinic-core; catalog i patient czytają UserDeactivated (odwołanie
-# dostępu, ADR-M04) z tematu clinic-core; scheduling (clinic-core) czyta fakty katalogu i pacjentów (kopie *_ref).
-create_consumer_queue p360-notification-events "$TOPIC_ARN"
-create_consumer_queue p360-catalog-inbox "$TOPIC_ARN"
-create_consumer_queue p360-patient-inbox "$TOPIC_ARN"
-create_consumer_queue p360-scheduling-inbox "$CATALOG_TOPIC_ARN" "$PATIENT_TOPIC_ARN"
+# Konsumenci: notification (planowany) czyta fakty wizyt ze scheduling; catalog, patient i scheduling czytają
+# UserDeactivated (odwołanie dostępu, ADR-M04) z tematu iam; scheduling czyta też fakty katalogu i pacjentów (kopie
+# *_ref). Subskrypcja scheduling-inbox do tematu patient jest ostatnia: sprawdza ją healthcheck (docker-compose.yml).
+create_consumer_queue p360-notification-events "$SCHEDULING_TOPIC_ARN"
+create_consumer_queue p360-catalog-inbox "$IAM_TOPIC_ARN"
+create_consumer_queue p360-patient-inbox "$IAM_TOPIC_ARN"
+create_consumer_queue p360-scheduling-inbox "$IAM_TOPIC_ARN" "$CATALOG_TOPIC_ARN" "$PATIENT_TOPIC_ARN"
 
-echo "Zdarzenia: tematy clinic-core, catalog, patient; kolejki notification-events, catalog-inbox, patient-inbox, scheduling-inbox (+ DLQ)"
+echo "Zdarzenia: tematy iam, scheduling, catalog, patient; kolejki notification-events, catalog-inbox, patient-inbox, scheduling-inbox (+ DLQ)"

@@ -1,6 +1,6 @@
 # Konwencje bazy danych
 
-- Migracje: `backend/services/clinic-core/src/main/resources/db/migration`, nazwy `V<n>__opis.sql`. Skrypty są niezmienne po scaleniu; zmiany zgodne wstecz (rozszerzaj, przełącz, usuń w osobnym wydaniu).
+- Migracje: `backend/services/<usługa>/src/main/resources/db/migration (np. scheduling)`, nazwy `V<n>__opis.sql`. Skrypty są niezmienne po scaleniu; zmiany zgodne wstecz (rozszerzaj, przełącz, usuń w osobnym wydaniu).
 - Klucze główne `uuid` (`gen_random_uuid()`), znaczniki czasu `timestamptz`.
 - Każda tabela danych placówki ma `tenant_id`, `ENABLE` i `FORCE ROW LEVEL SECURITY` oraz politykę `USING/WITH CHECK (tenant_id = app_tenant_id())`. Wzorzec: `backend/platform/p360-test-support/src/main/resources/db/testmigration/V1000__tenant_probe.sql`. Bramka: `RlsCoverageContract` z `p360-test-support` (w usłudze podklasa `RlsCoverageTest`).
 - Tabela bez `tenant_id` wymaga wpisu na liście wyjątków (`tablesWithoutTenantId()` w podklasie `RlsCoverageTest` usługi) z uzasadnieniem.
