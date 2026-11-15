@@ -2,14 +2,6 @@ package pl.przychodnia360.catalog.api;
 
 import io.swagger.v3.oas.annotations.Operation;
 import jakarta.validation.Valid;
-import jakarta.validation.constraints.DecimalMin;
-import jakarta.validation.constraints.Digits;
-import jakarta.validation.constraints.Max;
-import jakarta.validation.constraints.Min;
-import jakarta.validation.constraints.NotBlank;
-import jakarta.validation.constraints.NotNull;
-import jakarta.validation.constraints.Size;
-import java.math.BigDecimal;
 import java.util.UUID;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
@@ -21,30 +13,15 @@ import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
-import pl.przychodnia360.catalog.api.ServiceController.CategoryResponse;
-import pl.przychodnia360.catalog.api.ServiceController.ServiceResponse;
+import pl.przychodnia360.catalog.api.dto.CategoryRequest;
+import pl.przychodnia360.catalog.api.dto.CategoryResponse;
+import pl.przychodnia360.catalog.api.dto.ServiceRequest;
+import pl.przychodnia360.catalog.api.dto.ServiceResponse;
 import pl.przychodnia360.catalog.application.ServiceCatalogService;
-import pl.przychodnia360.catalog.application.ServiceCatalogService.ServiceCommand;
 
 /** Zarządzanie katalogiem przez administratora placówki (FR-33, FR-57). */
 @RestController
 public class ServiceAdminController {
-
-    public record ServiceRequest(
-            @NotNull UUID categoryId,
-            @NotBlank @Size(max = 200) String name,
-            @Size(max = 2000) String description,
-            @NotNull @DecimalMin("0.00") @Digits(integer = 8, fraction = 2) BigDecimal price,
-            @Min(5) @Max(480) int durationMinutes,
-            @NotNull PerformerType performerType) {
-
-        ServiceCommand toCommand() {
-            return new ServiceCommand(categoryId, name, description, price, durationMinutes, performerType);
-        }
-    }
-
-    public record CategoryRequest(@NotBlank @Size(max = 100) String name) {
-    }
 
     private final ServiceCatalogService service;
 
