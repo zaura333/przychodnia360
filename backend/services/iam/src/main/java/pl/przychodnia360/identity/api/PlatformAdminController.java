@@ -2,9 +2,6 @@ package pl.przychodnia360.identity.api;
 
 import io.swagger.v3.oas.annotations.Operation;
 import jakarta.validation.Valid;
-import jakarta.validation.constraints.Email;
-import jakarta.validation.constraints.NotBlank;
-import jakarta.validation.constraints.Size;
 import java.util.UUID;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
@@ -14,17 +11,13 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
+import pl.przychodnia360.identity.api.dto.CreateTenantAdminRequest;
+import pl.przychodnia360.identity.api.dto.TenantAdminResponse;
 import pl.przychodnia360.identity.application.PlatformAccountService;
 
 /** Konta administratorów placówek zakładane przez administratora platformy (FR-43). */
 @RestController
 public class PlatformAdminController {
-
-    public record CreateTenantAdminRequest(@NotBlank @Email @Size(max = 254) String email) {
-    }
-
-    public record TenantAdminResponse(UUID userId, String email) {
-    }
 
     private final PlatformAccountService service;
 

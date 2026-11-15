@@ -3,12 +3,6 @@ package pl.przychodnia360.identity.api;
 import io.swagger.v3.oas.annotations.Operation;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
-import jakarta.validation.constraints.Email;
-import jakarta.validation.constraints.NotBlank;
-import jakarta.validation.constraints.NotNull;
-import jakarta.validation.constraints.PastOrPresent;
-import jakarta.validation.constraints.Size;
-import java.time.LocalDate;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -17,6 +11,9 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 import pl.przychodnia360.common.security.PublicEndpoint;
+import pl.przychodnia360.identity.api.dto.PasswordResetConfirmRequest;
+import pl.przychodnia360.identity.api.dto.PasswordResetRequest;
+import pl.przychodnia360.identity.api.dto.RegisterPatientRequest;
 import pl.przychodnia360.identity.application.PasswordResetService;
 import pl.przychodnia360.identity.application.RegistrationService;
 import pl.przychodnia360.identity.application.RegistrationService.Registration;
@@ -26,25 +23,6 @@ import pl.przychodnia360.identity.infrastructure.AuthRateLimiter;
 @RestController
 @RequestMapping(value = "/api/v1/auth", produces = MediaType.APPLICATION_JSON_VALUE)
 public class AccountController {
-
-    public record RegisterPatientRequest(
-            @NotBlank @Size(max = 63) String tenantSlug,
-            @NotBlank @Email @Size(max = 254) String email,
-            @NotBlank @Size(max = 200) String password,
-            @NotBlank @Size(max = 100) String firstName,
-            @NotBlank @Size(max = 100) String lastName,
-            @NotNull @PastOrPresent LocalDate birthDate) {
-    }
-
-    public record PasswordResetRequest(
-            @NotBlank @Size(max = 63) String tenantSlug,
-            @NotBlank @Email @Size(max = 254) String email) {
-    }
-
-    public record PasswordResetConfirmRequest(
-            @NotBlank @Size(max = 200) String token,
-            @NotBlank @Size(max = 200) String newPassword) {
-    }
 
     private final RegistrationService registration;
     private final PasswordResetService passwordReset;

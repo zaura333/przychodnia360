@@ -1,28 +1,19 @@
 package pl.przychodnia360.identity.api;
 
 import io.swagger.v3.oas.annotations.Operation;
-import java.util.UUID;
 import pl.przychodnia360.common.security.AuthenticatedUser;
-import pl.przychodnia360.common.security.Role;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.MediaType;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RestController;
+import pl.przychodnia360.identity.api.dto.MeResponse;
+import pl.przychodnia360.identity.api.dto.OwnTenantResponse;
 import pl.przychodnia360.tenant.api.TenantFacade;
 
 @RestController
 public class MeController {
-
-    /** Profil bieżącego użytkownika; identyfikatory pochodzą z tokenu, nazwa placówki z modułu tenant. */
-    public record MeResponse(UUID userId, Role role, UUID tenantId, String tenantName, UUID employeeId, UUID patientId,
-            int slotStepMinutes) {
-    }
-
-    /** Dane własnej placówki (FR-43, odczyt dla każdej roli placówki). */
-    public record OwnTenantResponse(UUID id, String slug, String name) {
-    }
 
     private final TenantFacade tenants;
     private final int slotStepMinutes;

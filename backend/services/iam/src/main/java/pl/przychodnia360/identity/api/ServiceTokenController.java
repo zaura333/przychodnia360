@@ -2,14 +2,13 @@ package pl.przychodnia360.identity.api;
 
 import io.swagger.v3.oas.annotations.Operation;
 import jakarta.validation.Valid;
-import jakarta.validation.constraints.NotBlank;
-import jakarta.validation.constraints.NotNull;
-import java.util.UUID;
 import org.springframework.http.MediaType;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RestController;
 import pl.przychodnia360.common.security.PublicEndpoint;
+import pl.przychodnia360.identity.api.dto.ServiceTokenRequest;
+import pl.przychodnia360.identity.api.dto.ServiceTokenResponse;
 import pl.przychodnia360.identity.infrastructure.ServiceTokenIssuer;
 import pl.przychodnia360.identity.infrastructure.ServiceTokenIssuer.IssuedToken;
 
@@ -19,13 +18,6 @@ import pl.przychodnia360.identity.infrastructure.ServiceTokenIssuer.IssuedToken;
  */
 @RestController
 public class ServiceTokenController {
-
-    public record ServiceTokenRequest(@NotBlank String clientId, @NotBlank String clientSecret, @NotNull UUID tenantId,
-            @NotBlank String audience) {
-    }
-
-    public record ServiceTokenResponse(String accessToken, long expiresIn) {
-    }
 
     private final ServiceTokenIssuer issuer;
 

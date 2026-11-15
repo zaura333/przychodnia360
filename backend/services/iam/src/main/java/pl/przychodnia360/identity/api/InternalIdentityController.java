@@ -2,9 +2,6 @@ package pl.przychodnia360.identity.api;
 
 import io.swagger.v3.oas.annotations.Operation;
 import jakarta.validation.Valid;
-import jakarta.validation.constraints.Email;
-import jakarta.validation.constraints.NotBlank;
-import jakarta.validation.constraints.NotNull;
 import java.util.UUID;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
@@ -15,7 +12,8 @@ import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
-import pl.przychodnia360.common.security.Role;
+import pl.przychodnia360.identity.api.dto.EmployeeAccountRequest;
+import pl.przychodnia360.identity.api.dto.EmployeeAccountResponse;
 
 /**
  * Wewnętrzne API kont dla innych usług (S3): saga zakładania i dezaktywacji pracownika w {@code scheduling}. Dostępne
@@ -24,12 +22,6 @@ import pl.przychodnia360.common.security.Role;
  */
 @RestController
 public class InternalIdentityController {
-
-    public record EmployeeAccountRequest(@NotBlank @Email String email, @NotNull Role role) {
-    }
-
-    public record EmployeeAccountResponse(UUID userId) {
-    }
 
     private final IdentityFacade identity;
 

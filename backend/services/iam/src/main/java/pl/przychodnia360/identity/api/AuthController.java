@@ -3,9 +3,6 @@ package pl.przychodnia360.identity.api;
 import io.swagger.v3.oas.annotations.Operation;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
-import jakarta.validation.constraints.Email;
-import jakarta.validation.constraints.NotBlank;
-import jakarta.validation.constraints.Size;
 import java.time.Duration;
 import java.time.Instant;
 import org.springframework.beans.factory.annotation.Value;
@@ -20,6 +17,9 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 import pl.przychodnia360.common.security.PublicEndpoint;
+import pl.przychodnia360.identity.api.dto.LoginRequest;
+import pl.przychodnia360.identity.api.dto.PlatformLoginRequest;
+import pl.przychodnia360.identity.api.dto.TokenResponse;
 import pl.przychodnia360.identity.application.AuthService;
 import pl.przychodnia360.identity.application.TokenService.Tokens;
 import pl.przychodnia360.identity.infrastructure.AuthRateLimiter;
@@ -32,21 +32,6 @@ public class AuthController {
 
     static final String COOKIE = "p360_rt";
     static final String COOKIE_PATH = "/api/v1/auth";
-
-    public record LoginRequest(
-            @NotBlank @Size(max = 63) String tenantSlug,
-            @NotBlank @Email @Size(max = 254) String email,
-            @NotBlank @Size(max = 200) String password) {
-    }
-
-    public record PlatformLoginRequest(
-            @NotBlank @Email @Size(max = 254) String email,
-            @NotBlank @Size(max = 200) String password) {
-    }
-
-    /** Token dostępu; token odświeżania jest wyłącznie w ciasteczku HttpOnly. */
-    public record TokenResponse(String accessToken, String tokenType, long expiresIn) {
-    }
 
     private final AuthService authService;
     private final AuthRateLimiter rateLimiter;
