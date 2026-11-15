@@ -39,6 +39,8 @@ public class SecurityConfig {
         "/api/v1/auth/register-patient",
         "/api/v1/auth/password-reset/request",
         "/api/v1/auth/password-reset/confirm",
+        // tokeny usługowe iam: uwierzytelnienie sekretem usługi w treści żądania (ADR-M17), poza krawędzią
+        "/api/v1/internal/service-tokens",
     };
 
     /** Dokumentacja API: w profilu demo wyłączona właściwościami springdoc (wtedy 404). */

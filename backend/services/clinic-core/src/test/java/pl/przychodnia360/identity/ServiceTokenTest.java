@@ -16,7 +16,7 @@ import pl.przychodnia360.identity.infrastructure.JwtService;
 
 /**
  * Token usługowy iam (S2): rola SERVICE, jedna placówka i jedna usługa docelowa. Usługa go przyjmuje tylko dla swojej
- * nazwy (aud) i z placówką; iam sam go nie przyjmuje; token użytkownika nie przechodzi za usługowy.
+ * nazwy (aud) i z placówką (iam tylko z {@code aud = iam}); token użytkownika nie przechodzi za usługowy.
  */
 class ServiceTokenTest extends AbstractApiTest {
 
@@ -48,7 +48,20 @@ class ServiceTokenTest extends AbstractApiTest {
 
         assertThat(verifierOf("catalog").verify(token)).as("token dla innej usługi").isEmpty();
         assertThat(verifierOf(null).verify(token)).as("weryfikator bez nazwy usługi").isEmpty();
-        assertThat(jwt.verify(token)).as("iam nie przyjmuje tokenów usługowych").isEmpty();
+        assertThat(jwt.verify(token)).as("iam nie przyjmuje tokenów dla innej usługi").isEmpty();
+    }
+
+    @Test
+    void iamAcceptsTokensAddressedToItAndTheSubjectNamesTheCallingService() {
+        UUID tenant = UUID.randomUUID();
+        String token = jwt.issueService("scheduling", tenant, "iam");
+
+        var principal = jwt.verify(token).orElseThrow();
+
+        assertThat(principal.role()).isEqualTo(Role.SERVICE);
+        assertThat(principal.tenantId()).isEqualTo(tenant);
+        assertThat(principal.userId()).isEqualTo(JwtService.serviceSubject("scheduling"));
+        assertThat(principal.userId()).isNotEqualTo(JwtService.serviceSubject("iam"));
     }
 
     @Test

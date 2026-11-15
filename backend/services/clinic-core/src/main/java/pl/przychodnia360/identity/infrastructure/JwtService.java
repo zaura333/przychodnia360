@@ -49,9 +49,9 @@ import pl.przychodnia360.common.security.RsaAccessTokenVerifier;
 @Component
 public class JwtService implements AccessTokenVerifier {
 
-    /** Stały identyfikator podmiotu tokenów usługowych iam (nie jest użytkownikiem; do logów i audytu). */
-    private static final UUID SERVICE_SUBJECT = UUID.nameUUIDFromBytes("service:iam".getBytes(java.nio.charset.StandardCharsets.UTF_8));
-    private static final Duration SERVICE_TOKEN_TTL = Duration.ofSeconds(60);
+    /** Nazwa tej usługi: odbiorca ({@code aud}) tokenów usługowych, które iam przyjmuje (wewnętrzne API kont). */
+    public static final String SERVICE_NAME = "iam";
+    public static final Duration SERVICE_TOKEN_TTL = Duration.ofSeconds(60);
 
     private static final Logger LOG = LoggerFactory.getLogger(JwtService.class);
     private static final int MIN_KEY_BITS = 2048;
@@ -86,7 +86,15 @@ public class JwtService implements AccessTokenVerifier {
         }
         this.verifier = new RsaAccessTokenVerifier(
                 kid -> keys.containsKey(kid) ? keys.get(kid).publicKey() : null,
-                properties.issuer(), clock, revocations);
+                properties.issuer(), clock, revocations, SERVICE_NAME);
+    }
+
+    /**
+     * Stały identyfikator podmiotu tokenów usługowych wywołującej usługi (nie jest użytkownikiem): w logach i audycie
+     * widać, która usługa wołała.
+     */
+    public static UUID serviceSubject(String caller) {
+        return UUID.nameUUIDFromBytes(("service:" + caller).getBytes(java.nio.charset.StandardCharsets.UTF_8));
     }
 
     public String issue(AuthenticatedUser user) {
@@ -117,16 +125,22 @@ public class JwtService implements AccessTokenVerifier {
         }
     }
 
-    /**
-     * Token usługowy iam dla innej usługi platformy (saga, zdalne fasady): rola SERVICE, jedna placówka ({@code tid}),
-     * jedna usługa docelowa ({@code aud}), bardzo krótki czas życia. Tożsamość nie jest kontem użytkownika, a iam
-     * sam nie przyjmuje takich tokenów (weryfikator bez {@code audience}).
-     */
+    /** Token usługowy, w którym wołającym jest sam iam (saga rejestracji pacjenta). */
     public String issueService(UUID tenantId, String audience) {
+        return issueService(SERVICE_NAME, tenantId, audience);
+    }
+
+    /**
+     * Token usługowy dla wywołania usługa–usługa (saga, zdalne fasady): rola SERVICE, podmiot = wołająca usługa
+     * ({@link #serviceSubject}), jedna placówka ({@code tid}), jedna usługa docelowa ({@code aud}), bardzo krótki czas
+     * życia. Każda usługa (także iam) przyjmuje go wyłącznie wtedy, gdy {@code aud} jest jej nazwą.
+     */
+    public String issueService(String caller, UUID tenantId, String audience) {
         Instant now = clock.instant();
         JWTClaimsSet claims = new JWTClaimsSet.Builder()
                 .issuer(properties.issuer())
-                .subject(SERVICE_SUBJECT.toString())
+                .subject(serviceSubject(caller).toString())
+                .claim("svc", caller)
                 .audience(audience)
                 .issueTime(Date.from(now))
                 .expirationTime(Date.from(now.plus(SERVICE_TOKEN_TTL)))

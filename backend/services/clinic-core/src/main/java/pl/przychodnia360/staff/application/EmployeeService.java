@@ -1,14 +1,16 @@
 package pl.przychodnia360.staff.application;
 
+import java.nio.charset.StandardCharsets;
 import java.util.List;
+import java.util.Locale;
 import java.util.UUID;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import pl.przychodnia360.identity.api.IdentityFacade;
 import pl.przychodnia360.common.security.Role;
 import pl.przychodnia360.shared.ConflictException;
-import pl.przychodnia360.shared.Ids;
 import pl.przychodnia360.shared.NotFoundException;
+import pl.przychodnia360.shared.TenantContext;
 import pl.przychodnia360.staff.api.EmployeeDeactivationGuard;
 import pl.przychodnia360.staff.api.EmployeeType;
 import pl.przychodnia360.staff.domain.Employee;
@@ -31,14 +33,28 @@ public class EmployeeService {
         this.guards = guards;
     }
 
+    /**
+     * Saga zakładania pracownika: identyfikator pracownika wynika z placówki i e-maila, więc konto w iam (idempotentne,
+     * od razu powiązane z pracownikiem) i rekord pracownika łączą się także po utraconej odpowiedzi; ponowienie
+     * kończy sagę bez duplikatów. Awaria iam cofa całość, zanim powstanie pracownik.
+     */
     @Transactional
     public Employee create(CreateEmployee command) {
-        UUID userId = identity.createEmployeeAccount(command.email(), role(command.type()));
-        Employee employee = new Employee(Ids.newId(), userId, command.type(), command.firstName().trim(),
+        String email = command.email().trim();
+        UUID id = employeeId(TenantContext.requireTenant().value(), email);
+        if (repository.findEmployee(id).isPresent()) {
+            throw new ConflictException("email-taken", "Konto z tym adresem e-mail już istnieje.");
+        }
+        UUID userId = identity.ensureEmployeeAccount(id, email, role(command.type()));
+        Employee employee = new Employee(id, userId, command.type(), command.firstName().trim(),
                 command.lastName().trim(), blankToNull(command.specialization()), true, 0);
         repository.insertEmployee(employee);
-        identity.linkEmployee(userId, employee.id());
         return employee;
+    }
+
+    static UUID employeeId(UUID tenantId, String email) {
+        return UUID.nameUUIDFromBytes(("employee:" + tenantId + ":" + email.toLowerCase(Locale.ROOT))
+                .getBytes(StandardCharsets.UTF_8));
     }
 
     @Transactional
