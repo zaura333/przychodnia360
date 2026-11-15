@@ -62,6 +62,7 @@ class SeedRunner implements ApplicationRunner {
     private final TenantService tenantService;
     private final TenantFacade tenants;
     private final SeedCatalog catalog;
+    private final SeedDependencies dependencies;
     private final JwtService jwt;
     private final EmployeeService employees;
     private final ScheduleService schedules;
@@ -74,13 +75,14 @@ class SeedRunner implements ApplicationRunner {
     private final Clock clock;
     private final String password;
 
-    SeedRunner(TenantService tenantService, TenantFacade tenants, SeedCatalog catalog, JwtService jwt,
+    SeedRunner(TenantService tenantService, TenantFacade tenants, SeedCatalog catalog, SeedDependencies dependencies, JwtService jwt,
             EmployeeService employees, ScheduleService schedules, RegistrationService registration,
             PatientFacade patients, BookingService booking, UserRepository users, PasswordHasher hasher,
             TransactionTemplate tx, Clock clock, @Value("${seed.password:}") String password) {
         this.tenantService = tenantService;
         this.tenants = tenants;
         this.catalog = catalog;
+        this.dependencies = dependencies;
         this.jwt = jwt;
         this.employees = employees;
         this.schedules = schedules;
@@ -100,6 +102,8 @@ class SeedRunner implements ApplicationRunner {
             log.warn("Seed pominięty: brak seed.password");
             return;
         }
+        // najpierw gotowość usług (bez tworzenia stanu), potem placówki
+        dependencies.await();
         seed(new Clinic("klinika-a", "Klinika Zdrowie (dane demo)", "Anna Kowalska", "Piotr Nowak"));
         seed(new Clinic("klinika-b", "Przychodnia Centrum (dane demo)", "Maria Wiśniewska", "Tomasz Zieliński"));
     }
