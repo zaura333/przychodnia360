@@ -10,6 +10,7 @@ import java.util.UUID;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.transaction.support.TransactionTemplate;
+import pl.przychodnia360.appointments.api.event.AppointmentCancelled;
 import pl.przychodnia360.common.security.Role;
 import pl.przychodnia360.patients.api.PatientFacade;
 import pl.przychodnia360.shared.TenantContext;
@@ -55,7 +56,7 @@ public abstract class AbstractApiTest extends AbstractIntegrationTest {
      */
     protected UUID publishSampleEvent() {
         UUID aggregate = UUID.randomUUID();
-        domainEvents.publish(new pl.przychodnia360.appointments.api.AppointmentCancelled(
+        domainEvents.publish(new pl.przychodnia360.appointments.api.event.AppointmentCancelled(
                 TenantContext.requireTenant().value(), aggregate, UUID.randomUUID(), UUID.randomUUID(), UUID.randomUUID(),
                 java.time.Instant.now()));
         return aggregate;
