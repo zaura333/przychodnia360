@@ -28,7 +28,7 @@ public final class StubHttpServer implements AutoCloseable {
     }
 
     /** Odebrane żądanie. */
-    public record Received(String path, String query, String authorization) {
+    public record Received(String method, String path, String query, String authorization, String body) {
     }
 
     private final HttpServer server;
@@ -42,8 +42,15 @@ public final class StubHttpServer implements AutoCloseable {
             throw new IllegalStateException(e);
         }
         server.createContext("/", exchange -> {
-            Received request = new Received(exchange.getRequestURI().getPath(), exchange.getRequestURI().getRawQuery(),
-                    exchange.getRequestHeaders().getFirst("Authorization"));
+            String requestBody;
+            try {
+                requestBody = new String(exchange.getRequestBody().readAllBytes(), StandardCharsets.UTF_8);
+            } catch (IOException e) {
+                requestBody = "";
+            }
+            Received request = new Received(exchange.getRequestMethod(), exchange.getRequestURI().getPath(),
+                    exchange.getRequestURI().getRawQuery(), exchange.getRequestHeaders().getFirst("Authorization"),
+                    requestBody);
             received.add(request);
             Reply reply = behaviour.apply(request);
             try {

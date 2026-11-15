@@ -42,6 +42,15 @@ public abstract class AbstractCatalogApiTest extends PostgresIntegrationTest {
         return TestTokenIssuer.token(tenantId, role);
     }
 
+    /** Token usługowy dla tej usługi (jak wystawia go iam dla zdalnych fasad). */
+    protected String serviceTokenFor(UUID tenantId) {
+        return TestTokenIssuer.serviceToken(tenantId, "catalog");
+    }
+
+    protected String serviceTokenFor(UUID tenantId, String audience) {
+        return TestTokenIssuer.serviceToken(tenantId, audience);
+    }
+
     protected String tokenForUser(UUID tenantId, UUID userId) {
         return TestTokenIssuer.token(tenantId, Role.TENANT_ADMIN, userId);
     }

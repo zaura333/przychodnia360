@@ -50,6 +50,24 @@ public class PatientService implements PatientFacade {
 
     @Override
     @Transactional
+    public void ensure(UUID patientId, String firstName, String lastName, LocalDate birthDate, String contactEmail,
+            UUID userId) {
+        Optional<Patient> existing = repository.findById(patientId);
+        if (existing.isPresent()) {
+            // powiązanie z kontem jest ustawiane na konto z ostatniej rejestracji: po wycofanej próbie rekord może
+            // wskazywać konto, które już nie istnieje
+            if (userId != null && !userId.equals(existing.get().userId())) {
+                repository.update(existing.get().withUserId(userId));
+            }
+            return;
+        }
+        repository.insert(new Patient(patientId, userId, firstName.trim(), lastName.trim(), birthDate,
+                blankToNull(contactEmail), 0));
+        events.publish(new PatientRegistered(TenantContext.requireTenant().value(), patientId, clock.instant()));
+    }
+
+    @Override
+    @Transactional
     public void linkAccount(UUID patientId, UUID userId) {
         Patient patient = repository.findById(patientId).orElseThrow(() -> new NotFoundException("Nie znaleziono pacjenta."));
         repository.update(patient.withUserId(userId));

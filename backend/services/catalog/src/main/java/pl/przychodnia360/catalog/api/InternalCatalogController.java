@@ -15,8 +15,8 @@ import pl.przychodnia360.shared.NotFoundException;
 import pl.przychodnia360.shared.ValidationException;
 
 /**
- * Wewnętrzne API katalogu dla innych usług (zdalna implementacja {@link CatalogFacade}, S1). Nie jest routowane przez
- * krawędź (brak wpisu w tabeli routingu), a placówka wynika z przekazanego tokenu (RLS). W odróżnieniu od API
+ * Wewnętrzne API katalogu dla innych usług (zdalna implementacja {@link CatalogFacade}, S1). Dostępne wyłącznie dla
+ * tożsamości usługi (token usługowy iam, rola SERVICE), nie routowane przez krawędź; placówka wynika z tokenu (RLS). W odróżnieniu od API
  * publicznego zwraca też usługi nieaktywne, bo historia wizyt ich potrzebuje.
  */
 @RestController
@@ -31,9 +31,9 @@ public class InternalCatalogController {
     }
 
     @GetMapping(value = "/api/v1/internal/services", produces = MediaType.APPLICATION_JSON_VALUE)
-    @PreAuthorize("@permissions.has(authentication, 'SERVICE_READ')")
+    @PreAuthorize("@permissions.has(authentication, 'CATALOG_INTERNAL_READ')")
     @Operation(operationId = "internalServicesByIds", summary = "Usługi po identyfikatorach (wewnętrzne, także nieaktywne)",
-            description = "Dostęp: SERVICE_READ. Tylko dla innych usług; nieznane identyfikatory są pomijane.")
+            description = "Dostęp: CATALOG_INTERNAL_READ (SERVICE). Nieznane identyfikatory są pomijane.")
     public Collection<ServiceInfo> byIds(@RequestParam List<UUID> ids) {
         if (ids.size() > MAX_IDS) {
             throw new ValidationException("Zbyt wiele identyfikatorów (maksymalnie " + MAX_IDS + ").");
@@ -42,9 +42,9 @@ public class InternalCatalogController {
     }
 
     @GetMapping(value = "/api/v1/internal/services/{id}", produces = MediaType.APPLICATION_JSON_VALUE)
-    @PreAuthorize("@permissions.has(authentication, 'SERVICE_READ')")
+    @PreAuthorize("@permissions.has(authentication, 'CATALOG_INTERNAL_READ')")
     @Operation(operationId = "internalServiceById", summary = "Usługa po identyfikatorze (wewnętrzne, także nieaktywna)",
-            description = "Dostęp: SERVICE_READ. Tylko dla innych usług.")
+            description = "Dostęp: CATALOG_INTERNAL_READ (SERVICE).")
     public ServiceInfo byId(@PathVariable UUID id) {
         return catalog.service(id).orElseThrow(() -> new NotFoundException("Nie znaleziono usługi."));
     }

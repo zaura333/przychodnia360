@@ -82,6 +82,23 @@ final class TestTokenIssuer {
         return token(tenantId, role, patientId, UUID.randomUUID());
     }
 
+    /** Token usługowy iam (rola SERVICE) dla placówki i usługi docelowej, jak z JwtService.issueService. */
+    static String serviceToken(UUID tenantId, String audience) {
+        Instant now = Instant.now();
+        JWTClaimsSet claims = new JWTClaimsSet.Builder().issuer("przychodnia360")
+                .subject(UUID.nameUUIDFromBytes("service:iam".getBytes(StandardCharsets.UTF_8)).toString())
+                .audience(audience).issueTime(Date.from(now)).expirationTime(Date.from(now.plusSeconds(60)))
+                .claim("role", Role.SERVICE.name()).claim("tid", tenantId.toString()).build();
+        try {
+            SignedJWT jwt = new SignedJWT(new JWSHeader.Builder(JWSAlgorithm.RS256).type(JOSEObjectType.JWT)
+                    .keyID(KID).build(), claims);
+            jwt.sign(new RSASSASigner(INSTANCE.privateKey));
+            return jwt.serialize();
+        } catch (JOSEException e) {
+            throw new IllegalStateException(e);
+        }
+    }
+
     /** Token konkretnego użytkownika (znany identyfikator, np. do testu odwołania dostępu). */
     static String token(UUID tenantId, Role role, UUID patientId, UUID userId) {
         Instant now = Instant.now();

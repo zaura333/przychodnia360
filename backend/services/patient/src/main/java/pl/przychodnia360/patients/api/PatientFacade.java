@@ -21,6 +21,14 @@ public interface PatientFacade {
     /** Zakłada rekord pacjenta w bieżącej placówce (kontekst z TenantContext). */
     UUID create(String firstName, String lastName, LocalDate birthDate, String contactEmail);
 
+    /**
+     * Idempotentnie zakłada rekord pacjenta o zadanym identyfikatorze (saga rejestracji, S2): powtórzenie z tym samym
+     * identyfikatorem niczego nie duplikuje, a podane powiązanie z kontem jest ustawiane (nadpisuje poprzednie, np. z
+     * wycofanej próby rejestracji).
+     */
+    void ensure(UUID patientId, String firstName, String lastName, LocalDate birthDate, String contactEmail,
+            UUID userId);
+
     /** Wiąże rekord pacjenta z kontem użytkownika. */
     void linkAccount(UUID patientId, UUID userId);
 

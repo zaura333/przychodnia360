@@ -2,6 +2,7 @@ package pl.przychodnia360.common.http;
 
 import java.net.http.HttpClient;
 import java.time.Duration;
+import java.util.function.Supplier;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.core.ParameterizedTypeReference;
@@ -31,15 +32,43 @@ public class RemoteServiceClient {
     private final String name;
     private final RestClient client;
     private final CircuitBreaker breaker;
+    private final Supplier<String> serviceToken;
+    private final boolean asCaller;
 
+    /** Klient bez tokenu usługowego: przekazuje token wywołującego (seed, testy). */
     public RemoteServiceClient(String name, String baseUrl, Duration connectTimeout, Duration readTimeout,
             CircuitBreaker breaker, RestClient.Builder builder) {
+        this(name, baseUrl, connectTimeout, readTimeout, breaker, builder, null);
+    }
+
+    /**
+     * {@code serviceToken} zwraca token usługowy dla bieżącej placówki i usługi docelowej (albo null, gdy nie ma
+     * kontekstu placówki). Gdy jest ustawiony, wywołania używają tożsamości usługi, a nie tokenu użytkownika, więc
+     * działają także poza żądaniem HTTP (rejestracja, zadania w tle) i nie przenoszą uprawnień użytkownika dalej.
+     */
+    public RemoteServiceClient(String name, String baseUrl, Duration connectTimeout, Duration readTimeout,
+            CircuitBreaker breaker, RestClient.Builder builder, Supplier<String> serviceToken) {
         this.name = name;
         this.breaker = breaker;
+        this.serviceToken = serviceToken;
+        this.asCaller = false;
         JdkClientHttpRequestFactory factory = new JdkClientHttpRequestFactory(
                 HttpClient.newBuilder().connectTimeout(connectTimeout).build());
         factory.setReadTimeout(readTimeout);
         this.client = builder.baseUrl(baseUrl).requestFactory(factory).build();
+    }
+
+    private RemoteServiceClient(RemoteServiceClient origin, boolean asCaller) {
+        this.name = origin.name;
+        this.client = origin.client;
+        this.breaker = origin.breaker;
+        this.serviceToken = origin.serviceToken;
+        this.asCaller = asCaller;
+    }
+
+    /** Widok tego samego klienta (ten sam obwód), który przekazuje token wywołującego zamiast tokenu usługowego. */
+    public RemoteServiceClient asCaller() {
+        return new RemoteServiceClient(this, true);
     }
 
     public <T> T get(String uri, ParameterizedTypeReference<T> type, Object... vars) {
@@ -55,6 +84,13 @@ public class RemoteServiceClient {
     }
 
     private void authorize(org.springframework.http.HttpHeaders headers) {
+        if (!asCaller && serviceToken != null) {
+            String token = serviceToken.get();
+            if (token != null && !token.isBlank()) {
+                headers.setBearerAuth(token);
+                return;
+            }
+        }
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
         if (authentication != null && authentication.getCredentials() instanceof String token && !token.isBlank()) {
             headers.setBearerAuth(token);

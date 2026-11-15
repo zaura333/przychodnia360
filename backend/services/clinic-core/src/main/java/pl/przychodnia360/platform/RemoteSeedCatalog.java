@@ -23,7 +23,7 @@ class RemoteSeedCatalog implements SeedCatalog {
     @Override
     @SuppressWarnings("unchecked")
     public UUID category(String name) {
-        Map<String, Object> created = client.post("/api/v1/admin/service-categories", Map.of("name", name), Map.class);
+        Map<String, Object> created = client.asCaller().post("/api/v1/admin/service-categories", Map.of("name", name), Map.class);
         return UUID.fromString((String) created.get("id"));
     }
 
@@ -31,7 +31,7 @@ class RemoteSeedCatalog implements SeedCatalog {
     @SuppressWarnings("unchecked")
     public UUID service(UUID categoryId, String name, String description, BigDecimal price, int durationMinutes,
             PerformerType performerType) {
-        Map<String, Object> created = client.post("/api/v1/admin/services", Map.of("categoryId", categoryId.toString(),
+        Map<String, Object> created = client.asCaller().post("/api/v1/admin/services", Map.of("categoryId", categoryId.toString(),
                 "name", name, "description", description, "price", price, "durationMinutes", durationMinutes,
                 "performerType", performerType.name()), Map.class);
         return UUID.fromString((String) created.get("id"));

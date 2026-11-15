@@ -22,8 +22,7 @@ import pl.przychodnia360.shared.ServiceUnavailableException;
 /**
  * Zdalna implementacja odczytu {@link PatientFacade} (S2): zapytania REST do patient-service. Włączana właściwością
  * {@code p360.patient.mode=remote} (domyślnie lokalna). Widoki (wiele pacjentów) degradują się do pustych nazw przy awarii;
- * pojedynczy odczyt (rezerwacja) dostaje 503. Zakładanie pacjenta i łączenie z kontem wymagają sagi rejestracji i tokenu
- * usługowego (jeszcze nie ma), więc w trybie zdalnym są jawnie niedostępne.
+ * pojedynczy odczyt (rezerwacja) i zapisy (saga rejestracji) dostają 503. Wywołania idą z tokenem usługowym iam.
  */
 @Component
 @Primary
@@ -42,12 +41,26 @@ class RemotePatientFacade implements PatientFacade {
 
     @Override
     public UUID create(String firstName, String lastName, LocalDate birthDate, String contactEmail) {
-        throw new ServiceUnavailableException("Zakładanie pacjenta w trybie zdalnym wymaga sagi rejestracji (jeszcze nie ma).");
+        UUID id = pl.przychodnia360.shared.Ids.newId();
+        ensure(id, firstName, lastName, birthDate, contactEmail, null);
+        return id;
+    }
+
+    @Override
+    public void ensure(UUID patientId, String firstName, String lastName, LocalDate birthDate, String contactEmail,
+            UUID userId) {
+        Map<String, Object> body = new java.util.LinkedHashMap<>();
+        body.put("firstName", firstName);
+        body.put("lastName", lastName);
+        body.put("birthDate", birthDate.toString());
+        body.put("contactEmail", contactEmail);
+        body.put("userId", userId == null ? null : userId.toString());
+        client.put("/api/v1/internal/patients/{id}", body, patientId);
     }
 
     @Override
     public void linkAccount(UUID patientId, UUID userId) {
-        throw new ServiceUnavailableException("Łączenie konta w trybie zdalnym wymaga sagi rejestracji (jeszcze nie ma).");
+        client.put("/api/v1/internal/patients/{id}/account", Map.of("userId", userId.toString()), patientId);
     }
 
     @Override

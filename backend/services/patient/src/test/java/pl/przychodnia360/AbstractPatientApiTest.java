@@ -46,6 +46,15 @@ public abstract class AbstractPatientApiTest extends PostgresIntegrationTest {
         return TestTokenIssuer.token(tenantId, role, patientId);
     }
 
+    /** Token usługowy dla tej usługi (jak wystawia go iam dla zdalnych fasad). */
+    protected String serviceTokenFor(UUID tenantId) {
+        return TestTokenIssuer.serviceToken(tenantId, "patient");
+    }
+
+    protected String serviceTokenFor(UUID tenantId, String audience) {
+        return TestTokenIssuer.serviceToken(tenantId, audience);
+    }
+
     protected String tokenForUser(UUID tenantId, UUID userId) {
         return TestTokenIssuer.token(tenantId, Role.PATIENT, UUID.randomUUID(), userId);
     }

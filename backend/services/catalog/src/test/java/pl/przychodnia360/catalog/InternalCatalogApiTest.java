@@ -7,7 +7,7 @@ import org.junit.jupiter.api.Test;
 import pl.przychodnia360.AbstractCatalogApiTest;
 import pl.przychodnia360.common.security.Role;
 
-/** Wewnętrzne API katalogu: batch po identyfikatorach z usługami nieaktywnymi, izolacja placówek, brak danych bez tokenu. */
+/** Wewnętrzne API katalogu (tylko tożsamość usługi): batch po identyfikatorach z usługami nieaktywnymi, izolacja placówek, brak danych bez tokenu. */
 class InternalCatalogApiTest extends AbstractCatalogApiTest {
 
     private String createService(String admin, UUID category, String name) {
@@ -28,7 +28,7 @@ class InternalCatalogApiTest extends AbstractCatalogApiTest {
         call("DELETE", "/api/v1/admin/services/" + gone, admin, null);
 
         Resp r = fetch("/api/v1/internal/services?ids=" + active + "," + gone + "," + UUID.randomUUID(),
-                tokenFor(tenant, Role.RECEPTIONIST));
+                serviceTokenFor(tenant));
 
         assertThat(r.status()).isEqualTo(200);
         assertThat(r.json()).hasSize(2);
@@ -36,8 +36,8 @@ class InternalCatalogApiTest extends AbstractCatalogApiTest {
         assertThat(r.json().findValues("active").stream().map(n -> n.asBoolean()).toList())
                 .containsExactlyInAnyOrder(true, false);
         assertThat(r.json().get(0).get("performerType").asString()).isEqualTo("DOCTOR");
-        assertThat(fetch("/api/v1/internal/services/" + gone, admin).json().get("active").asBoolean()).isFalse();
-        assertThat(fetch("/api/v1/internal/services/" + UUID.randomUUID(), admin).status()).isEqualTo(404);
+        assertThat(fetch("/api/v1/internal/services/" + gone, serviceTokenFor(tenant)).json().get("active").asBoolean()).isFalse();
+        assertThat(fetch("/api/v1/internal/services/" + UUID.randomUUID(), serviceTokenFor(tenant)).status()).isEqualTo(404);
     }
 
     @Test
@@ -49,8 +49,8 @@ class InternalCatalogApiTest extends AbstractCatalogApiTest {
                 .json().get("id").asString());
         String id = createService(adminA, cat, "Usługa A");
 
-        assertThat(fetch("/api/v1/internal/services?ids=" + id, tokenFor(b, Role.TENANT_ADMIN)).json()).isEmpty();
-        assertThat(fetch("/api/v1/internal/services/" + id, tokenFor(b, Role.TENANT_ADMIN)).status()).isEqualTo(404);
+        assertThat(fetch("/api/v1/internal/services?ids=" + id, serviceTokenFor(b)).json()).isEmpty();
+        assertThat(fetch("/api/v1/internal/services/" + id, serviceTokenFor(b)).status()).isEqualTo(404);
         assertThat(fetch("/api/v1/internal/services?ids=" + id, null).status()).isEqualTo(401);
     }
 
@@ -59,7 +59,21 @@ class InternalCatalogApiTest extends AbstractCatalogApiTest {
         UUID tenant = newTenant();
         String ids = java.util.stream.IntStream.range(0, 201).mapToObj(i -> UUID.randomUUID().toString())
                 .collect(java.util.stream.Collectors.joining(","));
-        assertThat(fetch("/api/v1/internal/services?ids=" + ids, tokenFor(tenant, Role.TENANT_ADMIN)).status())
+        assertThat(fetch("/api/v1/internal/services?ids=" + ids, serviceTokenFor(tenant)).status())
                 .isEqualTo(400);
+    }
+
+    @Test
+    void userRolesAndTokensForAnotherServiceAreRejected() {
+        UUID tenant = newTenant();
+        for (Role role : Role.values()) {
+            if (role == Role.SERVICE || role == Role.PLATFORM_ADMIN) {
+                continue;
+            }
+            assertThat(fetch("/api/v1/internal/services?ids=" + UUID.randomUUID(), tokenFor(tenant, role)).status())
+                    .as("rola %s", role).isEqualTo(403);
+        }
+        assertThat(fetch("/api/v1/internal/services?ids=" + UUID.randomUUID(), serviceTokenFor(tenant, "patient")).status())
+                .as("token usługowy dla innej usługi (aud)").isEqualTo(401);
     }
 }

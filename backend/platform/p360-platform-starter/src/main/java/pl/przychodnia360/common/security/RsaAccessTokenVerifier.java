@@ -23,14 +23,25 @@ public class RsaAccessTokenVerifier implements AccessTokenVerifier {
     private final String issuer;
     private final Clock clock;
     private final AccessRevocations revocations;
+    private final String audience;
 
-    /** {@code keys} zwraca klucz publiczny dla {@code kid} albo null, gdy klucz jest nieznany. */
+    /** {@code keys} zwraca klucz publiczny dla {@code kid} albo null, gdy klucz jest nieznany. Bez tokenów usługowych. */
     public RsaAccessTokenVerifier(Function<String, RSAPublicKey> keys, String issuer, Clock clock,
             AccessRevocations revocations) {
+        this(keys, issuer, clock, revocations, null);
+    }
+
+    /**
+     * {@code audience} to nazwa tej usługi: token usługowy (rola SERVICE) jest przyjmowany tylko wtedy, gdy jego
+     * {@code aud} ją zawiera; bez nazwy usługi tokeny usługowe są odrzucane (np. w iam, który ich nie przyjmuje).
+     */
+    public RsaAccessTokenVerifier(Function<String, RSAPublicKey> keys, String issuer, Clock clock,
+            AccessRevocations revocations, String audience) {
         this.keys = keys;
         this.issuer = issuer;
         this.clock = clock;
         this.revocations = revocations;
+        this.audience = audience;
     }
 
     @Override
@@ -56,8 +67,13 @@ public class RsaAccessTokenVerifier implements AccessTokenVerifier {
             if (revocations.isRevoked(userId, issued.toInstant())) {
                 return Optional.empty();
             }
-            return Optional.of(new AuthenticatedUser(userId, uuid(claims, "tid"),
-                    Role.valueOf(claims.getStringClaim("role")), uuid(claims, "eid"), uuid(claims, "pid")));
+            Role role = Role.valueOf(claims.getStringClaim("role"));
+            if (role == Role.SERVICE && (audience == null || claims.getAudience() == null
+                    || !claims.getAudience().contains(audience) || uuid(claims, "tid") == null)) {
+                return Optional.empty();
+            }
+            return Optional.of(new AuthenticatedUser(userId, uuid(claims, "tid"), role, uuid(claims, "eid"),
+                    uuid(claims, "pid")));
         } catch (ParseException | com.nimbusds.jose.JOSEException | RuntimeException e) {
             return Optional.empty();
         }

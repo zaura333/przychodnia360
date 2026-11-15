@@ -76,15 +76,36 @@ class RemotePatientFacadeTest {
     }
 
     @Test
-    void writesAreExplicitlyUnavailableUntilTheRegistrationSagaExists() {
-        try (StubHttpServer stub = new StubHttpServer()) {
-            RemotePatientFacade facade = new RemotePatientFacade(client(stub, 5, Duration.ofSeconds(2)));
+    void writesGoToTheInternalEndpointsWithTheServiceTokenAndFailLoudly() {
+        UUID patientId = UUID.randomUUID();
+        UUID userId = UUID.randomUUID();
+        try (StubHttpServer stub = new StubHttpServer().respond(r -> Reply.status(204))) {
+            RemotePatientFacade facade = new RemotePatientFacade(serviceClient(stub, "svc-token"));
+            asCaller("user-token");
 
-            assertThatThrownBy(() -> facade.create("A", "B", java.time.LocalDate.of(1990, 1, 1), null))
-                    .isInstanceOf(ServiceUnavailableException.class);
-            assertThatThrownBy(() -> facade.linkAccount(UUID.randomUUID(), UUID.randomUUID()))
-                    .isInstanceOf(ServiceUnavailableException.class);
-            assertThat(stub.received()).isEmpty();
+            facade.ensure(patientId, "Anna", "Nowak", java.time.LocalDate.of(1990, 5, 17), "a@example.test", userId);
+            facade.linkAccount(patientId, userId);
+            UUID created = facade.create("Ewa", "Lis", java.time.LocalDate.of(1985, 1, 1), null);
+
+            assertThat(stub.received()).hasSize(3).allSatisfy(r -> {
+                assertThat(r.method()).isEqualTo("PUT");
+                assertThat(r.authorization()).as("tożsamość usługi, nie użytkownika").isEqualTo("Bearer svc-token");
+            });
+            assertThat(stub.received().get(0).path()).isEqualTo("/api/v1/internal/patients/" + patientId);
+            assertThat(stub.received().get(0).body()).contains("\"firstName\":\"Anna\"", "\"userId\":\"" + userId + "\"");
+            assertThat(stub.received().get(1).path()).isEqualTo("/api/v1/internal/patients/" + patientId + "/account");
+            assertThat(stub.received().get(2).path()).isEqualTo("/api/v1/internal/patients/" + created);
+            assertThat(stub.received().get(2).body()).contains("\"userId\":null");
         }
+        try (StubHttpServer down = new StubHttpServer().respond(r -> Reply.status(503))) {
+            RemotePatientFacade facade = new RemotePatientFacade(serviceClient(down, "svc-token"));
+            assertThatThrownBy(() -> facade.ensure(patientId, "A", "B", java.time.LocalDate.of(1990, 1, 1), null, null))
+                    .isInstanceOf(ServiceUnavailableException.class);
+        }
+    }
+
+    private static RemoteServiceClient serviceClient(StubHttpServer stub, String token) {
+        return new RemoteServiceClient("patient", stub.url(), Duration.ofMillis(500), Duration.ofSeconds(2),
+                new CircuitBreaker(5, Duration.ofSeconds(30), Clock.systemUTC()), RestClient.builder(), () -> token);
     }
 }
