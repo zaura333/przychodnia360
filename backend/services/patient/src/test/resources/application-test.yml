@@ -1,0 +1,20 @@
+# Profil testowy: baza z Testcontainers (adresy, role i hasła ustawia PostgresIntegrationTest w trybie usługi).
+spring:
+  flyway:
+    # migracja testowa tworzy tabelę wzorcową _tenant_probe (nie istnieje w produkcji)
+    locations: classpath:db/migration,classpath:db/testmigration
+
+logging:
+  structured:
+    format:
+      console: logstash
+    json:
+      add:
+        service: ${spring.application.name}
+      customizer: pl.przychodnia360.common.logging.PeselMaskingCustomizer
+
+p360:
+  events:
+    relay:
+      # w testach przekaźnik uruchamiają testy (OutboxRelay.runOnce), nie harmonogram
+      enabled: false

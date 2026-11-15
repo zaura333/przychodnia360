@@ -23,8 +23,9 @@ services:
       P360_OWNER_PASSWORD: ${P360_OWNER_PASSWORD:?ustaw w .env (skopiuj .env.example)}
       # Baza per usługa (zadanie 1.10): lista nazw usług, np. "notification,integration-hub"; hasła właścicieli
       # P360_<NAZWA>_OWNER_PASSWORD trafiają do kontenera z .env (env_file poniżej). Puste = tylko baza główna.
-      P360_SERVICE_DATABASES: ${P360_SERVICE_DATABASES:-catalog}
+      P360_SERVICE_DATABASES: ${P360_SERVICE_DATABASES:-catalog,patient}
       P360_CATALOG_OWNER_PASSWORD: ${P360_CATALOG_OWNER_PASSWORD:-p360_catalog_owner_local_dev}
+      P360_PATIENT_OWNER_PASSWORD: ${P360_PATIENT_OWNER_PASSWORD:-p360_patient_owner_local_dev}
     env_file:
       - .env
     ports:
@@ -99,6 +100,30 @@ services:
       P360_JWKS_URL: http://backend:8080/api/v1/auth/jwks
     ports:
       - "127.0.0.1:${CATALOG_PORT:-8082}:8080"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    cpus: 0.5
+    mem_limit: 1g
+
+  # patient-service (S2): własna baza p360_patient i własne role; tokeny weryfikuje z JWKS clinic-core. Routing krawędzi
+  # nadal kieruje /me/patient i /reception/patients/** do backendu (przełączenie po zdalnej fasadzie i sadze rejestracji).
+  patient:
+    profiles: ["core", "full"]
+    build:
+      context: ./backend
+      target: runtime
+      args:
+        MODULE: services/patient
+        JAR: patient
+    environment:
+      SPRING_PROFILES_ACTIVE: local
+      DB_URL: jdbc:postgresql://postgres:5432/p360_patient
+      P360_PATIENT_OWNER_PASSWORD: ${P360_PATIENT_OWNER_PASSWORD:-p360_patient_owner_local_dev}
+      P360_PATIENT_APP_PASSWORD: ${P360_PATIENT_APP_PASSWORD:-p360_patient_app_local_dev}
+      P360_JWKS_URL: http://backend:8080/api/v1/auth/jwks
+    ports:
+      - "127.0.0.1:${PATIENT_PORT:-8083}:8080"
     depends_on:
       postgres:
         condition: service_healthy

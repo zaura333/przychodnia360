@@ -23,6 +23,7 @@
     <module>platform/p360-test-support</module>
     <module>services/clinic-core</module>
     <module>services/catalog</module>
+    <module>services/patient</module>
   </modules>
 
   <properties>

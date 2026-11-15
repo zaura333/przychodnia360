@@ -1,0 +1,17 @@
+# Profil lokalny (docker-compose). Wartości dev są jawne, bo dane są syntetyczne i lokalne; zgodne z .env.example.
+spring:
+  datasource:
+    password: ${P360_PATIENT_APP_PASSWORD:p360_patient_app_local_dev}
+  flyway:
+    password: ${P360_PATIENT_OWNER_PASSWORD:p360_patient_owner_local_dev}
+    placeholders:
+      app_password: ${P360_PATIENT_APP_PASSWORD:p360_patient_app_local_dev}
+
+logging:
+  pattern:
+    level: "%5p [%X{requestId:-}]"
+
+security:
+  jwt:
+    # clinic-core uruchomione lokalnie (profil local, port 8080); w compose nadpisywane P360_JWKS_URL
+    jwks-url: ${P360_JWKS_URL:http://localhost:8080/api/v1/auth/jwks}

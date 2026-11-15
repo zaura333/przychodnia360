@@ -1,0 +1,4 @@
+table,class,note
+patients,RC-2,dane identyfikacyjne pacjenta
+outbox,RC-10,dane techniczne: opublikowane + 30 dni (OutboxRelay.purgePublishedBefore)
+processed_events,RC-10,dane techniczne: wygaśnięcie + 30 dni
