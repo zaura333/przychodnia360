@@ -47,17 +47,17 @@ jobs:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
       - uses: ./.github/actions/setup-backend
       # verify: testy jednostkowe, Testcontainers, ArchUnit, RLS, role, macierz uprawnień.
-      # Faza integration-test generuje api/openapi.json (springdoc-openapi-maven-plugin).
+      # Testy OpenApiExportTest generują api/services/<usługa>.openapi.json i agregat api/openapi.json.
       - name: Maven verify
         working-directory: backend
         run: ./mvnw -B verify
-      - name: Kontrakt api/openapi.json zgodny z kodem
+      - name: Kontrakty (api/openapi.json i api/services/*.json) zgodne z kodem
         run: |
-          if ! git diff --exit-code -- api/openapi.json; then
-            echo "::error::api/openapi.json różni się od wygenerowanego z kodu. Uruchom './mvnw verify' w backend/ i zatwierdź zmianę."
+          if ! git diff --exit-code -- api/openapi.json api/services; then
+            echo "::error::Kontrakt API różni się od wygenerowanego z kodu. Uruchom './mvnw verify' w backend/ i zatwierdź zmianę."
             exit 1
           fi
-          if [ -n "$(git ls-files --others --exclude-standard -- api/openapi.json)" ]; then
+          if [ -n "$(git ls-files --others --exclude-standard -- api/openapi.json api/services)" ]; then
             echo "::error::api/openapi.json został wygenerowany, ale nie jest zatwierdzony w repozytorium."
             exit 1
           fi
@@ -130,21 +130,43 @@ jobs:
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
       - uses: ./.github/actions/setup-backend
-      - name: Build jar i SBOM
+      - name: Build jarów i SBOM
         working-directory: backend
         run: |
-          ./mvnw -B -q -pl services/clinic-core -am package -DskipTests
+          ./mvnw -B -q -pl services/iam-service,services/catalog-service,services/scheduling-service -am package -DskipTests
           ./mvnw -B -q org.cyclonedx:cyclonedx-maven-plugin:makeAggregateBom -DskipTests
-          cp services/clinic-core/target/clinic-core.jar app.jar
+          mkdir -p dist
+          for s in iam-service catalog-service scheduling-service; do
+            cp "services/${s}/target/${s}.jar" "dist/${s}.jar"
+          done
           cp target/bom.json "$GITHUB_WORKSPACE/backend-${GITHUB_SHA}.sbom.json" 2>/dev/null \
             || echo "::warning::Brak target/bom.json (SBOM nie powstał)."
-      - name: Obraz Docker (cel from-jar, x86_64)
+      - name: Obrazy Docker usług (cel from-jar, x86_64)
         working-directory: backend
-        run: docker build --target from-jar -t "p360/backend:${GITHUB_SHA}" .
-      - name: Skan obrazu (trivy, blokada przy HIGH i CRITICAL z poprawką)
+        run: |
+          for s in iam-service catalog-service scheduling-service; do
+            cp "dist/${s}.jar" app.jar
+            docker build --target from-jar -t "p360/${s}:${GITHUB_SHA}" .
+          done
+          rm app.jar
+      - name: Skan obrazu iam-service (trivy, blokada przy HIGH i CRITICAL z poprawką)
         uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
         with:
-          image-ref: p360/backend:${{ github.sha }}
+          image-ref: p360/iam-service:${{ github.sha }}
+          severity: HIGH,CRITICAL
+          ignore-unfixed: true
+          exit-code: "1"
+      - name: Skan obrazu catalog-service
+        uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
+        with:
+          image-ref: p360/catalog-service:${{ github.sha }}
+          severity: HIGH,CRITICAL
+          ignore-unfixed: true
+          exit-code: "1"
+      - name: Skan obrazu scheduling-service
+        uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
+        with:
+          image-ref: p360/scheduling-service:${{ github.sha }}
           severity: HIGH,CRITICAL
           ignore-unfixed: true
           exit-code: "1"
@@ -152,7 +174,7 @@ jobs:
         with:
           name: backend-package
           path: |
-            backend/app.jar
+            backend/dist/*.jar
             backend-${{ github.sha }}.sbom.json
           if-no-files-found: error
           retention-days: 14

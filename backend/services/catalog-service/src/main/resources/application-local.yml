@@ -1,0 +1,28 @@
+# Profil lokalny (docker-compose). Wartości dev są jawne, bo dane są syntetyczne i lokalne;
+# zgodne z .env.example. Nadpisywane zmiennymi środowiskowymi (np. w profilu compose `full`).
+spring:
+  datasource:
+    password: ${P360_APP_PASSWORD:p360_app_local_dev}
+  flyway:
+    password: ${P360_OWNER_PASSWORD:p360_owner_local_dev}
+    placeholders:
+      app_password: ${P360_APP_PASSWORD:p360_app_local_dev}
+
+logging:
+  pattern:
+    level: "%5p [%X{requestId:-}]"
+
+server:
+  # Z IDE każda usługa ma własny port; w compose wszystkie słuchają na 8080 za krawędzią (Traefik)
+  port: ${SERVER_PORT:8092}
+
+security:
+  # Ten sam klucz co w iam-service (wspólny HS256, ADR-M07)
+  jwt:
+    active-kid: local-1
+    keys:
+      local-1: bG9jYWwtZGV2LW9ubHktand0LWtleS0wMTIzNDU2Nzg5YWJjZGVm
+
+p360:
+  internal:
+    token: ${P360_INTERNAL_TOKEN:local-dev-internal-token}

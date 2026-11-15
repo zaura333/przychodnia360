@@ -1,6 +1,27 @@
-# Zależności lokalne: `docker compose up -d` startuje postgres i mailpit.
-# Backend działa z IDE, frontend z Vite. Kolejne profile (full, web, async, p1) dochodzą z etapami.
+# Zależności lokalne: `docker compose up -d` startuje postgres, mailpit i krawędź (Traefik, port 8080).
+# Profil full uruchamia też trzy usługi backendu (iam, catalog, scheduling) w kontenerach. Frontend z Vite
+# (proxy /api na 8080). Usługi z IDE: porty 8091-8093 i zmienne P360_*_URL krawędzi (patrz niżej i README).
 name: przychodnia360
+
+x-service-env: &service-env
+  SPRING_PROFILES_ACTIVE: local
+  SERVER_PORT: "8080"
+  P360_OWNER_PASSWORD: ${P360_OWNER_PASSWORD:?ustaw w .env (skopiuj .env.example)}
+  P360_APP_PASSWORD: ${P360_APP_PASSWORD:?ustaw w .env (skopiuj .env.example)}
+  P360_INTERNAL_TOKEN: ${P360_INTERNAL_TOKEN:-local-dev-internal-token}
+
+# Punkt wyjścia zbliżony do zadania Fargate (0,5 vCPU); 1 GB na usługę JVM (3 usługi zamiast jednego monolitu)
+x-service: &service
+  profiles: ["full"]
+  build:
+    context: ./backend
+    target: runtime
+  cpus: 0.5
+  mem_limit: 1g
+  depends_on:
+    postgres:
+      condition: service_healthy
+  # Bez restart: błędy usług mają być widoczne
 
 services:
   postgres:
@@ -10,7 +31,8 @@ services:
       POSTGRES_USER: ${POSTGRES_USER:-postgres}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?ustaw w .env (skopiuj .env.example)}
       POSTGRES_DB: ${POSTGRES_DB:-postgres}
-      P360_DB_NAME: ${P360_DB_NAME:-p360}
+      # Baza per usługa (ADR-M05); tworzy je docker/postgres/init przy pierwszym starcie wolumenu
+      P360_DB_NAMES: ${P360_DB_NAMES:-p360_iam,p360_catalog,p360_scheduling}
       P360_OWNER_PASSWORD: ${P360_OWNER_PASSWORD:?ustaw w .env (skopiuj .env.example)}
     ports:
       - "127.0.0.1:${POSTGRES_PORT:-5432}:5432"
@@ -18,7 +40,7 @@ services:
       - pgdata:/var/lib/postgresql/data
       - ./docker/postgres/init:/docker-entrypoint-initdb.d:ro
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${P360_DB_NAME}"]
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d p360_scheduling"]
       interval: 5s
       timeout: 3s
       retries: 10
@@ -36,35 +58,84 @@ services:
       timeout: 3s
       retries: 10
 
-  # Profil full: cała platforma w kontenerach (osoby bez Javy, e2e). Domyślnie backend działa z IDE.
-  backend:
-    profiles: ["full"]
+  # Krawędź (ADR-M06): jedyny publiczny port backendu; reguły ścieżek w docker/traefik/dynamic.yml.
+  # Domyślnie kieruje do kontenerów z profilu full. Dla usług uruchomionych z IDE ustaw w .env
+  # P360_IAM_URL=http://host.docker.internal:8091 (oraz 8092 catalog, 8093 scheduling).
+  edge:
+    image: traefik:v3.1
+    restart: unless-stopped
+    command:
+      # 8080 w kontenerze zajmuje wbudowany punkt wejścia traefik (ping, healthcheck), więc ruch API idzie na 8000
+      - --entrypoints.web.address=:8000
+      - --providers.file.filename=/etc/traefik/dynamic.yml
+      - --ping=true
+      - --log.level=WARN
+    environment:
+      P360_IAM_URL: ${P360_IAM_URL:-http://iam-service:8080}
+      P360_CATALOG_URL: ${P360_CATALOG_URL:-http://catalog-service:8080}
+      P360_SCHEDULING_URL: ${P360_SCHEDULING_URL:-http://scheduling-service:8080}
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    ports:
+      - "127.0.0.1:${BACKEND_PORT:-8080}:8000"
+    volumes:
+      - ./docker/traefik/dynamic.yml:/etc/traefik/dynamic.yml:ro
+    healthcheck:
+      test: ["CMD", "traefik", "healthcheck", "--ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  # Profil full: usługi w kontenerach (osoby bez Javy, e2e). Każda ma własną bazę; tylko krawędź jest publiczna.
+  iam-service:
+    <<: *service
     build:
       context: ./backend
       target: runtime
+      args:
+        MODULE: services/iam-service
+        JAR: iam-service
     environment:
-      SPRING_PROFILES_ACTIVE: local
-      # W sieci compose baza i poczta mają nazwy usług (z IDE: localhost)
-      DB_URL: jdbc:postgresql://postgres:5432/${P360_DB_NAME:-p360}
-      P360_OWNER_PASSWORD: ${P360_OWNER_PASSWORD:?ustaw w .env (skopiuj .env.example)}
-      P360_APP_PASSWORD: ${P360_APP_PASSWORD:?ustaw w .env (skopiuj .env.example)}
+      <<: *service-env
+      DB_URL: jdbc:postgresql://postgres:5432/p360_iam
+      # Linki w e-mailach prowadzą do frontendu, poczta przez Mailpit
       SPRING_MAIL_HOST: mailpit
       SPRING_MAIL_PORT: "1025"
-    ports:
-      - "127.0.0.1:${BACKEND_PORT:-8080}:8080"
     depends_on:
       postgres:
         condition: service_healthy
       mailpit:
         condition: service_healthy
-    # Punkt wyjścia zbliżony do zadania Fargate (0,5 vCPU, 2 GB); finalnie z ADR-006
-    cpus: 0.5
-    mem_limit: 2g
-    # Bez restart: błędy backendu mają być widoczne
+
+  catalog-service:
+    <<: *service
+    build:
+      context: ./backend
+      target: runtime
+      args:
+        MODULE: services/catalog-service
+        JAR: catalog-service
+    environment:
+      <<: *service-env
+      DB_URL: jdbc:postgresql://postgres:5432/p360_catalog
+
+  scheduling-service:
+    <<: *service
+    build:
+      context: ./backend
+      target: runtime
+      args:
+        MODULE: services/scheduling-service
+        JAR: scheduling-service
+    environment:
+      <<: *service-env
+      DB_URL: jdbc:postgresql://postgres:5432/p360_scheduling
+      P360_IAM_URL: http://iam-service:8080
+      P360_CATALOG_URL: http://catalog-service:8080
 
   # Profil async (osobny od full: e2e go nie potrzebuje, a obraz ma ok. 2 GB): SNS i SQS lokalnie (LocalStack,
   # fala 1.4). Temat, kolejki i DLQ tworzy docker/localstack/init (skrypt musi mieć bit wykonywalności w git).
-  # Wersja przypięta (community, bez tokenu); `latest` wymaga konta. Backend włącza transport zmiennymi
+  # Wersja przypięta (community, bez tokenu); `latest` wymaga konta. Usługa włącza transport zmiennymi
   # P360_EVENTS_SNS_TOPIC_ARN i P360_EVENTS_AWS_ENDPOINT (patrz README).
   localstack:
     profiles: ["async"]

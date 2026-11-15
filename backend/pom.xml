@@ -20,7 +20,9 @@
   <modules>
     <module>platform/p360-shared-core</module>
     <module>platform/p360-platform-starter</module>
-    <module>services/clinic-core</module>
+    <module>services/iam-service</module>
+    <module>services/catalog-service</module>
+    <module>services/scheduling-service</module>
   </modules>
 
   <properties>

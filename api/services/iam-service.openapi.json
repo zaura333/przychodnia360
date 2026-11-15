@@ -1,0 +1,947 @@
+{
+  "openapi" : "3.1.0",
+  "info" : {
+    "description" : "Wersja demonstracyjna, dane wyłącznie syntetyczne.",
+    "title" : "Przychodnia360 API",
+    "version" : "v1"
+  },
+  "servers" : [ {
+    "url" : "/"
+  } ],
+  "paths" : {
+    "/api/v1/auth/login" : {
+      "post" : {
+        "description" : "Dostęp: publiczny. Zwraca token dostępu i ustawia ciasteczko odświeżania.",
+        "operationId" : "login",
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/LoginRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/TokenResponse"
+                }
+              }
+            },
+            "description" : "OK"
+          }
+        },
+        "summary" : "Logowanie do placówki",
+        "tags" : [ "auth-controller" ]
+      }
+    },
+    "/api/v1/auth/logout" : {
+      "post" : {
+        "description" : "Dostęp: zalogowany. Unieważnia rodzinę tokenów odświeżania i usuwa ciasteczko.",
+        "operationId" : "logout",
+        "parameters" : [ {
+          "in" : "cookie",
+          "name" : "p360_rt",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "description" : "OK"
+          }
+        },
+        "summary" : "Wylogowanie",
+        "tags" : [ "auth-controller" ]
+      }
+    },
+    "/api/v1/auth/password-reset/confirm" : {
+      "post" : {
+        "description" : "Dostęp: publiczny (token z e-maila). Dotyczy też pierwszego ustawienia hasła pracownika. Po zmianie unieważnia sesje użytkownika.",
+        "operationId" : "confirmPasswordReset",
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/PasswordResetConfirmRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "204" : {
+            "description" : "No Content"
+          }
+        },
+        "summary" : "Ustawienie hasła z jednorazowego linku",
+        "tags" : [ "account-controller" ]
+      }
+    },
+    "/api/v1/auth/password-reset/request" : {
+      "post" : {
+        "description" : "Dostęp: publiczny. Zawsze 202, niezależnie od tego, czy konto istnieje.",
+        "operationId" : "requestPasswordReset",
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/PasswordResetRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "202" : {
+            "description" : "Accepted"
+          }
+        },
+        "summary" : "Prośba o reset hasła",
+        "tags" : [ "account-controller" ]
+      }
+    },
+    "/api/v1/auth/platform/login" : {
+      "post" : {
+        "description" : "Dostęp: publiczny.",
+        "operationId" : "loginPlatformAdmin",
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/PlatformLoginRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/TokenResponse"
+                }
+              }
+            },
+            "description" : "OK"
+          }
+        },
+        "summary" : "Logowanie administratora platformy",
+        "tags" : [ "auth-controller" ]
+      }
+    },
+    "/api/v1/auth/refresh" : {
+      "post" : {
+        "description" : "Dostęp: publiczny, wymaga ciasteczka odświeżania. Rotuje token odświeżania.",
+        "operationId" : "refreshToken",
+        "parameters" : [ {
+          "in" : "cookie",
+          "name" : "p360_rt",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/TokenResponse"
+                }
+              }
+            },
+            "description" : "OK"
+          }
+        },
+        "summary" : "Odświeżenie tokenu",
+        "tags" : [ "auth-controller" ]
+      }
+    },
+    "/api/v1/auth/register-patient" : {
+      "post" : {
+        "description" : "Dostęp: publiczny. Zawsze 202 z pustą odpowiedzią (zajęty e-mail nie jest ujawniany); bez automatycznego logowania.",
+        "operationId" : "registerPatient",
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/RegisterPatientRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "202" : {
+            "description" : "Accepted"
+          }
+        },
+        "summary" : "Rejestracja konta pacjenta",
+        "tags" : [ "account-controller" ]
+      }
+    },
+    "/api/v1/facilities" : {
+      "get" : {
+        "description" : "Dostęp: publiczny (wybór placówki przy logowaniu).",
+        "operationId" : "listFacilities",
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "type" : "array",
+                  "items" : {
+                    "$ref" : "#/components/schemas/FacilityResponse"
+                  }
+                }
+              }
+            },
+            "description" : "OK"
+          }
+        },
+        "summary" : "Lista aktywnych placówek",
+        "tags" : [ "facility-controller" ]
+      }
+    },
+    "/api/v1/health" : {
+      "get" : {
+        "description" : "Dostęp: publiczny.",
+        "operationId" : "getHealth",
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/HealthResponse"
+                }
+              }
+            },
+            "description" : "OK"
+          }
+        },
+        "summary" : "Stan aplikacji (bez bazy)",
+        "tags" : [ "health-controller" ]
+      }
+    },
+    "/api/v1/health/db" : {
+      "get" : {
+        "description" : "Dostęp: publiczny w local/test.",
+        "operationId" : "getHealthDb",
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/HealthResponse"
+                }
+              }
+            },
+            "description" : "OK"
+          }
+        },
+        "summary" : "Stan aplikacji z zapytaniem do bazy (tylko local/test)",
+        "tags" : [ "health-controller" ]
+      }
+    },
+    "/api/v1/me" : {
+      "get" : {
+        "description" : "Dostęp: każdy zalogowany użytkownik.",
+        "operationId" : "getMe",
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/MeResponse"
+                }
+              }
+            },
+            "description" : "OK"
+          }
+        },
+        "summary" : "Bieżący użytkownik",
+        "tags" : [ "me-controller" ]
+      }
+    },
+    "/api/v1/me/patient" : {
+      "get" : {
+        "description" : "Dostęp: PATIENT_READ_OWN (PATIENT).",
+        "operationId" : "getMyPatient",
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/PatientResponse"
+                }
+              }
+            },
+            "description" : "OK"
+          }
+        },
+        "summary" : "Dane własne pacjenta",
+        "tags" : [ "patient-controller" ]
+      },
+      "patch" : {
+        "description" : "Dostęp: PATIENT_EDIT_OWN (PATIENT). W 1a tylko e-mail kontaktowy.",
+        "operationId" : "updateMyPatient",
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/ContactRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/PatientResponse"
+                }
+              }
+            },
+            "description" : "OK"
+          }
+        },
+        "summary" : "Edycja własnych danych kontaktowych",
+        "tags" : [ "patient-controller" ]
+      }
+    },
+    "/api/v1/platform/tenants" : {
+      "get" : {
+        "description" : "Dostęp: PLATFORM_MANAGE (PLATFORM_ADMIN).",
+        "operationId" : "listTenants",
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "type" : "array",
+                  "items" : {
+                    "$ref" : "#/components/schemas/TenantResponse"
+                  }
+                }
+              }
+            },
+            "description" : "OK"
+          }
+        },
+        "summary" : "Lista placówek",
+        "tags" : [ "tenant-admin-controller" ]
+      },
+      "post" : {
+        "description" : "Dostęp: PLATFORM_MANAGE. 409 przy zajętym identyfikatorze.",
+        "operationId" : "createTenant",
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/CreateTenantRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "201" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/TenantResponse"
+                }
+              }
+            },
+            "description" : "Created"
+          }
+        },
+        "summary" : "Utworzenie placówki",
+        "tags" : [ "tenant-admin-controller" ]
+      }
+    },
+    "/api/v1/platform/tenants/{id}" : {
+      "patch" : {
+        "description" : "Dostęp: PLATFORM_MANAGE.",
+        "operationId" : "updateTenant",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "id",
+          "required" : true,
+          "schema" : {
+            "type" : "string",
+            "format" : "uuid"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/UpdateTenantRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/TenantResponse"
+                }
+              }
+            },
+            "description" : "OK"
+          }
+        },
+        "summary" : "Edycja lub dezaktywacja placówki",
+        "tags" : [ "tenant-admin-controller" ]
+      }
+    },
+    "/api/v1/platform/tenants/{id}/admins" : {
+      "post" : {
+        "description" : "Dostęp: PLATFORM_MANAGE. Konto bez hasła; administrator dostaje link ustawienia hasła w e-mailu.",
+        "operationId" : "createTenantAdmin",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "id",
+          "required" : true,
+          "schema" : {
+            "type" : "string",
+            "format" : "uuid"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/CreateTenantAdminRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "201" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/TenantAdminResponse"
+                }
+              }
+            },
+            "description" : "Created"
+          }
+        },
+        "summary" : "Utworzenie konta administratora placówki",
+        "tags" : [ "platform-admin-controller" ]
+      }
+    },
+    "/api/v1/reception/patients" : {
+      "post" : {
+        "description" : "Dostęp: PATIENT_REGISTER (RECEPTIONIST). Konto pacjenta zakłada się osobno.",
+        "operationId" : "registerPatientByReceptionist",
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/CreatePatientRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "201" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/PatientResponse"
+                }
+              }
+            },
+            "description" : "Created"
+          }
+        },
+        "summary" : "Założenie rekordu pacjenta",
+        "tags" : [ "patient-controller" ]
+      }
+    },
+    "/api/v1/reception/patients/search" : {
+      "post" : {
+        "description" : "Dostęp: PATIENT_SEARCH (RECEPTIONIST). Fraza w ciele żądania, bez danych medycznych.",
+        "operationId" : "searchPatients",
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/SearchRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/PageResponsePatientResponse"
+                }
+              }
+            },
+            "description" : "OK"
+          }
+        },
+        "summary" : "Wyszukiwanie pacjentów po imieniu i nazwisku",
+        "tags" : [ "patient-controller" ]
+      }
+    },
+    "/api/v1/reception/patients/{id}/contact" : {
+      "patch" : {
+        "description" : "Dostęp: PATIENT_CONTACT_EDIT (RECEPTIONIST).",
+        "operationId" : "updatePatientContact",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "id",
+          "required" : true,
+          "schema" : {
+            "type" : "string",
+            "format" : "uuid"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/ContactRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/PatientResponse"
+                }
+              }
+            },
+            "description" : "OK"
+          }
+        },
+        "summary" : "Edycja danych kontaktowych pacjenta",
+        "tags" : [ "patient-controller" ]
+      }
+    },
+    "/api/v1/tenant" : {
+      "get" : {
+        "description" : "Dostęp: TENANT_READ (każda rola placówki). Placówka wynika wyłącznie z tokenu.",
+        "operationId" : "getOwnTenant",
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/OwnTenantResponse"
+                }
+              }
+            },
+            "description" : "OK"
+          }
+        },
+        "summary" : "Dane własnej placówki",
+        "tags" : [ "me-controller" ]
+      }
+    }
+  },
+  "components" : {
+    "schemas" : {
+      "ContactRequest" : {
+        "type" : "object",
+        "properties" : {
+          "contactEmail" : {
+            "type" : "string",
+            "format" : "email",
+            "maxLength" : 254,
+            "minLength" : 0
+          }
+        }
+      },
+      "CreatePatientRequest" : {
+        "type" : "object",
+        "properties" : {
+          "birthDate" : {
+            "type" : "string",
+            "format" : "date"
+          },
+          "contactEmail" : {
+            "type" : "string",
+            "format" : "email",
+            "maxLength" : 254,
+            "minLength" : 0
+          },
+          "firstName" : {
+            "type" : "string",
+            "maxLength" : 100,
+            "minLength" : 0
+          },
+          "lastName" : {
+            "type" : "string",
+            "maxLength" : 100,
+            "minLength" : 0
+          }
+        },
+        "required" : [ "birthDate", "firstName", "lastName" ]
+      },
+      "CreateTenantAdminRequest" : {
+        "type" : "object",
+        "properties" : {
+          "email" : {
+            "type" : "string",
+            "format" : "email",
+            "maxLength" : 254,
+            "minLength" : 0
+          }
+        },
+        "required" : [ "email" ]
+      },
+      "CreateTenantRequest" : {
+        "type" : "object",
+        "properties" : {
+          "name" : {
+            "type" : "string",
+            "maxLength" : 200,
+            "minLength" : 0
+          },
+          "slug" : {
+            "type" : "string",
+            "minLength" : 1,
+            "pattern" : "^[a-z0-9][a-z0-9-]{1,62}$"
+          }
+        },
+        "required" : [ "name", "slug" ]
+      },
+      "FacilityResponse" : {
+        "type" : "object",
+        "properties" : {
+          "name" : {
+            "type" : "string"
+          },
+          "slug" : {
+            "type" : "string"
+          }
+        },
+        "required" : [ "name", "slug" ]
+      },
+      "HealthResponse" : {
+        "type" : "object",
+        "properties" : {
+          "status" : {
+            "type" : "string"
+          }
+        },
+        "required" : [ "status" ]
+      },
+      "LoginRequest" : {
+        "type" : "object",
+        "properties" : {
+          "email" : {
+            "type" : "string",
+            "format" : "email",
+            "maxLength" : 254,
+            "minLength" : 0
+          },
+          "password" : {
+            "type" : "string",
+            "maxLength" : 200,
+            "minLength" : 0
+          },
+          "tenantSlug" : {
+            "type" : "string",
+            "maxLength" : 63,
+            "minLength" : 0
+          }
+        },
+        "required" : [ "email", "password", "tenantSlug" ]
+      },
+      "MeResponse" : {
+        "type" : "object",
+        "properties" : {
+          "employeeId" : {
+            "type" : "string",
+            "format" : "uuid"
+          },
+          "patientId" : {
+            "type" : "string",
+            "format" : "uuid"
+          },
+          "role" : {
+            "type" : "string",
+            "enum" : [ "PATIENT", "DOCTOR", "MEDICAL_STAFF", "RECEPTIONIST", "TENANT_ADMIN", "PLATFORM_ADMIN" ]
+          },
+          "slotStepMinutes" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "tenantId" : {
+            "type" : "string",
+            "format" : "uuid"
+          },
+          "tenantName" : {
+            "type" : "string"
+          },
+          "userId" : {
+            "type" : "string",
+            "format" : "uuid"
+          }
+        },
+        "required" : [ "role", "userId" ]
+      },
+      "OwnTenantResponse" : {
+        "type" : "object",
+        "properties" : {
+          "id" : {
+            "type" : "string",
+            "format" : "uuid"
+          },
+          "name" : {
+            "type" : "string"
+          },
+          "slug" : {
+            "type" : "string"
+          }
+        },
+        "required" : [ "id", "name", "slug" ]
+      },
+      "PageResponsePatientResponse" : {
+        "type" : "object",
+        "properties" : {
+          "items" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/PatientResponse"
+            }
+          },
+          "page" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "size" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "total" : {
+            "type" : "integer",
+            "format" : "int64"
+          }
+        },
+        "required" : [ "items", "page", "size", "total" ]
+      },
+      "PasswordResetConfirmRequest" : {
+        "type" : "object",
+        "properties" : {
+          "newPassword" : {
+            "type" : "string",
+            "maxLength" : 200,
+            "minLength" : 0
+          },
+          "token" : {
+            "type" : "string",
+            "maxLength" : 200,
+            "minLength" : 0
+          }
+        },
+        "required" : [ "newPassword", "token" ]
+      },
+      "PasswordResetRequest" : {
+        "type" : "object",
+        "properties" : {
+          "email" : {
+            "type" : "string",
+            "format" : "email",
+            "maxLength" : 254,
+            "minLength" : 0
+          },
+          "tenantSlug" : {
+            "type" : "string",
+            "maxLength" : 63,
+            "minLength" : 0
+          }
+        },
+        "required" : [ "email", "tenantSlug" ]
+      },
+      "PatientResponse" : {
+        "type" : "object",
+        "properties" : {
+          "birthDate" : {
+            "type" : "string",
+            "format" : "date"
+          },
+          "contactEmail" : {
+            "type" : "string"
+          },
+          "firstName" : {
+            "type" : "string"
+          },
+          "hasAccount" : {
+            "type" : "boolean"
+          },
+          "id" : {
+            "type" : "string",
+            "format" : "uuid"
+          },
+          "lastName" : {
+            "type" : "string"
+          }
+        },
+        "required" : [ "birthDate", "firstName", "hasAccount", "id", "lastName" ]
+      },
+      "PlatformLoginRequest" : {
+        "type" : "object",
+        "properties" : {
+          "email" : {
+            "type" : "string",
+            "format" : "email",
+            "maxLength" : 254,
+            "minLength" : 0
+          },
+          "password" : {
+            "type" : "string",
+            "maxLength" : 200,
+            "minLength" : 0
+          }
+        },
+        "required" : [ "email", "password" ]
+      },
+      "RegisterPatientRequest" : {
+        "type" : "object",
+        "properties" : {
+          "birthDate" : {
+            "type" : "string",
+            "format" : "date"
+          },
+          "email" : {
+            "type" : "string",
+            "format" : "email",
+            "maxLength" : 254,
+            "minLength" : 0
+          },
+          "firstName" : {
+            "type" : "string",
+            "maxLength" : 100,
+            "minLength" : 0
+          },
+          "lastName" : {
+            "type" : "string",
+            "maxLength" : 100,
+            "minLength" : 0
+          },
+          "password" : {
+            "type" : "string",
+            "maxLength" : 200,
+            "minLength" : 0
+          },
+          "tenantSlug" : {
+            "type" : "string",
+            "maxLength" : 63,
+            "minLength" : 0
+          }
+        },
+        "required" : [ "birthDate", "email", "firstName", "lastName", "password", "tenantSlug" ]
+      },
+      "SearchRequest" : {
+        "type" : "object",
+        "properties" : {
+          "page" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "query" : {
+            "type" : "string",
+            "maxLength" : 200,
+            "minLength" : 0
+          },
+          "size" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        },
+        "required" : [ "query" ]
+      },
+      "TenantAdminResponse" : {
+        "type" : "object",
+        "properties" : {
+          "email" : {
+            "type" : "string"
+          },
+          "userId" : {
+            "type" : "string",
+            "format" : "uuid"
+          }
+        },
+        "required" : [ "email", "userId" ]
+      },
+      "TenantResponse" : {
+        "type" : "object",
+        "properties" : {
+          "active" : {
+            "type" : "boolean"
+          },
+          "id" : {
+            "type" : "string",
+            "format" : "uuid"
+          },
+          "name" : {
+            "type" : "string"
+          },
+          "slug" : {
+            "type" : "string"
+          }
+        },
+        "required" : [ "active", "id", "name", "slug" ]
+      },
+      "TokenResponse" : {
+        "type" : "object",
+        "properties" : {
+          "accessToken" : {
+            "type" : "string"
+          },
+          "expiresIn" : {
+            "type" : "integer",
+            "format" : "int64"
+          },
+          "tokenType" : {
+            "type" : "string"
+          }
+        },
+        "required" : [ "accessToken", "expiresIn", "tokenType" ]
+      },
+      "UpdateTenantRequest" : {
+        "type" : "object",
+        "properties" : {
+          "active" : {
+            "type" : "boolean"
+          },
+          "name" : {
+            "type" : "string",
+            "maxLength" : 200,
+            "minLength" : 1
+          }
+        }
+      }
+    }
+  }
+}

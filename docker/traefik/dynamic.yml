@@ -1,0 +1,40 @@
+# Krawędź (ADR-M06): routing po ścieżkach do trzech usług. Reguły odpowiadają tabeli
+# backend/services/scheduling-service/src/test/resources/routing-table.csv (pilnuje tego TraefikRoutingTest).
+# Ścieżki /internal/** nie mają tu reguły, więc z zewnątrz są niedostępne (ADR-M07).
+# Adresy usług ze zmiennych środowiskowych: w compose nazwy kontenerów, przy usługach z IDE host.docker.internal.
+http:
+  routers:
+    iam:
+      entryPoints: [web]
+      service: iam
+      rule: >-
+        PathPrefix(`/api/v1/auth`) || Path(`/api/v1/me`) || Path(`/api/v1/me/patient`) ||
+        Path(`/api/v1/tenant`) || Path(`/api/v1/facilities`) || PathPrefix(`/api/v1/platform`) ||
+        PathPrefix(`/api/v1/reception/patients`) || PathPrefix(`/api/v1/health`)
+    catalog:
+      entryPoints: [web]
+      service: catalog
+      rule: >-
+        PathPrefix(`/api/v1/admin/services`) || PathPrefix(`/api/v1/admin/service-categories`) ||
+        PathPrefix(`/api/v1/services`) || Path(`/api/v1/service-categories`)
+    scheduling:
+      entryPoints: [web]
+      service: scheduling
+      rule: >-
+        Path(`/api/v1/me/appointments`) || Path(`/api/v1/me/schedule`) || PathPrefix(`/api/v1/admin/employees`) ||
+        PathPrefix(`/api/v1/doctors`) || PathPrefix(`/api/v1/employees`) || PathPrefix(`/api/v1/appointments`) ||
+        Path(`/api/v1/reception/appointments`)
+
+  services:
+    iam:
+      loadBalancer:
+        servers:
+          - url: '{{ env "P360_IAM_URL" }}'
+    catalog:
+      loadBalancer:
+        servers:
+          - url: '{{ env "P360_CATALOG_URL" }}'
+    scheduling:
+      loadBalancer:
+        servers:
+          - url: '{{ env "P360_SCHEDULING_URL" }}'

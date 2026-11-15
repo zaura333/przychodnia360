@@ -1,0 +1,8 @@
+table,class,note
+tenants,DICT,słownik placówek; dezaktywacja placówki z eksportem (FR-84)
+users,RC-3|RC-4,konto pacjenta (RC-3) lub pracownika (RC-4) wg roli
+refresh_tokens,RC-10,dane techniczne: wygaśnięcie + 30 dni
+password_reset_tokens,RC-10,dane techniczne: wygaśnięcie + 30 dni
+patients,RC-2,dane identyfikacyjne pacjenta
+outbox,RC-10,dane techniczne: opublikowane + 30 dni (OutboxRelay.purgePublishedBefore)
+processed_events,RC-10,dane techniczne: wygaśnięcie + 30 dni

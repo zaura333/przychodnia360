@@ -1,0 +1,49 @@
+# Bez sekretów: hasła wyłącznie ze zmiennych środowiskowych (lokalnie wartości dev w application-local.yml).
+spring:
+  application:
+    name: iam-service
+  datasource:
+    # Aplikacja łączy się wyłącznie jako p360_app (bez BYPASSRLS, bez prawa tworzenia obiektów)
+    url: ${DB_URL:jdbc:postgresql://localhost:5432/p360_iam}
+    username: p360_app
+    password: ${P360_APP_PASSWORD}
+    hikari:
+      maximum-pool-size: ${DB_POOL_SIZE:5}
+      minimum-idle: 0
+      connection-timeout: 3000
+  flyway:
+    # Migracje jako właściciel schematu (p360_owner), osobne poświadczenia niż aplikacja
+    url: ${FLYWAY_URL:${DB_URL:jdbc:postgresql://localhost:5432/p360_iam}}
+    user: p360_owner
+    password: ${P360_OWNER_PASSWORD}
+    placeholders:
+      app_password: ${P360_APP_PASSWORD}
+  mvc:
+    throw-exception-if-no-handler-found: true
+  web:
+    resources:
+      add-mappings: false
+
+server:
+  # Nie ujawniamy komunikatów błędów ani śladów stosu w odpowiedzi
+  error:
+    include-message: never
+    include-stacktrace: never
+    include-binding-errors: never
+
+p360:
+  events:
+    relay:
+      # Przekaźnik outboxu (fala 1.3); bez brokera zdarzenia są tylko logowane (LoggingEventTransport)
+      enabled: true
+      interval: PT1S
+      batch-size: 50
+
+springdoc:
+  api-docs:
+    path: /api/v1/docs/json
+  swagger-ui:
+    path: /api/v1/docs
+  # Deterministyczny plik kontraktu (api/openapi.json jest zatwierdzany w repozytorium)
+  writer-with-default-pretty-printer: true
+  writer-with-order-by-keys: true

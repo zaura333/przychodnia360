@@ -1,0 +1,31 @@
+# Profil demo (ECS Fargate). Poświadczenia z Parameter Store/Secrets dochodzą w zadaniach CD2.x; tu tylko zachowanie.
+spring:
+  datasource:
+    hikari:
+      maximum-pool-size: ${DB_POOL_SIZE:10}
+
+logging:
+  structured:
+    format:
+      console: logstash
+    json:
+      customizer: pl.przychodnia360.common.logging.PeselMaskingCustomizer
+
+springdoc:
+  api-docs:
+    enabled: false
+  swagger-ui:
+    enabled: false
+
+security:
+  jwt:
+    active-kid: ${JWT_ACTIVE_KID}
+    keys:
+      "[${JWT_ACTIVE_KID}]": ${JWT_ACTIVE_KEY}
+
+p360:
+  internal:
+    token: ${P360_INTERNAL_TOKEN}
+  services:
+    iam-url: ${P360_IAM_URL}
+    catalog-url: ${P360_CATALOG_URL}
