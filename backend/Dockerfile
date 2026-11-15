@@ -37,6 +37,7 @@ COPY platform/p360-test-support/pom.xml platform/p360-test-support/
 COPY services/clinic-core/pom.xml services/clinic-core/
 COPY services/catalog/pom.xml services/catalog/
 COPY services/patient/pom.xml services/patient/
+COPY services/iam/pom.xml services/iam/
 RUN --mount=type=cache,target=/root/.m2 sh ./mvnw -B -q dependency:go-offline -pl ${MODULE} -am || true
 COPY platform platform
 COPY services services
