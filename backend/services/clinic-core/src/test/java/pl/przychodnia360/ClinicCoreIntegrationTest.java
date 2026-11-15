@@ -7,12 +7,12 @@ import java.lang.annotation.Target;
 import org.springframework.context.annotation.Import;
 
 /**
- * Konfiguracja testowa specyficzna dla clinic-core (nagrywanie wiadomości e-mail) dołączana do bazy testów i do
+ * Konfiguracja testowa specyficzna dla clinic-core (nagrywanie wiadomości e-mail, atrapy fasad catalog i patient) dołączana do bazy testów i do
  * podklas kontraktów z p360-test-support. Identyczny zestaw importów we wszystkich testach daje jeden współdzielony
  * kontekst Springa (bez drugiego startu aplikacji).
  */
 @Retention(RetentionPolicy.RUNTIME)
 @Target(ElementType.TYPE)
-@Import({RecordingMailSender.Config.class, RecordingEventTransport.Config.class})
+@Import({RecordingMailSender.Config.class, RecordingEventTransport.Config.class, FakeServicesConfig.class})
 public @interface ClinicCoreIntegrationTest {
 }

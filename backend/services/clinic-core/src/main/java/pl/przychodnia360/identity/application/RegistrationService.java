@@ -68,11 +68,21 @@ public class RegistrationService {
         }
     }
 
+    /**
+     * Saga rejestracji (S2): konto i rekord pacjenta powstają w dwóch usługach, ale bez konta bez pacjenta.
+     * Identyfikator pacjenta jest wyznaczony deterministycznie z placówki i e-maila, więc powtórzenie rejestracji po
+     * awarii trafia w ten sam rekord (idempotentne {@code ensure}), a nie tworzy duplikatu. Konto jest wstawiane pierwsze
+     * (zajęty e-mail kończy się przed jakimkolwiek wywołaniem zdalnym), potem rekord pacjenta w usłudze `patient` w tej
+     * samej transakcji: awaria usługi cofa konto (kompensacja), a brak odpowiedzi po stronie klienta zostawia co najwyżej
+     * rekord pacjenta bez konta, który ponowna rejestracja uzupełnia.
+     */
     private void create(UUID tenantId, Registration r, String hash) {
-        UUID patientId = patients.create(r.firstName(), r.lastName(), r.birthDate(), r.email());
-        User user = User.create(Ids.newId(), tenantId, r.email().trim(), Role.PATIENT, hash);
+        String email = r.email().trim();
+        UUID patientId = UUID.nameUUIDFromBytes(
+                (tenantId + ":" + email.toLowerCase(java.util.Locale.ROOT)).getBytes(java.nio.charset.StandardCharsets.UTF_8));
+        User user = User.create(Ids.newId(), tenantId, email, Role.PATIENT, hash);
         user.linkPatient(patientId);
         users.insert(user);
-        patients.linkAccount(patientId, user.id());
+        patients.ensure(patientId, r.firstName(), r.lastName(), r.birthDate(), email, user.id());
     }
 }

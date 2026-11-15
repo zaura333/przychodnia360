@@ -100,7 +100,7 @@ http:
     catalog:
       loadBalancer:
         servers:
-          - url: "http://backend:8080"
+          - url: "http://catalog:8080"
     every:
       loadBalancer:
         servers:
@@ -112,7 +112,7 @@ http:
     patient:
       loadBalancer:
         servers:
-          - url: "http://backend:8080"
+          - url: "http://patient:8080"
     scheduling:
       loadBalancer:
         servers:

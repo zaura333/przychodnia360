@@ -60,15 +60,17 @@ class TracePropagationTest extends AbstractApiTest {
     @Test
     void traceparentFromTheHttpRequestEndsUpInTheOutbox() {
         UUID tenant = newTenant();
-        String email = "trace." + unique() + "@example.test";
-        String body = "{\"tenantSlug\":\"" + slugOf(tenant) + "\",\"email\":\"" + email + "\",\"password\":\""
-                + PASSWORD + "\",\"firstName\":\"Maria\",\"lastName\":\"Nowak\",\"birthDate\":\"1991-04-12\"}";
+        String admin = tokenFor(tenant, pl.przychodnia360.common.security.Role.TENANT_ADMIN);
+        String employeeId = call("POST", "/api/v1/admin/employees", admin, "{\"email\":\"lek." + unique()
+                + "@example.test\",\"type\":\"DOCTOR\",\"firstName\":\"Adam\",\"lastName\":\"Lekarz\"}")
+                .json().get("id").asString();
 
-        Resp response = call("POST", "/api/v1/auth/register-patient", null, body,
+        // dezaktywacja pracownika publikuje UserDeactivated w żądaniu ze śladem
+        Resp response = call("POST", "/api/v1/admin/employees/" + employeeId + "/deactivate", admin, null,
                 "traceparent", "00-" + TRACE_ID + "-" + PARENT_SPAN + "-01");
 
-        assertThat(response.status()).isEqualTo(202);
-        assertThat(outboxTraceparent(tenant)).as("zdarzenie PatientRegistered niesie ślad żądania")
+        assertThat(response.status()).isEqualTo(204);
+        assertThat(outboxTraceparent(tenant)).as("zdarzenie UserDeactivated niesie ślad żądania")
                 .startsWith("00-" + TRACE_ID + "-").endsWith("-01");
     }
 
@@ -76,7 +78,7 @@ class TracePropagationTest extends AbstractApiTest {
     void traceparentTravelsFromTheOutboxThroughTheRelayToTheEnvelope() {
         UUID tenant = newTenant();
         UUID patientId = inKnownTrace(() -> inTenantResult(tenant,
-                () -> patientFacade.create("Anna", "Nowak", LocalDate.of(1990, 1, 1), null)));
+                () -> publishSampleEvent()));
 
         drain();
 
@@ -90,14 +92,14 @@ class TracePropagationTest extends AbstractApiTest {
     @Test
     void eventPublishedWithoutATraceHasNoTraceparent() {
         UUID tenant = newTenant();
-        inTenantResult(tenant, () -> patientFacade.create("Jan", "Kowalski", LocalDate.of(1980, 5, 5), null));
+        inTenantResult(tenant, () -> publishSampleEvent());
         assertThat(outboxTraceparent(tenant)).isNull();
     }
 
     @Test
     void consumerRunsTheHandlerInTheTraceOfTheEvent() {
         AtomicReference<String> seen = new AtomicReference<>();
-        eventTracing.runInContext("00-" + TRACE_ID + "-" + PARENT_SPAN + "-01", "consume PatientRegistered",
+        eventTracing.runInContext("00-" + TRACE_ID + "-" + PARENT_SPAN + "-01", "consume UserDeactivated",
                 () -> seen.set(tracer.currentSpan().context().traceId()));
 
         assertThat(seen.get()).isEqualTo(TRACE_ID);
@@ -108,7 +110,7 @@ class TracePropagationTest extends AbstractApiTest {
     void traceAndSpanIdsAreInTheLogContextWhileTheEventIsHandled() {
         AtomicReference<String> traceInMdc = new AtomicReference<>();
         AtomicReference<String> spanInMdc = new AtomicReference<>();
-        eventTracing.runInContext("00-" + TRACE_ID + "-" + PARENT_SPAN + "-01", "consume PatientRegistered", () -> {
+        eventTracing.runInContext("00-" + TRACE_ID + "-" + PARENT_SPAN + "-01", "consume UserDeactivated", () -> {
             traceInMdc.set(MDC.get("traceId"));
             spanInMdc.set(MDC.get("spanId"));
         });

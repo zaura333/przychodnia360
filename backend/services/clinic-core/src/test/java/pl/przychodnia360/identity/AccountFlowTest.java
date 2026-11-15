@@ -35,10 +35,11 @@ class AccountFlowTest extends AbstractApiTest {
         Resp login = loginAs(slug, email, PASSWORD);
         assertThat(login.status()).isEqualTo(200);
         String token = login.json().get("accessToken").asString();
-        Resp patient = fetch("/api/v1/me/patient", token);
-        assertThat(patient.status()).isEqualTo(200);
-        assertThat(patient.json().get("firstName").asString()).isEqualTo("Maria");
-        assertThat(patient.json().get("hasAccount").asBoolean()).isTrue();
+        // rekord pacjenta powstał w usłudze pacjentów (atrapa) i jest powiązany z kontem w obie strony
+        var user = inTenantResult(tenant, () -> users.findByEmail(tenant, email)).orElseThrow();
+        var patient = fakePatients.find(tenant, user.patientId()).orElseThrow();
+        assertThat(patient.firstName()).isEqualTo("Maria");
+        assertThat(patient.userId()).isEqualTo(user.id());
         assertThat(mails.sentTo(email)).hasSize(1);
     }
 
@@ -60,8 +61,7 @@ class AccountFlowTest extends AbstractApiTest {
         assertThat(mails.sentTo(email)).hasSize(2);
         assertThat(mails.sentTo(email).getLast().body()).contains("już istnieje");
         // zajęty e-mail nie utworzył drugiego rekordu pacjenta
-        assertThat(inTenantResult(tenant, () -> jdbc.sql("SELECT count(*) FROM patients").query(Long.class).single()))
-                .isEqualTo(1L);
+        assertThat(fakePatients.patientsOf(tenant)).hasSize(1);
     }
 
     @Test

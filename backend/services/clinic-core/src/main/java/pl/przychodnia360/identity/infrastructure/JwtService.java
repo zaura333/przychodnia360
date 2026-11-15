@@ -30,6 +30,7 @@ import java.util.HexFormat;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Optional;
+import java.util.UUID;
 import java.util.concurrent.ThreadLocalRandom;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -37,6 +38,7 @@ import org.springframework.stereotype.Component;
 import pl.przychodnia360.common.security.AccessRevocations;
 import pl.przychodnia360.common.security.AccessTokenVerifier;
 import pl.przychodnia360.common.security.AuthenticatedUser;
+import pl.przychodnia360.common.security.Role;
 import pl.przychodnia360.common.security.RsaAccessTokenVerifier;
 
 /**
@@ -46,6 +48,10 @@ import pl.przychodnia360.common.security.RsaAccessTokenVerifier;
  */
 @Component
 public class JwtService implements AccessTokenVerifier {
+
+    /** Stały identyfikator podmiotu tokenów usługowych iam (nie jest użytkownikiem; do logów i audytu). */
+    private static final UUID SERVICE_SUBJECT = UUID.nameUUIDFromBytes("service:iam".getBytes(java.nio.charset.StandardCharsets.UTF_8));
+    private static final Duration SERVICE_TOKEN_TTL = Duration.ofSeconds(60);
 
     private static final Logger LOG = LoggerFactory.getLogger(JwtService.class);
     private static final int MIN_KEY_BITS = 2048;
@@ -108,6 +114,33 @@ public class JwtService implements AccessTokenVerifier {
             return jwt.serialize();
         } catch (JOSEException e) {
             throw new IllegalStateException("Nie udało się podpisać tokenu", e);
+        }
+    }
+
+    /**
+     * Token usługowy iam dla innej usługi platformy (saga, zdalne fasady): rola SERVICE, jedna placówka ({@code tid}),
+     * jedna usługa docelowa ({@code aud}), bardzo krótki czas życia. Tożsamość nie jest kontem użytkownika, a iam
+     * sam nie przyjmuje takich tokenów (weryfikator bez {@code audience}).
+     */
+    public String issueService(UUID tenantId, String audience) {
+        Instant now = clock.instant();
+        JWTClaimsSet claims = new JWTClaimsSet.Builder()
+                .issuer(properties.issuer())
+                .subject(SERVICE_SUBJECT.toString())
+                .audience(audience)
+                .issueTime(Date.from(now))
+                .expirationTime(Date.from(now.plus(SERVICE_TOKEN_TTL)))
+                .claim("role", Role.SERVICE.name())
+                .claim("tid", tenantId.toString())
+                .build();
+        JWSHeader header = new JWSHeader.Builder(JWSAlgorithm.RS256).type(JOSEObjectType.JWT)
+                .keyID(activeKid).build();
+        try {
+            SignedJWT jwt = new SignedJWT(header, claims);
+            jwt.sign(new RSASSASigner(keys.get(activeKid).privateKey()));
+            return jwt.serialize();
+        } catch (JOSEException e) {
+            throw new IllegalStateException("Nie udało się podpisać tokenu usługowego", e);
         }
     }
 

@@ -34,10 +34,7 @@ abstract class AbstractAppointmentTest extends AbstractApiTest {
         patient = newPatientAccount(tenant, "Ewa", "Pacjentka");
         day = LocalDate.now().plusDays(3);
 
-        String category = call("POST", "/api/v1/admin/service-categories", admin, "{\"name\":\"Kons\"}").json().get("id").asString();
-        serviceId = call("POST", "/api/v1/admin/services", admin, "{\"categoryId\":\"" + category
-                + "\",\"name\":\"Konsultacja\",\"price\":100,\"durationMinutes\":30,\"performerType\":\"DOCTOR\"}")
-                .json().get("id").asString();
+        serviceId = fakeCatalog.add(tenant, "Konsultacja", new java.math.BigDecimal("100"), 30, "DOCTOR").toString();
         Resp doctor = call("POST", "/api/v1/admin/employees", admin, "{\"email\":\"lek." + unique()
                 + "@example.test\",\"type\":\"DOCTOR\",\"firstName\":\"Adam\",\"lastName\":\"Lekarz\"}");
         doctorId = doctor.json().get("id").asString();

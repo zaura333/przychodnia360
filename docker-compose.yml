@@ -23,8 +23,9 @@ services:
       P360_OWNER_PASSWORD: ${P360_OWNER_PASSWORD:?ustaw w .env (skopiuj .env.example)}
       # Baza per usługa (zadanie 1.10): lista nazw usług, np. "notification,integration-hub"; hasła właścicieli
       # P360_<NAZWA>_OWNER_PASSWORD trafiają do kontenera z .env (env_file poniżej). Puste = tylko baza główna.
-      P360_SERVICE_DATABASES: ${P360_SERVICE_DATABASES:-catalog}
+      P360_SERVICE_DATABASES: ${P360_SERVICE_DATABASES:-catalog,patient}
       P360_CATALOG_OWNER_PASSWORD: ${P360_CATALOG_OWNER_PASSWORD:-p360_catalog_owner_local_dev}
+      P360_PATIENT_OWNER_PASSWORD: ${P360_PATIENT_OWNER_PASSWORD:-p360_patient_owner_local_dev}
     env_file:
       - .env
     ports:
@@ -67,6 +68,11 @@ services:
       P360_APP_PASSWORD: ${P360_APP_PASSWORD:?ustaw w .env (skopiuj .env.example)}
       SPRING_MAIL_HOST: mailpit
       SPRING_MAIL_PORT: "1025"
+      # Katalog i pacjenci to osobne usługi (S1 ADR-M14, S2): clinic-core woła je przez REST z tokenem usługowym iam
+      # (moduły zostały usunięte z clinic-core, migracja V12), a seed zakłada katalog przez API catalog i pacjentów
+      # przez sagę rejestracji. Adresy w sieci compose (z IDE: domyślnie localhost:8082 i localhost:8083).
+      P360_CATALOG_URL: http://catalog:8080
+      P360_PATIENT_URL: http://patient:8080
     ports:
       - "127.0.0.1:${BACKEND_PORT:-8080}:8080"
     depends_on:
@@ -74,14 +80,18 @@ services:
         condition: service_healthy
       mailpit:
         condition: service_healthy
+      # seed przy starcie zakłada katalog w catalog-service, więc ta usługa musi już działać
+      catalog:
+        condition: service_healthy
+      patient:
+        condition: service_healthy
     # Punkt wyjścia zbliżony do zadania Fargate (0,5 vCPU, 2 GB); finalnie z ADR-006
     cpus: 0.5
     mem_limit: 2g
     # Bez restart: błędy backendu mają być widoczne
 
   # catalog-service (S1, ADR-M14): własna baza p360_catalog i własne role; tokeny weryfikuje z JWKS clinic-core.
-  # Do przełączenia routingu (krok 6 podziału) krawędź kieruje /services/** nadal do backendu; ta usługa już działa
-  # i ma zdrowie, dzięki czemu e2e sprawdza jej start na świeżej bazie.
+  # Krawędź kieruje do niej /services/**, /service-categories i /admin/service*/** (docker/edge/upstreams.csv).
   catalog:
     profiles: ["core", "full"]
     build:
@@ -99,6 +109,30 @@ services:
       P360_JWKS_URL: http://backend:8080/api/v1/auth/jwks
     ports:
       - "127.0.0.1:${CATALOG_PORT:-8082}:8080"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    cpus: 0.5
+    mem_limit: 1g
+
+  # patient-service (S2): własna baza p360_patient i własne role; tokeny weryfikuje z JWKS clinic-core. Krawędź kieruje do
+  # niej /me/patient i /reception/patients/**; rejestrację pacjenta (saga) prowadzi clinic-core z tokenem usługowym.
+  patient:
+    profiles: ["core", "full"]
+    build:
+      context: ./backend
+      target: runtime
+      args:
+        MODULE: services/patient
+        JAR: patient
+    environment:
+      SPRING_PROFILES_ACTIVE: local
+      DB_URL: jdbc:postgresql://postgres:5432/p360_patient
+      P360_PATIENT_OWNER_PASSWORD: ${P360_PATIENT_OWNER_PASSWORD:-p360_patient_owner_local_dev}
+      P360_PATIENT_APP_PASSWORD: ${P360_PATIENT_APP_PASSWORD:-p360_patient_app_local_dev}
+      P360_JWKS_URL: http://backend:8080/api/v1/auth/jwks
+    ports:
+      - "127.0.0.1:${PATIENT_PORT:-8083}:8080"
     depends_on:
       postgres:
         condition: service_healthy
@@ -138,10 +172,12 @@ services:
     volumes:
       - ./docker/localstack/init/ready.d:/etc/localstack/init/ready.d:ro
     healthcheck:
-      test: ["CMD-SHELL", "awslocal sns list-topics | grep -q p360-clinic-core-events"]
+      # ostatnia czynność skryptu init (docker/localstack/init): subskrypcja kolejki scheduling do tematu patient;
+      # sam temat powstaje na początku, więc nie dowodzi gotowości kolejek
+      test: ["CMD-SHELL", "awslocal sns list-subscriptions-by-topic --topic-arn arn:aws:sns:eu-central-1:000000000000:p360-patient-events | grep -q p360-scheduling-inbox"]
       interval: 5s
       timeout: 5s
-      retries: 20
+      retries: 30
       start_period: 15s
 
 volumes:

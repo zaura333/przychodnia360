@@ -25,6 +25,30 @@ public class OpenApiConfig {
                 .servers(List.of(new Server().url("/")));
     }
 
+    /**
+     * Rola SERVICE (tożsamość usługi, token usługowy) jest wewnętrzna: nie występuje w kontrakcie publicznym, więc
+     * dodanie jej do enuma {@code Role} nie zmienia {@code api/openapi.json} ani klienta frontendu.
+     */
+    @Bean
+    OpenApiCustomizer hideInternalRole() {
+        return openApi -> openApi.getComponents().getSchemas().values().forEach(schema -> {
+            removeInternalRole(schema);
+            if (schema.getProperties() != null) {
+                schema.getProperties().values().forEach(property -> removeInternalRole((io.swagger.v3.oas.models.media.Schema<?>) property));
+            }
+        });
+    }
+
+    @SuppressWarnings({"unchecked", "rawtypes"})
+    private static void removeInternalRole(io.swagger.v3.oas.models.media.Schema<?> schema) {
+        if (schema != null && schema.getEnum() != null && schema.getEnum().contains("SERVICE")
+                && schema.getEnum().contains("PLATFORM_ADMIN")) {
+            List values = new java.util.ArrayList<>(schema.getEnum());
+            values.remove("SERVICE");
+            schema.setEnum(values);
+        }
+    }
+
     /** Pola odpowiedzi, które mogą być puste (reszta pól odpowiedzi jest zawsze obecna). */
     private static final Map<String, Set<String>> NULLABLE = Map.of(
             "MeResponse", Set.of("tenantId", "tenantName", "employeeId", "patientId", "slotStepMinutes"),

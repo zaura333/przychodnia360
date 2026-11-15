@@ -8,7 +8,7 @@ Wymagania: Node z `.nvmrc` (22), npm. Backend (opcjonalnie) z `docker compose up
 
 ```bash
 npm ci               # instaluje zależności i generuje klienta API (postinstall)
-npm run dev          # http://localhost:5173, proxy /api -> http://localhost:8080 (VITE_DEV_BACKEND)
+npm run dev          # http://localhost:5173, proxy /api -> krawędź http://localhost:8090 (VITE_DEV_BACKEND); wymaga docker compose --profile core
 ```
 
 | Skrypt                   | Opis                                                                                                                                                                                                                             |

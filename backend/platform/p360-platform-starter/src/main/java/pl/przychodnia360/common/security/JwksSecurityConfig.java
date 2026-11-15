@@ -20,8 +20,10 @@ class JwksSecurityConfig {
     AccessTokenVerifier jwksAccessTokenVerifier(@Value("${security.jwt.jwks-url}") String jwksUrl,
             @Value("${security.jwt.issuer:przychodnia360}") String issuer,
             @Value("${security.jwt.jwks-timeout-millis:2000}") int timeoutMillis, Clock clock,
-            AccessRevocations revocations) {
-        return new RsaAccessTokenVerifier(new JwksKeyResolver(jwksUrl, timeoutMillis), issuer, clock, revocations);
+            AccessRevocations revocations, @Value("${spring.application.name}") String serviceName) {
+        // nazwa usługi to odbiorca tokenów usługowych (aud)
+        return new RsaAccessTokenVerifier(new JwksKeyResolver(jwksUrl, timeoutMillis), issuer, clock, revocations,
+                serviceName);
     }
 
     @Bean

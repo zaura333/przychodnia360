@@ -39,6 +39,11 @@ public abstract class ModuleBoundariesFkContract extends PostgresIntegrationTest
                 .allSatisfy(t -> assertThat(moduleOf()).containsKey(t));
     }
 
+    /** Czy baza usługi ma jakiekolwiek klucze obce (usługa z jedną tabelą danych: nie); chroni przed pustym testem. */
+    protected boolean expectsInternalForeignKeys() {
+        return true;
+    }
+
     @Test
     void noForeignKeyCrossesModuleBoundary() {
         List<Map<String, Object>> fks = JdbcClient.create(dataSource).sql("""
@@ -47,7 +52,9 @@ public abstract class ModuleBoundariesFkContract extends PostgresIntegrationTest
                   FROM pg_constraint c JOIN pg_namespace n ON n.oid = c.connamespace
                  WHERE c.contype = 'f' AND n.nspname = 'public'
                 """).query().listOfRows();
-        assertThat(fks).as("test nie może być pusty: w modułach zostają FK wewnętrzne").isNotEmpty();
+        if (expectsInternalForeignKeys()) {
+            assertThat(fks).as("test nie może być pusty: w modułach zostają FK wewnętrzne").isNotEmpty();
+        }
         for (Map<String, Object> fk : fks) {
             String from = (String) fk.get("from_table");
             String to = (String) fk.get("to_table");

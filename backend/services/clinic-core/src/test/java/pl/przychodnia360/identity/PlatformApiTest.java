@@ -58,8 +58,7 @@ class PlatformApiTest extends AbstractApiTest {
         assertThat(login.status()).isEqualTo(200);
         String adminToken = login.json().get("accessToken").asString();
         assertThat(fetch("/api/v1/tenant", adminToken).json().get("slug").asString()).isEqualTo(slug);
-        assertThat(call("POST", "/api/v1/admin/service-categories", adminToken, "{\"name\":\"Pierwsza\"}").status())
-                .isEqualTo(201);
+        assertThat(fetch("/api/v1/admin/employees", adminToken).status()).as("administrator nowej placówki ma dostęp").isEqualTo(200);
     }
 
     @Test
@@ -82,15 +81,15 @@ class PlatformApiTest extends AbstractApiTest {
         String platform = platformToken();
         UUID tenant = newTenant();
         String admin = tokenFor(tenant, Role.TENANT_ADMIN);
-        call("POST", "/api/v1/admin/service-categories", admin, "{\"name\":\"Tajna\"}");
+        inTenantResult(tenant, this::publishSampleEvent);
 
-        for (String path : new String[] {"/api/v1/services", "/api/v1/service-categories", "/api/v1/doctors",
-                "/api/v1/admin/employees", "/api/v1/tenant", "/api/v1/me/patient"}) {
+        for (String path : new String[] {"/api/v1/doctors", "/api/v1/admin/employees", "/api/v1/tenant"}) {
             assertThat(fetch(path, platform).status()).as(path).isEqualTo(403);
         }
         // nawet bezpośrednie zapytanie w zakresie platformy nie widzi danych placówek (RLS)
         try (var h = TenantContext.openPlatformScope()) {
-            Long count = tx.execute(s -> jdbc.sql("SELECT count(*) FROM service_categories").query(Long.class).single());
+            Long count = tx.execute(s -> jdbc.sql("SELECT count(*) FROM outbox WHERE tenant_id = ?").param(tenant)
+                    .query(Long.class).single());
             assertThat(count).isZero();
         }
     }

@@ -74,9 +74,31 @@ final class TestTokenIssuer {
 
     /** Token dostępu użytkownika o roli w placówce (jak z iam: sub, tid, role, iat, exp). */
     static String token(UUID tenantId, Role role) {
+        return token(tenantId, role, UUID.randomUUID());
+    }
+
+    /** Token usługowy iam (rola SERVICE) dla placówki i usługi docelowej, jak z JwtService.issueService. */
+    static String serviceToken(UUID tenantId, String audience) {
+        Instant now = Instant.now();
+        JWTClaimsSet claims = new JWTClaimsSet.Builder().issuer("przychodnia360")
+                .subject(UUID.nameUUIDFromBytes("service:iam".getBytes(StandardCharsets.UTF_8)).toString())
+                .audience(audience).issueTime(Date.from(now)).expirationTime(Date.from(now.plusSeconds(60)))
+                .claim("role", Role.SERVICE.name()).claim("tid", tenantId.toString()).build();
+        try {
+            SignedJWT jwt = new SignedJWT(new JWSHeader.Builder(JWSAlgorithm.RS256).type(JOSEObjectType.JWT)
+                    .keyID(KID).build(), claims);
+            jwt.sign(new RSASSASigner(INSTANCE.privateKey));
+            return jwt.serialize();
+        } catch (JOSEException e) {
+            throw new IllegalStateException(e);
+        }
+    }
+
+    /** Token konkretnego użytkownika (znany identyfikator, np. do testu odwołania dostępu). */
+    static String token(UUID tenantId, Role role, UUID userId) {
         Instant now = Instant.now();
         JWTClaimsSet.Builder claims = new JWTClaimsSet.Builder().issuer("przychodnia360")
-                .subject(UUID.randomUUID().toString()).issueTime(Date.from(now))
+                .subject(userId.toString()).issueTime(Date.from(now))
                 .expirationTime(Date.from(now.plusSeconds(600))).claim("role", role.name());
         if (tenantId != null) {
             claims.claim("tid", tenantId.toString());

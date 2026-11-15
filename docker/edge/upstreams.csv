@@ -1,6 +1,6 @@
 service,upstream
 iam,http://backend:8080
-patient,http://backend:8080
-catalog,http://backend:8080
+patient,http://patient:8080
+catalog,http://catalog:8080
 scheduling,http://backend:8080
 every,http://backend:8080
