@@ -2,13 +2,7 @@ package pl.przychodnia360.staff.api;
 
 import io.swagger.v3.oas.annotations.Operation;
 import jakarta.validation.Valid;
-import jakarta.validation.constraints.Email;
-import jakarta.validation.constraints.NotBlank;
-import jakarta.validation.constraints.NotNull;
-import jakarta.validation.constraints.Size;
-import java.time.DayOfWeek;
 import java.time.LocalDate;
-import java.time.LocalTime;
 import java.util.List;
 import java.util.UUID;
 import org.springframework.format.annotation.DateTimeFormat;
@@ -24,46 +18,24 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
-import pl.przychodnia360.staff.api.StaffDtos.EmployeeResponse;
-import pl.przychodnia360.staff.api.StaffDtos.ExceptionResponse;
-import pl.przychodnia360.staff.api.StaffDtos.ScheduleResponse;
-import pl.przychodnia360.staff.api.StaffDtos.WeeklyEntryResponse;
+import pl.przychodnia360.staff.api.dto.CreateEmployeeRequest;
+import pl.przychodnia360.staff.api.dto.EmployeeResponse;
+import pl.przychodnia360.staff.api.dto.ExceptionRequest;
+import pl.przychodnia360.staff.api.dto.ExceptionResponse;
+import pl.przychodnia360.staff.api.dto.ScheduleResponse;
+import pl.przychodnia360.staff.api.dto.UpdateEmployeeRequest;
+import pl.przychodnia360.staff.api.dto.WeeklyEntryResponse;
+import pl.przychodnia360.staff.api.dto.WeeklyScheduleRequest;
 import pl.przychodnia360.staff.application.EmployeeService;
 import pl.przychodnia360.staff.application.EmployeeService.CreateEmployee;
 import pl.przychodnia360.staff.application.ScheduleService;
 import pl.przychodnia360.staff.application.ScheduleService.WeeklyEntry;
-import pl.przychodnia360.staff.domain.ScheduleException;
 
 /** Zarządzanie pracownikami i ich grafikami przez administratora placówki (FR-31, FR-34). */
 @RestController
 @org.springframework.web.bind.annotation.RequestMapping(value = "/api/v1/admin/employees",
         produces = MediaType.APPLICATION_JSON_VALUE)
 public class EmployeeAdminController {
-
-    public record CreateEmployeeRequest(
-            @NotBlank @Email @Size(max = 254) String email,
-            @NotNull EmployeeType type,
-            @NotBlank @Size(max = 100) String firstName,
-            @NotBlank @Size(max = 100) String lastName,
-            @Size(max = 200) String specialization) {
-    }
-
-    public record UpdateEmployeeRequest(
-            @NotBlank @Size(max = 100) String firstName,
-            @NotBlank @Size(max = 100) String lastName,
-            @Size(max = 200) String specialization) {
-    }
-
-    public record WeeklyEntryRequest(@NotNull DayOfWeek dayOfWeek, @NotNull LocalTime startTime,
-            @NotNull LocalTime endTime, @NotNull LocalDate validFrom, LocalDate validTo) {
-    }
-
-    public record WeeklyScheduleRequest(@NotNull @Size(max = 50) List<@Valid WeeklyEntryRequest> entries) {
-    }
-
-    public record ExceptionRequest(@NotNull LocalDate date, @NotNull ScheduleException.Type type, LocalTime startTime,
-            LocalTime endTime) {
-    }
 
     private final EmployeeService employees;
     private final ScheduleService schedules;

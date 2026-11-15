@@ -2,7 +2,6 @@ package pl.przychodnia360.appointments.api;
 
 import io.swagger.v3.oas.annotations.Operation;
 import jakarta.validation.Valid;
-import jakarta.validation.constraints.NotNull;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.util.List;
@@ -21,6 +20,9 @@ import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 import pl.przychodnia360.appointments.api.AppointmentViews.AppointmentView;
 import pl.przychodnia360.appointments.api.AppointmentViews.StaffAppointmentView;
+import pl.przychodnia360.appointments.api.dto.BookRequest;
+import pl.przychodnia360.appointments.api.dto.RescheduleRequest;
+import pl.przychodnia360.appointments.api.dto.SlotResponse;
 import pl.przychodnia360.appointments.application.AppointmentQueryService;
 import pl.przychodnia360.appointments.application.BookingService;
 import pl.przychodnia360.appointments.application.BookingService.BookCommand;
@@ -32,16 +34,6 @@ import pl.przychodnia360.staff.api.TimeSlot;
 /** Rezerwacje: umawianie (pacjent, rejestrator), listy wizyt, przesunięcie i odwołanie przez rejestratora, sloty. */
 @RestController
 public class AppointmentController {
-
-    public record BookRequest(@NotNull UUID serviceId, @NotNull UUID employeeId, @NotNull Instant startAt,
-            UUID patientId) {
-    }
-
-    public record RescheduleRequest(@NotNull Instant startAt) {
-    }
-
-    public record SlotResponse(Instant start, Instant end) {
-    }
 
     private final BookingService booking;
     private final AppointmentQueryService queries;
