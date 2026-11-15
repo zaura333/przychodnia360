@@ -112,7 +112,7 @@ http:
     patient:
       loadBalancer:
         servers:
-          - url: "http://backend:8080"
+          - url: "http://patient:8080"
     scheduling:
       loadBalancer:
         servers:

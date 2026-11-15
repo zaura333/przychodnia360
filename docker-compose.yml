@@ -72,6 +72,10 @@ services:
       # przez jego API. Odwrócenie: P360_CATALOG_MODE=local i upstream `catalog` w docker/edge/upstreams.csv na backend.
       P360_CATALOG_MODE: remote
       P360_CATALOG_URL: http://catalog:8080
+      # Pacjenci wydzieleni (S2): odczyt przez REST, rejestracja jako saga z tokenem usługowym iam.
+      # Odwrócenie: P360_PATIENT_MODE=local i upstream `patient` w docker/edge/upstreams.csv na backend.
+      P360_PATIENT_MODE: remote
+      P360_PATIENT_URL: http://patient:8080
     ports:
       - "127.0.0.1:${BACKEND_PORT:-8080}:8080"
     depends_on:
@@ -81,6 +85,8 @@ services:
         condition: service_healthy
       # seed przy starcie zakłada katalog w catalog-service, więc ta usługa musi już działać
       catalog:
+        condition: service_healthy
+      patient:
         condition: service_healthy
     # Punkt wyjścia zbliżony do zadania Fargate (0,5 vCPU, 2 GB); finalnie z ADR-006
     cpus: 0.5
@@ -112,8 +118,8 @@ services:
     cpus: 0.5
     mem_limit: 1g
 
-  # patient-service (S2): własna baza p360_patient i własne role; tokeny weryfikuje z JWKS clinic-core. Routing krawędzi
-  # nadal kieruje /me/patient i /reception/patients/** do backendu (przełączenie po zdalnej fasadzie i sadze rejestracji).
+  # patient-service (S2): własna baza p360_patient i własne role; tokeny weryfikuje z JWKS clinic-core. Krawędź kieruje do
+  # niej /me/patient i /reception/patients/**; rejestrację pacjenta (saga) prowadzi clinic-core z tokenem usługowym.
   patient:
     profiles: ["core", "full"]
     build:
