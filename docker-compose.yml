@@ -169,10 +169,12 @@ services:
     volumes:
       - ./docker/localstack/init/ready.d:/etc/localstack/init/ready.d:ro
     healthcheck:
-      test: ["CMD-SHELL", "awslocal sns list-topics | grep -q p360-clinic-core-events"]
+      # ostatnia czynność skryptu init (docker/localstack/init): subskrypcja kolejki scheduling do tematu patient;
+      # sam temat powstaje na początku, więc nie dowodzi gotowości kolejek
+      test: ["CMD-SHELL", "awslocal sns list-subscriptions-by-topic --topic-arn arn:aws:sns:eu-central-1:000000000000:p360-patient-events | grep -q p360-scheduling-inbox"]
       interval: 5s
       timeout: 5s
-      retries: 20
+      retries: 30
       start_period: 15s
 
 volumes:
