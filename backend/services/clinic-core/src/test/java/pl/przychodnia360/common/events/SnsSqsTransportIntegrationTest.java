@@ -42,7 +42,7 @@ class SnsSqsTransportIntegrationTest extends AbstractApiTest {
     @Autowired EventTracing eventTracing;
     @Autowired io.micrometer.tracing.Tracer tracer;
 
-    /** Handler zapamiętujący odebrane zdarzenia UserDeactivated. */
+    /** Handler zapamiętujący odebrane zdarzenia AppointmentCancelled. */
     private static class Recorder implements EventHandler {
         final List<EventEnvelope> received = new CopyOnWriteArrayList<>();
         final List<String> traceIds = new CopyOnWriteArrayList<>();
@@ -50,7 +50,7 @@ class SnsSqsTransportIntegrationTest extends AbstractApiTest {
 
         @Override
         public String eventType() {
-            return "UserDeactivated";
+            return "AppointmentCancelled";
         }
 
         @Override
@@ -137,7 +137,7 @@ class SnsSqsTransportIntegrationTest extends AbstractApiTest {
         }, 20);
 
         assertThat(recorder.received).filteredOn(e -> e.tenantId().equals(tenant)).singleElement().satisfies(e -> {
-            assertThat(e.type()).isEqualTo("UserDeactivated");
+            assertThat(e.type()).isEqualTo("AppointmentCancelled");
             assertThat(e.aggregateId()).isEqualTo(patientId);
             assertThat(e.payload().toString()).doesNotContain("Anna", "Nowak");
         });
@@ -183,7 +183,7 @@ class SnsSqsTransportIntegrationTest extends AbstractApiTest {
         Infra infra = infra();
         UUID tenant = newTenant();
         var transport = new SnsEventTransport(sns, infra.topicArn(), mapper);
-        var envelope = new EventEnvelope(UUID.randomUUID(), "UserDeactivated", 1, tenant, UUID.randomUUID(),
+        var envelope = new EventEnvelope(UUID.randomUUID(), "AppointmentCancelled", 1, tenant, UUID.randomUUID(),
                 Instant.now(), null, mapper.readTree("{}"));
         transport.publish(envelope);
         transport.publish(envelope);
@@ -203,7 +203,7 @@ class SnsSqsTransportIntegrationTest extends AbstractApiTest {
     @Test
     void poisonMessageEndsInTheDeadLetterQueue() throws InterruptedException {
         Infra infra = infra();
-        sns.publish(b -> b.topicArn(infra.topicArn()).message("{\"type\":\"UserDeactivated\"}"));
+        sns.publish(b -> b.topicArn(infra.topicArn()).message("{\"type\":\"AppointmentCancelled\"}"));
 
         Recorder recorder = new Recorder();
         SqsEventConsumer consumer = consumer(infra, recorder);

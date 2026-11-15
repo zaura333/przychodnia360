@@ -17,7 +17,8 @@ import pl.przychodnia360.shared.TenantId;
  * Pierwsze wywołanie zdalne jest zimne (start JIT przy 0,5 vCPU, usługa pobiera JWKS z iam, który w tym czasie sam się
  * rozkręca), więc mieści się w limicie odczytu dopiero po rozgrzaniu; bez czekania seed pada w połowie, zostawia
  * założoną placówkę bez katalogu i pacjentów, a kolejny start pomija ją jako już istniejącą.
- * Sonda używa losowej placówki (nic nie zakłada, nie ma wyniku) i ponawia próby ze stałą przerwą.
+ * Sonda działa w placówce seedu (token usługowy iam wymaga istniejącej placówki), pyta o losowe identyfikatory (nic
+ * nie zakłada, nie ma wyniku) i ponawia próby ze stałą przerwą.
  */
 @Component
 class SeedDependencies {
@@ -38,9 +39,9 @@ class SeedDependencies {
         this.retryDelay = retryDelay;
     }
 
-    void await() {
+    void await(UUID tenantId) {
         for (int attempt = 1;; attempt++) {
-            try (TenantContext.Handle ignored = TenantContext.open(new TenantId(UUID.randomUUID()))) {
+            try (TenantContext.Handle ignored = TenantContext.open(new TenantId(tenantId))) {
                 catalog.service(UUID.randomUUID());
                 patients.find(UUID.randomUUID());
                 if (attempt > 1) {

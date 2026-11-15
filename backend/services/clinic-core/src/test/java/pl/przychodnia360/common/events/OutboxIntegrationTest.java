@@ -13,7 +13,7 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import pl.przychodnia360.AbstractApiTest;
 import pl.przychodnia360.RecordingEventTransport;
-import pl.przychodnia360.identity.api.UserDeactivated;
+import pl.przychodnia360.appointments.api.AppointmentCancelled;
 
 /** Fala 1.3: outbox zapisuje zdarzenie w transakcji, przekaźnik publikuje po kolei, inbox odrzuca duplikaty. */
 class OutboxIntegrationTest extends AbstractApiTest {
@@ -57,7 +57,7 @@ class OutboxIntegrationTest extends AbstractApiTest {
         drain();
 
         assertThat(sentFor(tenant)).singleElement().satisfies(e -> {
-            assertThat(e.type()).isEqualTo("UserDeactivated");
+            assertThat(e.type()).isEqualTo("AppointmentCancelled");
             assertThat(e.schemaVersion()).isEqualTo(1);
             assertThat(e.aggregateId()).isEqualTo(patientId);
             assertThat(e.payload().toString()).doesNotContain("Anna", "Nowak");
@@ -131,7 +131,7 @@ class OutboxIntegrationTest extends AbstractApiTest {
     void publishingWithoutTransactionIsRejected() {
         UUID tenant = newTenant();
         // zdarzenie poza transakcją nie może zostać zapisane (gwarancja atomowości)
-        var event = new UserDeactivated(tenant, UUID.randomUUID(), Instant.now());
+        var event = new AppointmentCancelled(tenant, UUID.randomUUID(), UUID.randomUUID(), UUID.randomUUID(), UUID.randomUUID(), Instant.now());
         assertThatThrownBy(() -> eventPublisher.publish(event)).isInstanceOf(IllegalStateException.class);
     }
 

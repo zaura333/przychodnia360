@@ -76,7 +76,7 @@ class SeedDependenciesTest {
         FlakyCatalog catalog = new FlakyCatalog(3);
         QuietPatients patients = new QuietPatients();
 
-        new SeedDependencies(catalog, patients, 10, Duration.ofMillis(5)).await();
+        new SeedDependencies(catalog, patients, 10, Duration.ofMillis(5)).await(java.util.UUID.randomUUID());
 
         assertThat(catalog.calls.get()).as("3 porażki i 1 sukces").isEqualTo(4);
         assertThat(patients.calls.get()).as("pacjenci sprawdzani dopiero po katalogu").isEqualTo(1);
@@ -86,7 +86,7 @@ class SeedDependenciesTest {
     void givesUpWithAClearMessageWhenTheServicesNeverRespond() {
         FlakyCatalog catalog = new FlakyCatalog(Integer.MAX_VALUE);
 
-        assertThatThrownBy(() -> new SeedDependencies(catalog, new QuietPatients(), 3, Duration.ofMillis(1)).await())
+        assertThatThrownBy(() -> new SeedDependencies(catalog, new QuietPatients(), 3, Duration.ofMillis(1)).await(java.util.UUID.randomUUID()))
                 .isInstanceOf(IllegalStateException.class).hasMessageContaining("przed utworzeniem danych")
                 .hasMessageContaining("3 próbach").hasCauseInstanceOf(ServiceUnavailableException.class);
         assertThat(catalog.calls.get()).isEqualTo(3);

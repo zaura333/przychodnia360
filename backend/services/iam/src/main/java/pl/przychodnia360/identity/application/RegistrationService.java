@@ -78,8 +78,7 @@ public class RegistrationService {
      */
     private void create(UUID tenantId, Registration r, String hash) {
         String email = r.email().trim();
-        UUID patientId = UUID.nameUUIDFromBytes(
-                (tenantId + ":" + email.toLowerCase(java.util.Locale.ROOT)).getBytes(java.nio.charset.StandardCharsets.UTF_8));
+        UUID patientId = pl.przychodnia360.shared.SubjectIds.patient(tenantId, email);
         User user = User.create(Ids.newId(), tenantId, email, Role.PATIENT, hash);
         user.linkPatient(patientId);
         users.insert(user);

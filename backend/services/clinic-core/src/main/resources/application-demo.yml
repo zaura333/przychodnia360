@@ -20,14 +20,5 @@ springdoc:
   swagger-ui:
     enabled: false
 
-security:
-  jwt:
-    active-kid: ${JWT_ACTIVE_KID}
-    # JWT_ACTIVE_KEY: klucz prywatny RSA (PKCS#8, Base64) z Parameter Store; klucze wycofywane po rotacji
-    # dochodzą jako kolejne wpisy z samym public-key (X.509, Base64)
-    keys:
-      "[${JWT_ACTIVE_KID}]":
-        private-key: ${JWT_ACTIVE_KEY}
-
 seed:
   password: ${SEED_PASSWORD:}   # pusty = seed pominięty; hasło z Parameter Store

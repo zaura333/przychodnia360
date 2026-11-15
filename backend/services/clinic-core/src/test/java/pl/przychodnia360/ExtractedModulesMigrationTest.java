@@ -65,7 +65,7 @@ class ExtractedModulesMigrationTest extends AbstractIntegrationTest {
         asOwner(tenant, "INSERT INTO patients (id, tenant_id, first_name, last_name, birth_date) VALUES ('" + patient
                 + "', '" + tenant + "', 'Anna', 'Nowak', '1990-01-01')");
 
-        assertThatThrownBy(() -> flyway(null).migrate()).isInstanceOf(FlywayException.class)
+        assertThatThrownBy(() -> flyway("12").migrate()).isInstanceOf(FlywayException.class)
                 .hasMessageContaining("patients").hasMessageContaining("zawiera 1 wierszy")
                 .hasMessageContaining("copy-extracted-data.sh");
         assertThat(tableExists("patients")).as("tabela z danymi zostaje").isTrue();
@@ -76,12 +76,37 @@ class ExtractedModulesMigrationTest extends AbstractIntegrationTest {
         }
 
         asOwner(tenant, "DELETE FROM patients");
-        flyway(null).migrate();
+        flyway("12").migrate();
 
         assertThat(tableExists("patients")).isFalse();
         assertThat(tableExists("services")).isFalse();
         assertThat(tableExists("service_categories")).isFalse();
         assertThat(tableExists("outbox")).as("tabele platformowe zostają").isTrue();
         assertThat(tableExists("appointments")).as("tabele scheduling zostają").isTrue();
+    }
+
+    /** V13 (S3): konta i placówki należą do iam; tabela z danymi blokuje migrację, puste tabele i funkcje znikają. */
+    @Test
+    void identityTablesWithDataBlockV13AndEmptyOnesAreDropped() throws Exception {
+        try (Connection c = superuser("postgres"); Statement st = c.createStatement()) {
+            st.execute("DROP DATABASE IF EXISTS " + DB);
+            st.execute("CREATE DATABASE " + DB + " OWNER " + OWNER_ROLE);
+        }
+        flyway("12").migrate();
+        String tenant = UUID.randomUUID().toString();
+        asOwner(tenant, "INSERT INTO tenants (id, slug, name) VALUES ('" + tenant + "', 'klinika-x', 'X')");
+
+        assertThatThrownBy(() -> flyway(null).migrate()).isInstanceOf(FlywayException.class)
+                .hasMessageContaining("tenants").hasMessageContaining("iam").hasMessageContaining("copy-extracted-data.sh");
+        assertThat(tableExists("tenants")).as("tabela z danymi zostaje").isTrue();
+
+        asOwner(tenant, "DELETE FROM tenants");
+        flyway(null).migrate();
+
+        for (String table : new String[] {"tenants", "users", "refresh_tokens", "password_reset_tokens"}) {
+            assertThat(tableExists(table)).as(table).isFalse();
+        }
+        assertThat(tableExists("employees")).as("tabele scheduling zostają").isTrue();
+        assertThat(tableExists("outbox")).as("tabele platformowe zostają").isTrue();
     }
 }

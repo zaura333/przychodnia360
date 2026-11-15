@@ -1,8 +1,6 @@
 package pl.przychodnia360.staff.application;
 
-import java.nio.charset.StandardCharsets;
 import java.util.List;
-import java.util.Locale;
 import java.util.UUID;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -10,6 +8,7 @@ import pl.przychodnia360.identity.api.IdentityFacade;
 import pl.przychodnia360.common.security.Role;
 import pl.przychodnia360.shared.ConflictException;
 import pl.przychodnia360.shared.NotFoundException;
+import pl.przychodnia360.shared.SubjectIds;
 import pl.przychodnia360.shared.TenantContext;
 import pl.przychodnia360.staff.api.EmployeeDeactivationGuard;
 import pl.przychodnia360.staff.api.EmployeeType;
@@ -41,7 +40,7 @@ public class EmployeeService {
     @Transactional
     public Employee create(CreateEmployee command) {
         String email = command.email().trim();
-        UUID id = employeeId(TenantContext.requireTenant().value(), email);
+        UUID id = SubjectIds.employee(TenantContext.requireTenant().value(), email);
         if (repository.findEmployee(id).isPresent()) {
             throw new ConflictException("email-taken", "Konto z tym adresem e-mail już istnieje.");
         }
@@ -50,11 +49,6 @@ public class EmployeeService {
                 command.lastName().trim(), blankToNull(command.specialization()), true, 0);
         repository.insertEmployee(employee);
         return employee;
-    }
-
-    static UUID employeeId(UUID tenantId, String email) {
-        return UUID.nameUUIDFromBytes(("employee:" + tenantId + ":" + email.toLowerCase(Locale.ROOT))
-                .getBytes(StandardCharsets.UTF_8));
     }
 
     @Transactional

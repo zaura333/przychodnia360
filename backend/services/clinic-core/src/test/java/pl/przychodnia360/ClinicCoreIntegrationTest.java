@@ -5,14 +5,16 @@ import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
 import org.springframework.context.annotation.Import;
+import org.springframework.test.context.ContextConfiguration;
 
 /**
- * Konfiguracja testowa specyficzna dla clinic-core (nagrywanie wiadomości e-mail, atrapy fasad catalog i patient) dołączana do bazy testów i do
+ * Konfiguracja testowa specyficzna dla clinic-core (atrapy fasad iam, catalog i patient, tokeny z testowego wystawcy JWKS) dołączana do bazy testów i do
  * podklas kontraktów z p360-test-support. Identyczny zestaw importów we wszystkich testach daje jeden współdzielony
  * kontekst Springa (bez drugiego startu aplikacji).
  */
 @Retention(RetentionPolicy.RUNTIME)
 @Target(ElementType.TYPE)
-@Import({RecordingMailSender.Config.class, RecordingEventTransport.Config.class, FakeServicesConfig.class})
+@Import({RecordingEventTransport.Config.class, FakeServicesConfig.class})
+@ContextConfiguration(initializers = TestTokenIssuer.JwksInitializer.class)
 public @interface ClinicCoreIntegrationTest {
 }

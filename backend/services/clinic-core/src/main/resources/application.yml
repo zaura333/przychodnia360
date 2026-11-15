@@ -1,7 +1,7 @@
 # Bez sekretów: hasła wyłącznie ze zmiennych środowiskowych (lokalnie wartości dev w application-local.yml).
 spring:
   application:
-    name: przychodnia360
+    name: scheduling
   datasource:
     # Aplikacja łączy się wyłącznie jako p360_app (bez BYPASSRLS, bez prawa tworzenia obiektów)
     url: ${DB_URL:jdbc:postgresql://localhost:5432/p360}
@@ -53,18 +53,30 @@ management:
         enabled: false
 
 p360:
-  # Wydzielone usługi (S1, S2): adresy domyślne dla uruchomienia z IDE (porty publikowane przez compose); w compose
-  # nadpisywane zmiennymi P360_CATALOG_URL i P360_PATIENT_URL (nazwy usług w sieci compose)
+  # Wydzielone usługi (S1, S2, S3): adresy domyślne dla uruchomienia z IDE (porty publikowane przez compose); w compose
+  # nadpisywane zmiennymi P360_IAM_URL, P360_CATALOG_URL i P360_PATIENT_URL (nazwy usług w sieci compose)
+  iam:
+    url: ${P360_IAM_URL:http://localhost:8084}
   catalog:
     url: ${P360_CATALOG_URL:http://localhost:8082}
   patient:
     url: ${P360_PATIENT_URL:http://localhost:8083}
+  # Tożsamość tej usługi przy pobieraniu tokenów usługowych od iam (ADR-M17); nazwa = spring.application.name
+  service-client:
+    secret: ${P360_SCHEDULING_CLIENT_SECRET:}
   events:
     relay:
       # Przekaźnik outboxu (fala 1.3); bez brokera zdarzenia są tylko logowane (LoggingEventTransport)
       enabled: true
       interval: PT1S
       batch-size: 50
+
+security:
+  jwt:
+    issuer: przychodnia360
+    # JWKS wystawcy tokenów (iam); usługa nie ma kluczy podpisu
+    jwks-url: ${P360_JWKS_URL:}
+    jwks-timeout-millis: 2000
 
 springdoc:
   api-docs:

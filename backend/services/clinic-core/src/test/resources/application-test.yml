@@ -15,22 +15,8 @@ logging:
       customizer: pl.przychodnia360.common.logging.PeselMaskingCustomizer
 
 p360:
-  # usługi uprawnione do tokenów usługowych iam (ADR-M17); sekret syntetyczny, tylko w testach
-  service-clients:
-    scheduling:
-      secret: test-scheduling-client-secret
-      audiences: [iam, catalog, patient]
   events:
     relay:
       # w testach przekaźnik uruchamiają testy (OutboxRelay.runOnce), nie harmonogram
       enabled: false
 
-security:
-  jwt:
-    generate-ephemeral-key: true
-  password:
-    argon2:
-      # obniżone parametry tylko w testach (ADR-B06), żeby nie wydłużać builda
-      memory-kib: 1024
-      iterations: 1
-      parallelism: 1

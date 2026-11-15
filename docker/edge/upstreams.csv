@@ -1,5 +1,5 @@
 service,upstream
-iam,http://backend:8080
+iam,http://iam:8080
 patient,http://patient:8080
 catalog,http://catalog:8080
 scheduling,http://backend:8080

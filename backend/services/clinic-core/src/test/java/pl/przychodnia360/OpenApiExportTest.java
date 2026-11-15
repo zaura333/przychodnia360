@@ -24,8 +24,8 @@ class OpenApiExportTest extends AbstractIntegrationTest {
         }
         assertThat(json)
                 .contains("\"/api/v1/health\"")
-                .contains("\"/api/v1/me\"")
-                .contains("\"/api/v1/facilities\"");
+                .contains("\"/api/v1/appointments\"")
+                .doesNotContain("\"/api/v1/facilities\"");
 
         // eksport usługi (api/exports/clinic-core.json) i przeliczenie agregatu api/openapi.json z eksportów usług
         OpenApiAggregate.exportAndAggregate("clinic-core", json);

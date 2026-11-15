@@ -11,34 +11,35 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.transaction.support.TransactionTemplate;
 import pl.przychodnia360.common.security.Role;
-import pl.przychodnia360.identity.application.PasswordHasher;
-import pl.przychodnia360.identity.application.UserRepository;
-import pl.przychodnia360.identity.domain.User;
 import pl.przychodnia360.patients.api.PatientFacade;
-import pl.przychodnia360.shared.Ids;
 import pl.przychodnia360.shared.TenantContext;
 import pl.przychodnia360.shared.TenantId;
 import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.json.JsonMapper;
 
-/** Wspólne narzędzia testów HTTP: placówki, użytkownicy, logowanie przez API i wywołania z tokenem. */
+/**
+ * Wspólne narzędzia testów HTTP scheduling: placówki, użytkownicy i wywołania z tokenem. Konta i placówki należą do
+ * iam (S3), więc test nie loguje się przez API: tokeny podpisuje testowy wystawca, którego JWKS usługa weryfikuje tak
+ * jak na produkcji, a konta pracowników trzyma atrapa {@link FakeIdentity}.
+ */
 public abstract class AbstractApiTest extends AbstractIntegrationTest {
 
-    protected static final String PASSWORD = "correct horse battery";
     protected static final JsonMapper JSON = JsonMapper.builder().build();
 
-    @Autowired protected UserRepository users;
-    @Autowired protected PasswordHasher hasher;
     @Autowired protected TransactionTemplate tx;
     @Autowired protected JdbcClient jdbc;
     @Autowired protected PatientFacade patientFacade;
     @Autowired protected FakeCatalog fakeCatalog;
     @Autowired protected FakePatients fakePatients;
+    @Autowired protected FakeIdentity fakeIdentity;
     @Autowired protected pl.przychodnia360.shared.DomainEventPublisher domainEvents;
-    @Autowired protected RecordingMailSender mails;
+
+    /** Użytkownik testowy (konto w iam): identyfikator, placówka, e-mail i rola. */
+    protected record TestUser(UUID id, UUID tenantId, String email, Role role) {
+    }
 
     /** Konto pacjenta z rekordem pacjenta i tokenem. */
-    protected record PatientAccount(User user, UUID patientId, String token) {
+    protected record PatientAccount(TestUser user, UUID patientId, String token) {
     }
 
     /** Odpowiedź HTTP z wygodnym dostępem do JSON. */
@@ -49,13 +50,14 @@ public abstract class AbstractApiTest extends AbstractIntegrationTest {
     }
 
     /**
-     * Publikuje przykładowe zdarzenie domenowe iam (UserDeactivated) w bieżącej transakcji i placówce, żeby testy outboxu,
-     * przekaźnika i śladu miały producenta zdarzeń w clinic-core. Zwraca identyfikator agregatu.
+     * Publikuje przykładowe zdarzenie domenowe scheduling (AppointmentCancelled) w bieżącej transakcji i placówce, żeby
+     * testy outboxu, przekaźnika i śladu miały producenta zdarzeń. Zwraca identyfikator agregatu.
      */
     protected UUID publishSampleEvent() {
         UUID aggregate = UUID.randomUUID();
-        domainEvents.publish(new pl.przychodnia360.identity.api.UserDeactivated(TenantContext.requireTenant().value(),
-                aggregate, java.time.Instant.now()));
+        domainEvents.publish(new pl.przychodnia360.appointments.api.AppointmentCancelled(
+                TenantContext.requireTenant().value(), aggregate, UUID.randomUUID(), UUID.randomUUID(), UUID.randomUUID(),
+                java.time.Instant.now()));
         return aggregate;
     }
 
@@ -63,55 +65,34 @@ public abstract class AbstractApiTest extends AbstractIntegrationTest {
         return UUID.randomUUID().toString().substring(0, 8);
     }
 
+    /** Placówka należy do iam: w scheduling istnieje tylko jako tenant_id w tokenie i w wierszach (RLS). */
     protected UUID newTenant() {
-        String suffix = unique();
-        UUID id = UUID.randomUUID();
-        try (var h = TenantContext.openWithoutTenant()) {
-            tx.executeWithoutResult(s -> jdbc.sql("INSERT INTO tenants (id, slug, name) VALUES (?, ?, ?)")
-                    .params(id, "t-" + suffix, "Klinika " + suffix).update());
-        }
-        return id;
+        return UUID.randomUUID();
     }
 
-    protected String slugOf(UUID tenantId) {
-        try (var h = TenantContext.openWithoutTenant()) {
-            return tx.execute(s -> jdbc.sql("SELECT slug FROM tenants WHERE id = ?").param(tenantId)
-                    .query(String.class).single());
-        }
+    /** Użytkownik o roli w placówce (konto w iam, tu tylko tożsamość w tokenie). */
+    protected TestUser newUser(UUID tenantId, Role role) {
+        return new TestUser(UUID.randomUUID(), tenantId, role.name().toLowerCase() + "." + unique() + "@example.test", role);
     }
 
-    /** Tworzy konto w placówce i zwraca jego dane (identyfikator, e-mail). */
-    protected User newUser(UUID tenantId, Role role) {
-        User user = User.create(Ids.newId(), tenantId, role.name().toLowerCase() + "." + unique() + "@example.test", role,
-                hasher.hash(PASSWORD));
-        try (var h = TenantContext.open(new TenantId(tenantId))) {
-            tx.executeWithoutResult(s -> users.insert(user));
-        }
-        return user;
-    }
-
-    /** Pacjent z kontem powiązanym z rekordem pacjenta, już zalogowany. */
+    /** Pacjent z rekordem pacjenta (atrapa patient-service) i tokenem z powiązaniem {@code pid}. */
     protected PatientAccount newPatientAccount(UUID tenantId, String firstName, String lastName) {
-        User user = newUser(tenantId, Role.PATIENT);
+        TestUser user = newUser(tenantId, Role.PATIENT);
         UUID patientId;
         try (var h = TenantContext.open(new TenantId(tenantId))) {
-            patientId = tx.execute(s -> {
-                UUID id = patientFacade.create(firstName, lastName, java.time.LocalDate.of(1990, 1, 1), null);
-                user.linkPatient(id);
-                users.update(user);
-                patientFacade.linkAccount(id, user.id());
-                return id;
-            });
+            patientId = patientFacade.create(firstName, lastName, java.time.LocalDate.of(1990, 1, 1), null);
+            patientFacade.linkAccount(patientId, user.id());
         }
-        return new PatientAccount(user, patientId, login(tenantId, user));
+        return new PatientAccount(user, patientId, TestTokenIssuer.token(tenantId, Role.PATIENT, user.id(), null, patientId));
     }
 
-    /** Ustawia hasło konta utworzonego bez hasła (np. pracownika) i zwraca token po zalogowaniu. */
+    /**
+     * Token pracownika założonego przez API (konto w atrapie iam): jak po ustawieniu hasła z linku i zalogowaniu, z
+     * rolą i powiązaniem {@code eid} z konta.
+     */
     protected String loginWithNewPassword(UUID tenantId, String userId) {
-        User user = inTenantResult(tenantId, () -> users.findById(UUID.fromString(userId)).orElseThrow());
-        user.changePassword(hasher.hash(PASSWORD));
-        inTenant(tenantId, () -> users.update(user));
-        return login(tenantId, user);
+        FakeIdentity.Account account = fakeIdentity.account(UUID.fromString(userId)).orElseThrow();
+        return TestTokenIssuer.token(tenantId, account.role(), account.userId(), account.employeeId(), null);
     }
 
     protected <T> T inTenantResult(UUID tenantId, java.util.function.Supplier<T> action) {
@@ -126,14 +107,9 @@ public abstract class AbstractApiTest extends AbstractIntegrationTest {
         }
     }
 
-    /** Loguje użytkownika przez API i zwraca token dostępu. */
-    protected String login(UUID tenantId, User user) {
-        Resp r = call("POST", "/api/v1/auth/login", null, "{\"tenantSlug\":\"" + slugOf(tenantId) + "\",\"email\":\""
-                + user.email() + "\",\"password\":\"" + PASSWORD + "\"}");
-        if (r.status() != 200) {
-            throw new IllegalStateException("Logowanie nieudane: " + r.status() + " " + r.body());
-        }
-        return r.json().get("accessToken").asString();
+    /** Token dostępu użytkownika (wystawca testowy zamiast logowania w iam). */
+    protected String login(UUID tenantId, TestUser user) {
+        return TestTokenIssuer.token(tenantId, user.role(), user.id());
     }
 
     protected String tokenFor(UUID tenantId, Role role) {

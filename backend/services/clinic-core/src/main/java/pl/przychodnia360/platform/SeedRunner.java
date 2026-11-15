@@ -1,15 +1,17 @@
 package pl.przychodnia360.platform;
 
 import java.math.BigDecimal;
-import java.time.Clock;
 import java.time.DayOfWeek;
+import java.time.Duration;
 import java.time.LocalDate;
 import java.time.LocalTime;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.ApplicationArguments;
 import org.springframework.boot.ApplicationRunner;
@@ -18,20 +20,16 @@ import org.springframework.context.annotation.Profile;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Component;
-import org.springframework.transaction.support.TransactionTemplate;
 import pl.przychodnia360.appointments.application.BookingService;
 import pl.przychodnia360.appointments.application.BookingService.BookCommand;
-import pl.przychodnia360.identity.infrastructure.JwtService;
-import pl.przychodnia360.common.time.ClinicTime;
+import pl.przychodnia360.common.http.RemoteServiceClient;
+import pl.przychodnia360.common.security.AccessTokenVerifier;
 import pl.przychodnia360.common.security.AuthenticatedUser;
 import pl.przychodnia360.common.security.Role;
-import pl.przychodnia360.identity.application.PasswordHasher;
-import pl.przychodnia360.identity.application.RegistrationService;
-import pl.przychodnia360.identity.application.RegistrationService.Registration;
-import pl.przychodnia360.identity.application.UserRepository;
-import pl.przychodnia360.identity.domain.User;
+import pl.przychodnia360.common.time.ClinicTime;
 import pl.przychodnia360.patients.api.PatientFacade;
-import pl.przychodnia360.shared.Ids;
+import pl.przychodnia360.shared.ServiceUnavailableException;
+import pl.przychodnia360.shared.SubjectIds;
 import pl.przychodnia360.shared.TenantContext;
 import pl.przychodnia360.shared.TenantId;
 import pl.przychodnia360.staff.api.EmployeeType;
@@ -40,14 +38,13 @@ import pl.przychodnia360.staff.application.EmployeeService.CreateEmployee;
 import pl.przychodnia360.staff.application.ScheduleService;
 import pl.przychodnia360.staff.application.ScheduleService.WeeklyEntry;
 import pl.przychodnia360.staff.domain.Employee;
-import pl.przychodnia360.tenant.api.TenantFacade;
-import pl.przychodnia360.tenant.application.TenantService;
 
 /**
- * Dane demonstracyjne (profile local i demo): dwie placówki z administratorem, lekarzami, personelem, rejestratorem,
- * pacjentami, katalogiem, grafikami i kilkoma wizytami. Wszystkie dane są fikcyjne (NFR-07), adresy w domenie
- * example.test, a hasło wszystkich kont pochodzi z konfiguracji {@code seed.password}. Uruchamia się idempotentnie:
- * istniejąca placówka jest pomijana.
+ * Część seedu demo należąca do scheduling (profile local i demo): katalog (przez catalog-service), pracownicy, grafiki, pacjent bez konta i
+ * kilka wizyt w placówkach założonych przez seed iam. Seed loguje się w iam jako administrator placówki (hasło z
+ * {@code seed.password}) i działa jego tokenem, jak administrator w interfejsie; udane logowanie oznacza, że część iam
+ * (konta pracowników i pacjenci) jest gotowa. Pracownicy powstają sagą, która trafia w konta przygotowane przez iam
+ * (deterministyczny identyfikator pracownika, {@link SubjectIds}). Placówka, w której są już pracownicy, jest pomijana.
  */
 @Component
 @Profile({"local", "demo"})
@@ -56,44 +53,42 @@ class SeedRunner implements ApplicationRunner {
 
     private static final Logger log = LoggerFactory.getLogger(SeedRunner.class);
 
-    private record Clinic(String slug, String name, String firstDoctor, String secondDoctor) {
+    private record Clinic(String slug, String firstDoctor, String secondDoctor) {
     }
 
-    private final TenantService tenantService;
-    private final TenantFacade tenants;
+    private record LoginResponse(String accessToken) {
+    }
+
     private final SeedCatalog catalog;
     private final SeedDependencies dependencies;
-    private final JwtService jwt;
+    private final RemoteServiceClient iam;
+    private final AccessTokenVerifier verifier;
     private final EmployeeService employees;
     private final ScheduleService schedules;
-    private final RegistrationService registration;
-    private final PatientFacade patients;
     private final BookingService booking;
-    private final UserRepository users;
-    private final PasswordHasher hasher;
-    private final TransactionTemplate tx;
-    private final Clock clock;
+    private final PatientFacade patients;
+    private final java.time.Clock clock;
     private final String password;
+    private final int maxAttempts;
+    private final Duration retryDelay;
 
-    SeedRunner(TenantService tenantService, TenantFacade tenants, SeedCatalog catalog, SeedDependencies dependencies, JwtService jwt,
-            EmployeeService employees, ScheduleService schedules, RegistrationService registration,
-            PatientFacade patients, BookingService booking, UserRepository users, PasswordHasher hasher,
-            TransactionTemplate tx, Clock clock, @Value("${seed.password:}") String password) {
-        this.tenantService = tenantService;
-        this.tenants = tenants;
+    SeedRunner(SeedCatalog catalog, SeedDependencies dependencies, @Qualifier("iamClient") RemoteServiceClient iam,
+            AccessTokenVerifier verifier, EmployeeService employees, ScheduleService schedules,
+            BookingService booking, PatientFacade patients, java.time.Clock clock, @Value("${seed.password:}") String password,
+            @Value("${seed.dependencies.max-attempts:40}") int maxAttempts,
+            @Value("${seed.dependencies.retry-delay:PT3S}") Duration retryDelay) {
         this.catalog = catalog;
         this.dependencies = dependencies;
-        this.jwt = jwt;
+        this.iam = iam;
+        this.verifier = verifier;
         this.employees = employees;
         this.schedules = schedules;
-        this.registration = registration;
-        this.patients = patients;
         this.booking = booking;
-        this.users = users;
-        this.hasher = hasher;
-        this.tx = tx;
+        this.patients = patients;
         this.clock = clock;
         this.password = password;
+        this.maxAttempts = maxAttempts;
+        this.retryDelay = retryDelay;
     }
 
     @Override
@@ -102,30 +97,26 @@ class SeedRunner implements ApplicationRunner {
             log.warn("Seed pominięty: brak seed.password");
             return;
         }
-        // najpierw gotowość usług (bez tworzenia stanu), potem placówki
-        dependencies.await();
-        seed(new Clinic("klinika-a", "Klinika Zdrowie (dane demo)", "Anna Kowalska", "Piotr Nowak"));
-        seed(new Clinic("klinika-b", "Przychodnia Centrum (dane demo)", "Maria Wiśniewska", "Tomasz Zieliński"));
+        seed(new Clinic("klinika-a", "Anna Kowalska", "Piotr Nowak"));
+        seed(new Clinic("klinika-b", "Maria Wiśniewska", "Tomasz Zieliński"));
     }
 
     private void seed(Clinic clinic) {
-        if (tenants.resolveActiveSlug(clinic.slug()).isPresent()) {
-            log.info("Seed: placówka {} już istnieje, pomijam", clinic.slug());
-            return;
-        }
-        UUID tenantId;
-        try (TenantContext.Handle ignored = TenantContext.openWithoutTenant()) {
-            tenantId = tenantService.create(clinic.slug(), clinic.name()).id();
-        }
+        String domain = clinic.slug() + ".example.test";
+        String token = loginAsAdmin(clinic.slug(), "admin@" + domain);
+        AuthenticatedUser admin = verifier.verify(token)
+                .orElseThrow(() -> new IllegalStateException("Seed: token administratora z iam nie przechodzi weryfikacji"));
+        UUID tenantId = admin.tenantId();
+        // najpierw gotowość usług catalog i patient (bez tworzenia stanu), potem dane
+        dependencies.await(tenantId);
         try (TenantContext.Handle ignored = TenantContext.open(new TenantId(tenantId))) {
-            String domain = clinic.slug() + ".example.test";
-            User admin = User.create(Ids.newId(), tenantId, "admin@" + domain, Role.TENANT_ADMIN, hasher.hash(password));
-            tx.executeWithoutResult(s -> users.insert(admin));
-            // Administrator placówki seedu jest zalogowany na czas seedu: jego token przekazują zdalne fasady i klient
-            // katalogu (w trybie zdalnym dane trafiają do bazy catalog-service, a nie do tej bazy).
-            AuthenticatedUser adminPrincipal = new AuthenticatedUser(admin.id(), tenantId, Role.TENANT_ADMIN, null, null);
+            if (exists(SubjectIds.employee(tenantId, "lekarz1@" + domain))) {
+                log.info("Seed: placówka {} ma już pracowników, pomijam", clinic.slug());
+                return;
+            }
+            // seed działa jako zalogowany administrator placówki: jego token przekazuje klient katalogu
             SecurityContextHolder.getContext().setAuthentication(
-                    new UsernamePasswordAuthenticationToken(adminPrincipal, jwt.issue(adminPrincipal), List.of()));
+                    new UsernamePasswordAuthenticationToken(admin, token, List.of()));
 
             UUID consultations = catalog.category("Konsultacje");
             UUID diagnostics = catalog.category("Diagnostyka");
@@ -146,37 +137,61 @@ class SeedRunner implements ApplicationRunner {
             weekdays(second.id(), "12:00", "20:00");
             weekdays(nurse.id(), "07:00", "15:00");
 
-            List<UUID> patientIds = new ArrayList<>();
-            String[][] people = {{"Jan", "Kowalski"}, {"Ewa", "Malinowska"}, {"Adam", "Wójcik"}};
-            for (int i = 0; i < people.length; i++) {
-                String email = "pacjent" + (i + 1) + "@" + domain;
-                registration.registerPatient(new Registration(clinic.slug(), email, password, people[i][0],
-                        people[i][1], LocalDate.of(1980 + i * 7, 3 + i, 10 + i)));
-            }
-            tx.executeWithoutResult(s -> patientIds.add(patients.create("Pacjent", "Bez Konta", LocalDate.of(1975, 6, 1), null)));
-
+            // pacjent bez konta (rekord w patient-service, idempotentnie), dla niego są wizyty seedu
+            UUID patientId = SubjectIds.patient(tenantId, "bez-konta@" + domain);
+            patients.ensure(patientId, "Pacjent", "Bez Konta", LocalDate.of(1975, 6, 1), null, null);
             AuthenticatedUser reception = new AuthenticatedUser(receptionist.userId(), tenantId, Role.RECEPTIONIST,
                     receptionist.id(), null);
             LocalDate day = nextWorkday(clock.instant().atZone(ClinicTime.ZONE).toLocalDate().plusDays(1));
             for (int hour = 9; hour <= 10; hour++) {
                 booking.book(new BookCommand(consult, first.id(), ClinicTime.toInstant(day, LocalTime.of(hour, 0)),
-                        patientIds.getFirst()), reception);
+                        patientId), reception);
             }
-            log.info("Seed: placówka {} utworzona (konta: admin@{} i inne, hasło z seed.password)", clinic.slug(), domain);
+            log.info("Seed: placówka {} uzupełniona w scheduling (katalog, pracownicy, grafiki, wizyty)", clinic.slug());
         } finally {
             SecurityContextHolder.clearContext();
         }
     }
 
+    /** Logowanie administratora placówki w iam; ponawiane, dopóki seed iam nie skończy tej placówki. */
+    private String loginAsAdmin(String slug, String email) {
+        for (int attempt = 1;; attempt++) {
+            try {
+                LoginResponse response = iam.post("/api/v1/auth/login",
+                        Map.of("tenantSlug", slug, "email", email, "password", password), LoginResponse.class);
+                return response.accessToken();
+            } catch (RuntimeException e) {
+                if (attempt >= maxAttempts) {
+                    throw new IllegalStateException("Seed przerwany: nie udało się zalogować jako " + email + " w iam po "
+                            + maxAttempts + " próbach (seed iam nie skończył albo inne seed.password)", e);
+                }
+                log.info("Seed: czekam na konto {} w iam (próba {}/{}): {}", email, attempt, maxAttempts, e.getMessage());
+                sleep();
+            }
+        }
+    }
+
+    private void sleep() {
+        try {
+            Thread.sleep(retryDelay.toMillis());
+        } catch (InterruptedException interrupted) {
+            Thread.currentThread().interrupt();
+            throw new ServiceUnavailableException("Seed przerwany podczas oczekiwania na iam");
+        }
+    }
+
+    private boolean exists(UUID employeeId) {
+        try {
+            employees.get(employeeId);
+            return true;
+        } catch (pl.przychodnia360.shared.NotFoundException e) {
+            return false;
+        }
+    }
+
     private Employee employee(String domain, String login, EmployeeType type, String fullName, String specialization) {
         String[] name = fullName.split(" ", 2);
-        Employee employee = employees.create(new CreateEmployee(login + "@" + domain, type, name[0], name[1],
-                specialization));
-        tx.executeWithoutResult(s -> users.findById(employee.userId()).ifPresent(u -> {
-            u.changePassword(hasher.hash(password));
-            users.update(u);
-        }));
-        return employee;
+        return employees.create(new CreateEmployee(login + "@" + domain, type, name[0], name[1], specialization));
     }
 
     private void weekdays(UUID employeeId, String from, String to) {

@@ -6,7 +6,7 @@ import org.springframework.context.annotation.Primary;
 import pl.przychodnia360.platform.FakeSeedCatalog;
 
 /**
- * Atrapy fasad catalog i patient (@Primary przed zdalnymi implementacjami) dla testów clinic-core. Jeden zestaw w
+ * Atrapy fasad iam, catalog i patient (@Primary przed zdalnymi implementacjami) dla testów clinic-core. Jeden zestaw w
  * kontekście wspólnym dla wszystkich testów (importowany przez {@link ClinicCoreIntegrationTest}).
  */
 @TestConfiguration
@@ -22,6 +22,12 @@ public class FakeServicesConfig {
     @Primary
     FakePatients fakePatients() {
         return new FakePatients();
+    }
+
+    @Bean
+    @Primary
+    FakeIdentity fakeIdentity() {
+        return new FakeIdentity();
     }
 
     @Bean

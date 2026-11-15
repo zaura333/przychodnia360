@@ -65,12 +65,22 @@ class TracePropagationTest extends AbstractApiTest {
                 + "@example.test\",\"type\":\"DOCTOR\",\"firstName\":\"Adam\",\"lastName\":\"Lekarz\"}")
                 .json().get("id").asString();
 
-        // dezaktywacja pracownika publikuje UserDeactivated w żądaniu ze śladem
-        Resp response = call("POST", "/api/v1/admin/employees/" + employeeId + "/deactivate", admin, null,
+        String serviceId = fakeCatalog.add(tenant, "Konsultacja", new java.math.BigDecimal("100"), 30, "DOCTOR").toString();
+        java.time.LocalDate day = java.time.LocalDate.now().plusDays(3);
+        assertThat(call("PUT", "/api/v1/admin/employees/" + employeeId + "/schedule", admin, "{\"entries\":[{\"dayOfWeek\":\""
+                + day.getDayOfWeek() + "\",\"startTime\":\"08:00\",\"endTime\":\"16:00\",\"validFrom\":\"2020-01-01\"}]}")
+                .status()).isEqualTo(200);
+        UUID patientId = newPatientAccount(tenant, "Ewa", "Pacjentka").patientId();
+        String startAt = pl.przychodnia360.common.time.ClinicTime.toInstant(day, java.time.LocalTime.of(9, 0)).toString();
+
+        // rezerwacja publikuje AppointmentBooked w żądaniu ze śladem
+        Resp response = call("POST", "/api/v1/appointments", tokenFor(tenant, pl.przychodnia360.common.security.Role.RECEPTIONIST),
+                "{\"serviceId\":\"" + serviceId + "\",\"employeeId\":\"" + employeeId + "\",\"startAt\":\"" + startAt
+                        + "\",\"patientId\":\"" + patientId + "\"}",
                 "traceparent", "00-" + TRACE_ID + "-" + PARENT_SPAN + "-01");
 
-        assertThat(response.status()).isEqualTo(204);
-        assertThat(outboxTraceparent(tenant)).as("zdarzenie UserDeactivated niesie ślad żądania")
+        assertThat(response.status()).as(response.body()).isEqualTo(201);
+        assertThat(outboxTraceparent(tenant)).as("zdarzenie AppointmentBooked niesie ślad żądania")
                 .startsWith("00-" + TRACE_ID + "-").endsWith("-01");
     }
 
@@ -99,7 +109,7 @@ class TracePropagationTest extends AbstractApiTest {
     @Test
     void consumerRunsTheHandlerInTheTraceOfTheEvent() {
         AtomicReference<String> seen = new AtomicReference<>();
-        eventTracing.runInContext("00-" + TRACE_ID + "-" + PARENT_SPAN + "-01", "consume UserDeactivated",
+        eventTracing.runInContext("00-" + TRACE_ID + "-" + PARENT_SPAN + "-01", "consume AppointmentCancelled",
                 () -> seen.set(tracer.currentSpan().context().traceId()));
 
         assertThat(seen.get()).isEqualTo(TRACE_ID);
@@ -110,7 +120,7 @@ class TracePropagationTest extends AbstractApiTest {
     void traceAndSpanIdsAreInTheLogContextWhileTheEventIsHandled() {
         AtomicReference<String> traceInMdc = new AtomicReference<>();
         AtomicReference<String> spanInMdc = new AtomicReference<>();
-        eventTracing.runInContext("00-" + TRACE_ID + "-" + PARENT_SPAN + "-01", "consume UserDeactivated", () -> {
+        eventTracing.runInContext("00-" + TRACE_ID + "-" + PARENT_SPAN + "-01", "consume AppointmentCancelled", () -> {
             traceInMdc.set(MDC.get("traceId"));
             spanInMdc.set(MDC.get("spanId"));
         });

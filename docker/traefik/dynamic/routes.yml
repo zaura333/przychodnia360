@@ -108,7 +108,7 @@ http:
     iam:
       loadBalancer:
         servers:
-          - url: "http://backend:8080"
+          - url: "http://iam:8080"
     patient:
       loadBalancer:
         servers:

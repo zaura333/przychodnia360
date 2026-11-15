@@ -36,9 +36,10 @@ class StaffApiTest extends AbstractApiTest {
         assertThat(list.json()).hasSize(1);
         assertThat(list.json().get(0).get("id").asString()).isEqualTo(id);
         String userId = list.json().get(0).get("userId").asString();
-        // konto bez hasła do czasu ustawienia go z linku (odczyt w kontekście placówki, bo działa RLS)
-        inTenant(tenant, () -> assertThat(jdbc.sql("SELECT password_hash IS NULL FROM users WHERE id = ?::uuid")
-                .param(userId).query(Boolean.class).single()).isTrue());
+        // konto w iam założone sagą: powiązane z pracownikiem, z rolą wynikającą z typu pracownika
+        var account = fakeIdentity.account(UUID.fromString(userId)).orElseThrow();
+        assertThat(account.employeeId().toString()).isEqualTo(id);
+        assertThat(account.role()).isEqualTo(Role.DOCTOR);
     }
 
     @Test
