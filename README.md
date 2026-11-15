@@ -63,7 +63,7 @@ Wymagania: Node z `frontend/.nvmrc`. Szczegóły, skrypty i zasady: `frontend/RE
 ```bash
 cd frontend
 npm ci               # instaluje zależności i generuje klienta API z ../api/openapi.json
-npm run dev          # http://localhost:5173, proxy /api na http://localhost:8080
+npm run dev          # http://localhost:5173, proxy /api na krawędź http://localhost:8090 (docker compose --profile core)
 npm test             # testy jednostkowe; npm run test:e2e dla Playwright
 ```
 
