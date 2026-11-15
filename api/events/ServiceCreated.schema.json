@@ -1,0 +1,57 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://schemas.przychodnia360.example/events/ServiceCreated.schema.json",
+  "title": "ServiceCreated",
+  "description": "Utworzono usługę katalogu. Dane techniczne usługi, bez danych osobowych (ADR-M10).",
+  "x-schemaVersion": 1,
+  "x-producer": "catalog",
+  "type": "object",
+  "properties": {
+    "tenantId": {
+      "type": "string",
+      "format": "uuid",
+      "description": "Placówka (izolacja tenantów)"
+    },
+    "aggregateId": {
+      "type": "string",
+      "format": "uuid",
+      "description": "Identyfikator usługi"
+    },
+    "name": {
+      "type": "string",
+      "description": "Nazwa usługi"
+    },
+    "price": {
+      "type": "number",
+      "description": "Cena brutto (PLN)"
+    },
+    "durationMinutes": {
+      "type": "integer",
+      "description": "Czas trwania w minutach"
+    },
+    "performerType": {
+      "type": "string",
+      "description": "Kto może wykonać usługę (FR-57): DOCTOR lub MEDICAL_STAFF"
+    },
+    "active": {
+      "type": "boolean",
+      "description": "Czy usługa jest aktywna"
+    },
+    "occurredAt": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Moment zdarzenia (UTC)"
+    }
+  },
+  "required": [
+    "tenantId",
+    "aggregateId",
+    "name",
+    "price",
+    "durationMinutes",
+    "performerType",
+    "active",
+    "occurredAt"
+  ],
+  "additionalProperties": false
+}

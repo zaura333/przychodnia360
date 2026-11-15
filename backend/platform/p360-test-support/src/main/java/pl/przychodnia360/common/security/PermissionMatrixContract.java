@@ -52,6 +52,21 @@ public abstract class PermissionMatrixContract extends PostgresIntegrationTest {
         SecurityContextHolder.clearContext();
     }
 
+    /** Publiczne ścieżki, które ta usługa implementuje (wszystkie z SecurityConfig w iam, mniej w innych usługach). */
+    protected Set<String> publicPaths() {
+        return Set.of(SecurityConfig.PUBLIC_PATHS);
+    }
+
+    /** Dolna granica liczby par rola x endpoint (zabezpiecza przed pustym testem). */
+    protected int minimumRoleEndpointPairs() {
+        return 150;
+    }
+
+    /** Dolna granica liczby endpointów (zabezpiecza przed pustym testem); mała usługa obniża wartość. */
+    protected int minimumEndpoints() {
+        return 30;
+    }
+
     private List<HandlerMethod> applicationEndpoints() {
         return mapping.getHandlerMethods().values().stream()
                 .filter(h -> h.getBeanType().getPackageName().startsWith("pl.przychodnia360"))
@@ -72,7 +87,7 @@ public abstract class PermissionMatrixContract extends PostgresIntegrationTest {
                 undeclared.add(handler.toString());
             }
         }
-        assertThat(applicationEndpoints()).as("test nie może być pusty").hasSizeGreaterThan(30);
+        assertThat(applicationEndpoints()).as("test nie może być pusty").hasSizeGreaterThan(minimumEndpoints());
         assertThat(undeclared).as("endpointy bez deklaracji uprawnień").isEmpty();
     }
 
@@ -95,7 +110,7 @@ public abstract class PermissionMatrixContract extends PostgresIntegrationTest {
             }
         }
         assertThat(declared).as("@PublicEndpoint i SecurityConfig.PUBLIC_PATHS muszą się zgadzać")
-                .containsExactlyInAnyOrder(SecurityConfig.PUBLIC_PATHS);
+                .containsExactlyInAnyOrderElementsOf(publicPaths());
     }
 
     @Test
@@ -119,7 +134,7 @@ public abstract class PermissionMatrixContract extends PostgresIntegrationTest {
                 }
             }
         }
-        assertThat(checked).as("liczba sprawdzonych par rola x endpoint").isGreaterThan(150);
+        assertThat(checked).as("liczba sprawdzonych par rola x endpoint").isGreaterThan(minimumRoleEndpointPairs());
         assertThat(mismatches).isEmpty();
     }
 

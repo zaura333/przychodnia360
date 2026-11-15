@@ -1,6 +1,7 @@
 package pl.przychodnia360.catalog.application;
 
 import java.math.BigDecimal;
+import java.time.Clock;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
@@ -11,13 +12,18 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import pl.przychodnia360.catalog.api.CatalogFacade;
 import pl.przychodnia360.catalog.api.PerformerType;
+import pl.przychodnia360.catalog.api.ServiceCreated;
+import pl.przychodnia360.catalog.api.ServiceDeactivated;
+import pl.przychodnia360.catalog.api.ServiceUpdated;
 import pl.przychodnia360.catalog.application.CatalogRepository.ServiceFilter;
 import pl.przychodnia360.catalog.domain.MedicalService;
 import pl.przychodnia360.catalog.domain.ServiceCategory;
 import pl.przychodnia360.common.web.PageResponse;
 import pl.przychodnia360.shared.ConflictException;
+import pl.przychodnia360.shared.DomainEventPublisher;
 import pl.przychodnia360.shared.Ids;
 import pl.przychodnia360.shared.NotFoundException;
+import pl.przychodnia360.shared.TenantContext;
 import pl.przychodnia360.shared.ValidationException;
 
 @Service
@@ -31,9 +37,13 @@ public class ServiceCatalogService implements CatalogFacade {
     private static final int MAX_PAGE_SIZE = 100;
 
     private final CatalogRepository repository;
+    private final DomainEventPublisher events;
+    private final Clock clock;
 
-    ServiceCatalogService(CatalogRepository repository) {
+    ServiceCatalogService(CatalogRepository repository, DomainEventPublisher events, Clock clock) {
         this.repository = repository;
+        this.events = events;
+        this.clock = clock;
     }
 
     @Transactional(readOnly = true)
@@ -59,6 +69,9 @@ public class ServiceCatalogService implements CatalogFacade {
         MedicalService created = new MedicalService(Ids.newId(), command.categoryId(), command.name().trim(),
                 command.description(), command.price(), command.durationMinutes(), command.performerType(), true, 0);
         repository.insertService(created);
+        events.publish(new ServiceCreated(TenantContext.requireTenant().value(), created.id(), created.name(),
+                created.price(), created.durationMinutes(), created.performerType().name(), created.active(),
+                clock.instant()));
         return created;
     }
 
@@ -71,6 +84,9 @@ public class ServiceCatalogService implements CatalogFacade {
                 command.description(), command.price(), command.durationMinutes(), command.performerType(),
                 existing.active(), existing.version());
         repository.updateService(updated);
+        events.publish(new ServiceUpdated(TenantContext.requireTenant().value(), updated.id(), updated.name(),
+                updated.price(), updated.durationMinutes(), updated.performerType().name(), updated.active(),
+                clock.instant()));
         return updated;
     }
 
@@ -81,6 +97,7 @@ public class ServiceCatalogService implements CatalogFacade {
                 .orElseThrow(() -> new NotFoundException("Nie znaleziono usługi."));
         if (existing.active()) {
             repository.updateService(existing.deactivated());
+            events.publish(new ServiceDeactivated(TenantContext.requireTenant().value(), id, clock.instant()));
         }
     }
 
@@ -132,14 +149,14 @@ public class ServiceCatalogService implements CatalogFacade {
     @Transactional(readOnly = true)
     public Optional<ServiceInfo> service(UUID serviceId) {
         return repository.findService(serviceId).map(s -> new ServiceInfo(s.id(), s.name(), s.price(),
-                s.durationMinutes(), s.performerType(), s.active()));
+                s.durationMinutes(), s.performerType().name(), s.active()));
     }
 
     @Override
     @Transactional(readOnly = true)
     public Map<UUID, ServiceInfo> services(Collection<UUID> ids) {
         return repository.findServices(ids).stream().collect(Collectors.toMap(MedicalService::id,
-                s -> new ServiceInfo(s.id(), s.name(), s.price(), s.durationMinutes(), s.performerType(), s.active()),
+                s -> new ServiceInfo(s.id(), s.name(), s.price(), s.durationMinutes(), s.performerType().name(), s.active()),
                 (a, b) -> a));
     }
 }

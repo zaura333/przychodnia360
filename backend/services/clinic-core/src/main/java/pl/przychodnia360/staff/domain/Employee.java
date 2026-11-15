@@ -1,13 +1,12 @@
 package pl.przychodnia360.staff.domain;
 
 import java.util.UUID;
-import pl.przychodnia360.catalog.api.PerformerType;
 import pl.przychodnia360.staff.api.EmployeeType;
 
 public record Employee(UUID id, UUID userId, EmployeeType type, String firstName, String lastName,
         String specialization, boolean active, long version) {
 
-    public boolean canPerform(PerformerType performerType) {
+    public boolean canPerform(String performerType) {
         return type.canPerform(performerType);
     }
 

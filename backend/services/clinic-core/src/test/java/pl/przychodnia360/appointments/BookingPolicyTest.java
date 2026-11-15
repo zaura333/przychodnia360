@@ -14,7 +14,6 @@ import pl.przychodnia360.appointments.domain.Appointment;
 import pl.przychodnia360.appointments.domain.AppointmentStatus;
 import pl.przychodnia360.appointments.domain.BookingPolicy;
 import pl.przychodnia360.catalog.api.CatalogFacade.ServiceInfo;
-import pl.przychodnia360.catalog.api.PerformerType;
 import pl.przychodnia360.shared.ConflictException;
 import pl.przychodnia360.shared.UnprocessableException;
 import pl.przychodnia360.staff.api.EmployeeType;
@@ -33,7 +32,7 @@ class BookingPolicyTest {
         return new EmployeeInfo(UUID.randomUUID(), UUID.randomUUID(), type, "A", "B", null, active);
     }
 
-    private static ServiceInfo service(PerformerType type, boolean active) {
+    private static ServiceInfo service(String type, boolean active) {
         return new ServiceInfo(UUID.randomUUID(), "S", BigDecimal.TEN, 30, type, active);
     }
 
@@ -61,15 +60,15 @@ class BookingPolicyTest {
     @Test
     void performerMustMatchServiceAndBeActive() {
         assertThatCode(() -> BookingPolicy.assertPerformerMatches(employee(EmployeeType.DOCTOR, true),
-                service(PerformerType.DOCTOR, true))).doesNotThrowAnyException();
+                service("DOCTOR", true))).doesNotThrowAnyException();
         assertThatThrownBy(() -> BookingPolicy.assertPerformerMatches(employee(EmployeeType.MEDICAL_STAFF, true),
-                service(PerformerType.DOCTOR, true))).isInstanceOf(UnprocessableException.class);
+                service("DOCTOR", true))).isInstanceOf(UnprocessableException.class);
         assertThatThrownBy(() -> BookingPolicy.assertPerformerMatches(employee(EmployeeType.RECEPTIONIST, true),
-                service(PerformerType.DOCTOR, true))).isInstanceOf(UnprocessableException.class);
+                service("DOCTOR", true))).isInstanceOf(UnprocessableException.class);
         assertThatThrownBy(() -> BookingPolicy.assertPerformerMatches(employee(EmployeeType.DOCTOR, false),
-                service(PerformerType.DOCTOR, true))).isInstanceOf(UnprocessableException.class);
+                service("DOCTOR", true))).isInstanceOf(UnprocessableException.class);
         assertThatThrownBy(() -> BookingPolicy.assertPerformerMatches(employee(EmployeeType.DOCTOR, true),
-                service(PerformerType.DOCTOR, false))).isInstanceOf(UnprocessableException.class);
+                service("DOCTOR", false))).isInstanceOf(UnprocessableException.class);
     }
 
     @Test

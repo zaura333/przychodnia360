@@ -1,12 +1,9 @@
-package pl.przychodnia360.identity.infrastructure;
+package pl.przychodnia360.common.security;
 
 import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Component;
-import pl.przychodnia360.common.security.AuthenticatedUser;
-import pl.przychodnia360.common.security.Permission;
-import pl.przychodnia360.common.security.PermissionPolicy;
 
-/** Bean "permissions" dla {@code @PreAuthorize("@permissions.has(authentication, 'SERVICE_MANAGE')")}. */
+/** Bean "permissions" (każda usługa platformy) dla {@code @PreAuthorize("@permissions.has(authentication, 'SERVICE_MANAGE')")}. */
 @Component("permissions")
 public class PermissionEvaluator {
 

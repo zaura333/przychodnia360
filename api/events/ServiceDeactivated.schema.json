@@ -1,0 +1,32 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://schemas.przychodnia360.example/events/ServiceDeactivated.schema.json",
+  "title": "ServiceDeactivated",
+  "description": "Dezaktywowano usługę katalogu. Tylko identyfikatory (ADR-M10).",
+  "x-schemaVersion": 1,
+  "x-producer": "catalog",
+  "type": "object",
+  "properties": {
+    "tenantId": {
+      "type": "string",
+      "format": "uuid",
+      "description": "Placówka (izolacja tenantów)"
+    },
+    "aggregateId": {
+      "type": "string",
+      "format": "uuid",
+      "description": "Identyfikator usługi"
+    },
+    "occurredAt": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Moment zdarzenia (UTC)"
+    }
+  },
+  "required": [
+    "tenantId",
+    "aggregateId",
+    "occurredAt"
+  ],
+  "additionalProperties": false
+}

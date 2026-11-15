@@ -56,8 +56,14 @@ public abstract class HttpBehaviourContract extends PostgresIntegrationTest {
         assertThat(get("/api/v1/nie-ma-takiego").statusCode()).isEqualTo(401);
     }
 
+    /** Czy usługa wystawia publiczną listę placówek (tylko iam). */
+    protected boolean listsFacilities() {
+        return true;
+    }
+
     @Test
     void facilitiesAreListedPublicly() throws Exception {
+        org.junit.jupiter.api.Assumptions.assumeTrue(listsFacilities(), "usługa bez listy placówek");
         var response = get("/api/v1/facilities");
 
         assertThat(response.statusCode()).isEqualTo(200);
