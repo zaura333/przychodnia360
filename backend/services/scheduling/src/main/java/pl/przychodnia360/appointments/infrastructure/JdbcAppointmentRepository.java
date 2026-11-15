@@ -10,6 +10,7 @@ import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 import org.springframework.dao.DataIntegrityViolationException;
+import org.springframework.dao.PessimisticLockingFailureException;
 import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.stereotype.Repository;
 import pl.przychodnia360.appointments.application.AppointmentRepository;
@@ -45,6 +46,8 @@ class JdbcAppointmentRepository implements AppointmentRepository {
                     .update();
         } catch (DataIntegrityViolationException e) {
             throw translate(e);
+        } catch (PessimisticLockingFailureException e) {
+            throw lockConflict();
         }
     }
 
@@ -65,6 +68,8 @@ class JdbcAppointmentRepository implements AppointmentRepository {
             }
         } catch (DataIntegrityViolationException e) {
             throw translate(e);
+        } catch (PessimisticLockingFailureException e) {
+            throw lockConflict();
         }
     }
 
@@ -122,6 +127,15 @@ class JdbcAppointmentRepository implements AppointmentRepository {
     }
 
     /** Naruszenie ograniczenia wykluczającego (SQLSTATE 23P01) to kolizja terminu; rodzaj po nazwie ograniczenia. */
+    /**
+     * Równoczesne rezerwacje tego samego terminu: PostgreSQL może przerwać jedną z nich zakleszczeniem (40P01) przy
+     * sprawdzaniu ograniczenia wykluczającego zamiast naruszenia ograniczenia; dla użytkownika to ten sam wynik
+     * (termin zajęty), a nie błąd serwera.
+     */
+    private static ConflictException lockConflict() {
+        return new ConflictException("slot-taken", "Ten termin jest już zajęty.");
+    }
+
     private static RuntimeException translate(DataIntegrityViolationException e) {
         for (Throwable t = e; t != null; t = t.getCause()) {
             if (t instanceof SQLException sql && "23P01".equals(sql.getSQLState())) {
