@@ -15,13 +15,14 @@ import org.springframework.boot.ApplicationArguments;
 import org.springframework.boot.ApplicationRunner;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.context.annotation.Profile;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.support.TransactionTemplate;
 import pl.przychodnia360.appointments.application.BookingService;
 import pl.przychodnia360.appointments.application.BookingService.BookCommand;
 import pl.przychodnia360.catalog.api.PerformerType;
-import pl.przychodnia360.catalog.application.ServiceCatalogService;
-import pl.przychodnia360.catalog.application.ServiceCatalogService.ServiceCommand;
+import pl.przychodnia360.identity.infrastructure.JwtService;
 import pl.przychodnia360.common.time.ClinicTime;
 import pl.przychodnia360.common.security.AuthenticatedUser;
 import pl.przychodnia360.common.security.Role;
@@ -61,7 +62,8 @@ class SeedRunner implements ApplicationRunner {
 
     private final TenantService tenantService;
     private final TenantFacade tenants;
-    private final ServiceCatalogService catalog;
+    private final SeedCatalog catalog;
+    private final JwtService jwt;
     private final EmployeeService employees;
     private final ScheduleService schedules;
     private final RegistrationService registration;
@@ -73,13 +75,14 @@ class SeedRunner implements ApplicationRunner {
     private final Clock clock;
     private final String password;
 
-    SeedRunner(TenantService tenantService, TenantFacade tenants, ServiceCatalogService catalog,
+    SeedRunner(TenantService tenantService, TenantFacade tenants, SeedCatalog catalog, JwtService jwt,
             EmployeeService employees, ScheduleService schedules, RegistrationService registration,
             PatientFacade patients, BookingService booking, UserRepository users, PasswordHasher hasher,
             TransactionTemplate tx, Clock clock, @Value("${seed.password:}") String password) {
         this.tenantService = tenantService;
         this.tenants = tenants;
         this.catalog = catalog;
+        this.jwt = jwt;
         this.employees = employees;
         this.schedules = schedules;
         this.registration = registration;
@@ -113,19 +116,24 @@ class SeedRunner implements ApplicationRunner {
         }
         try (TenantContext.Handle ignored = TenantContext.open(new TenantId(tenantId))) {
             String domain = clinic.slug() + ".example.test";
-            tx.executeWithoutResult(s -> users.insert(
-                    User.create(Ids.newId(), tenantId, "admin@" + domain, Role.TENANT_ADMIN, hasher.hash(password))));
+            User admin = User.create(Ids.newId(), tenantId, "admin@" + domain, Role.TENANT_ADMIN, hasher.hash(password));
+            tx.executeWithoutResult(s -> users.insert(admin));
+            // Administrator placówki seedu jest zalogowany na czas seedu: jego token przekazują zdalne fasady i klient
+            // katalogu (w trybie zdalnym dane trafiają do bazy catalog-service, a nie do tej bazy).
+            AuthenticatedUser adminPrincipal = new AuthenticatedUser(admin.id(), tenantId, Role.TENANT_ADMIN, null, null);
+            SecurityContextHolder.getContext().setAuthentication(
+                    new UsernamePasswordAuthenticationToken(adminPrincipal, jwt.issue(adminPrincipal), List.of()));
 
-            UUID consultations = catalog.createCategory("Konsultacje").id();
-            UUID diagnostics = catalog.createCategory("Diagnostyka").id();
-            UUID consult = catalog.create(new ServiceCommand(consultations, "Konsultacja lekarska", "Konsultacja ogólna",
-                    new BigDecimal("150.00"), 30, PerformerType.DOCTOR)).id();
-            catalog.create(new ServiceCommand(consultations, "Konsultacja kontrolna", "Wizyta kontrolna",
-                    new BigDecimal("100.00"), 15, PerformerType.DOCTOR));
-            catalog.create(new ServiceCommand(diagnostics, "USG", "Badanie ultrasonograficzne",
-                    new BigDecimal("200.00"), 45, PerformerType.DOCTOR));
-            catalog.create(new ServiceCommand(diagnostics, "Pobranie krwi", "Pobranie krwi żylnej",
-                    new BigDecimal("40.00"), 15, PerformerType.MEDICAL_STAFF));
+            UUID consultations = catalog.category("Konsultacje");
+            UUID diagnostics = catalog.category("Diagnostyka");
+            UUID consult = catalog.service(consultations, "Konsultacja lekarska", "Konsultacja ogólna",
+                    new BigDecimal("150.00"), 30, PerformerType.DOCTOR);
+            catalog.service(consultations, "Konsultacja kontrolna", "Wizyta kontrolna",
+                    new BigDecimal("100.00"), 15, PerformerType.DOCTOR);
+            catalog.service(diagnostics, "USG", "Badanie ultrasonograficzne",
+                    new BigDecimal("200.00"), 45, PerformerType.DOCTOR);
+            catalog.service(diagnostics, "Pobranie krwi", "Pobranie krwi żylnej",
+                    new BigDecimal("40.00"), 15, PerformerType.MEDICAL_STAFF);
 
             Employee first = employee(domain, "lekarz1", EmployeeType.DOCTOR, clinic.firstDoctor(), "Interna");
             Employee second = employee(domain, "lekarz2", EmployeeType.DOCTOR, clinic.secondDoctor(), "Pediatria");
@@ -152,6 +160,8 @@ class SeedRunner implements ApplicationRunner {
                         patientIds.getFirst()), reception);
             }
             log.info("Seed: placówka {} utworzona (konta: admin@{} i inne, hasło z seed.password)", clinic.slug(), domain);
+        } finally {
+            SecurityContextHolder.clearContext();
         }
     }
 
