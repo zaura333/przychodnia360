@@ -14,6 +14,7 @@ import org.springframework.transaction.annotation.Transactional;
 import pl.przychodnia360.common.web.PageResponse;
 import pl.przychodnia360.patients.api.PatientFacade;
 import pl.przychodnia360.patients.api.PatientRegistered;
+import pl.przychodnia360.patients.api.PatientUpdated;
 import pl.przychodnia360.patients.domain.Patient;
 import pl.przychodnia360.shared.DomainEventPublisher;
 import pl.przychodnia360.shared.Ids;
@@ -76,6 +77,7 @@ public class PatientService implements PatientFacade {
     public Patient updateContactEmail(UUID id, String email) {
         Patient updated = get(id).withContactEmail(blankToNull(email));
         repository.update(updated);
+        events.publish(new PatientUpdated(TenantContext.requireTenant().value(), id, clock.instant()));
         return repository.findById(id).orElseThrow();
     }
 

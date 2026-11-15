@@ -11,6 +11,8 @@ import org.springframework.test.context.event.RecordApplicationEvents;
 import pl.przychodnia360.AbstractApiTest;
 import pl.przychodnia360.patients.api.PatientFacade;
 import pl.przychodnia360.patients.api.PatientRegistered;
+import pl.przychodnia360.patients.api.PatientUpdated;
+import pl.przychodnia360.patients.application.PatientService;
 
 /** 0R.6: zdarzenie domenowe trafia do procesu po commit i niesie tylko identyfikatory. */
 @RecordApplicationEvents
@@ -22,6 +24,9 @@ class PatientRegisteredEventTest extends AbstractApiTest {
     @Autowired
     ApplicationEvents events;
 
+    @Autowired
+    PatientService patientService;
+
     @Test
     void publishesPatientRegisteredAfterCommit() {
         UUID tenant = newTenant();
@@ -32,6 +37,20 @@ class PatientRegisteredEventTest extends AbstractApiTest {
             assertThat(e.tenantId()).isEqualTo(tenant);
             assertThat(e.aggregateId()).isEqualTo(patientId);
             assertThat(e.toString()).doesNotContain("Anna", "Nowak");
+        });
+    }
+
+    @Test
+    void publishesPatientUpdatedWithoutPersonalData() {
+        UUID tenant = newTenant();
+        UUID patientId = inTenantResult(tenant,
+                () -> patientsApi.create("Anna", "Nowak", LocalDate.of(1990, 1, 1), null));
+        inTenantResult(tenant, () -> patientService.updateContactEmail(patientId, "anna@example.test"));
+
+        assertThat(events.stream(PatientUpdated.class)).singleElement().satisfies(e -> {
+            assertThat(e.tenantId()).isEqualTo(tenant);
+            assertThat(e.aggregateId()).isEqualTo(patientId);
+            assertThat(e.toString()).doesNotContain("anna@example.test", "Nowak");
         });
     }
 }
