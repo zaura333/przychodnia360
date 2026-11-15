@@ -22,7 +22,9 @@ import tools.jackson.databind.node.ObjectNode;
 public final class OpenApiSplitter {
 
     private static final Pattern REF = Pattern.compile("#/components/([A-Za-z]+)/([^\"]+)");
-    private static final JsonMapper MAPPER = JsonMapper.builder().build();
+    // liczby dziesiętne jako BigDecimal, żeby zachować zapis z eksportu (np. 0.00, a nie 0.0)
+    private static final JsonMapper MAPPER = JsonMapper.builder()
+            .enable(tools.jackson.databind.DeserializationFeature.USE_BIG_DECIMAL_FOR_FLOATS).build();
 
     private OpenApiSplitter() {
     }
@@ -44,14 +46,31 @@ public final class OpenApiSplitter {
         return result;
     }
 
+    /**
+     * Kontrakt z samymi ścieżkami spełniającymi {@code keep} i komponentami osiągalnymi z nich (np. eksport usługi bez
+     * ścieżek wewnętrznych {@code /api/v1/internal/**}: ich schematy nie trafiają do kontraktu publicznego).
+     */
+    public static ObjectNode filterPaths(JsonNode spec, java.util.function.Predicate<String> keep) {
+        return build(spec, keep, null);
+    }
+
     private static ObjectNode forService(JsonNode aggregate, RoutingTable routing, String service) {
+        return build(aggregate, path -> {
+            String owner = routing.serviceFor(path);
+            return owner.equals(service) || owner.equals(RoutingTable.EVERY);
+        }, service);
+    }
+
+    private static ObjectNode build(JsonNode aggregate, java.util.function.Predicate<String> keep, String service) {
         ObjectNode out = MAPPER.createObjectNode();
         for (Map.Entry<String, JsonNode> field : aggregate.properties()) {
             switch (field.getKey()) {
                 case "paths", "components" -> { /* składane poniżej */ }
                 case "info" -> {
                     ObjectNode info = ((ObjectNode) field.getValue()).deepCopy();
-                    info.put("title", info.path("title").asString("API") + " (" + service + ")");
+                    if (service != null) {
+                        info.put("title", info.path("title").asString("API") + " (" + service + ")");
+                    }
                     out.set("info", info);
                 }
                 default -> out.set(field.getKey(), field.getValue().deepCopy());
@@ -59,8 +78,7 @@ public final class OpenApiSplitter {
         }
         ObjectNode paths = MAPPER.createObjectNode();
         for (Map.Entry<String, JsonNode> path : aggregate.path("paths").properties()) {
-            String owner = routing.serviceFor(path.getKey());
-            if (owner.equals(service) || owner.equals(RoutingTable.EVERY)) {
+            if (keep.test(path.getKey())) {
                 paths.set(path.getKey(), path.getValue().deepCopy());
             }
         }

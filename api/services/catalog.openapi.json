@@ -437,7 +437,7 @@
           },
           "price" : {
             "type" : "number",
-            "minimum" : 0.0
+            "minimum" : 0.00
           }
         },
         "required" : [ "categoryId", "name", "performerType", "price" ]
