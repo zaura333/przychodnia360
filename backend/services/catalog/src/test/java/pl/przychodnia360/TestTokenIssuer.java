@@ -74,9 +74,14 @@ final class TestTokenIssuer {
 
     /** Token dostępu użytkownika o roli w placówce (jak z iam: sub, tid, role, iat, exp). */
     static String token(UUID tenantId, Role role) {
+        return token(tenantId, role, UUID.randomUUID());
+    }
+
+    /** Token konkretnego użytkownika (znany identyfikator, np. do testu odwołania dostępu). */
+    static String token(UUID tenantId, Role role, UUID userId) {
         Instant now = Instant.now();
         JWTClaimsSet.Builder claims = new JWTClaimsSet.Builder().issuer("przychodnia360")
-                .subject(UUID.randomUUID().toString()).issueTime(Date.from(now))
+                .subject(userId.toString()).issueTime(Date.from(now))
                 .expirationTime(Date.from(now.plusSeconds(600))).claim("role", role.name());
         if (tenantId != null) {
             claims.claim("tid", tenantId.toString());

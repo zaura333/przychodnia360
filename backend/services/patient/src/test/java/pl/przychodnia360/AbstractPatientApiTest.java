@@ -46,6 +46,10 @@ public abstract class AbstractPatientApiTest extends PostgresIntegrationTest {
         return TestTokenIssuer.token(tenantId, role, patientId);
     }
 
+    protected String tokenForUser(UUID tenantId, UUID userId) {
+        return TestTokenIssuer.token(tenantId, Role.PATIENT, UUID.randomUUID(), userId);
+    }
+
     protected <T> T inTenantResult(UUID tenantId, java.util.function.Supplier<T> action) {
         try (var h = TenantContext.open(new TenantId(tenantId))) {
             return tx.execute(s -> action.get());
