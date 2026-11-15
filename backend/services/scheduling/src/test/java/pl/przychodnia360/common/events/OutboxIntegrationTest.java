@@ -13,7 +13,7 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import pl.przychodnia360.AbstractApiTest;
 import pl.przychodnia360.RecordingEventTransport;
-import pl.przychodnia360.appointments.api.AppointmentCancelled;
+import pl.przychodnia360.appointments.api.event.AppointmentCancelled;
 
 /** Fala 1.3: outbox zapisuje zdarzenie w transakcji, przekaźnik publikuje po kolei, inbox odrzuca duplikaty. */
 class OutboxIntegrationTest extends AbstractApiTest {

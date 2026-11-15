@@ -10,8 +10,8 @@ import org.springframework.test.context.event.ApplicationEvents;
 import org.springframework.test.context.event.RecordApplicationEvents;
 import pl.przychodnia360.AbstractPatientApiTest;
 import pl.przychodnia360.patients.api.PatientFacade;
-import pl.przychodnia360.patients.api.PatientRegistered;
-import pl.przychodnia360.patients.api.PatientUpdated;
+import pl.przychodnia360.patients.api.event.PatientRegistered;
+import pl.przychodnia360.patients.api.event.PatientUpdated;
 import pl.przychodnia360.patients.application.PatientService;
 
 /** 0R.6: zdarzenie domenowe trafia do procesu po commit i niesie tylko identyfikatory. */

@@ -1,4 +1,4 @@
-package pl.przychodnia360.catalog.api;
+package pl.przychodnia360.catalog.api.event;
 
 import java.math.BigDecimal;
 import java.time.Instant;

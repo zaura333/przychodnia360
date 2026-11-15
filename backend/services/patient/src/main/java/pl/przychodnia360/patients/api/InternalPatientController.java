@@ -2,10 +2,6 @@ package pl.przychodnia360.patients.api;
 
 import io.swagger.v3.oas.annotations.Operation;
 import jakarta.validation.Valid;
-import jakarta.validation.constraints.NotBlank;
-import jakarta.validation.constraints.NotNull;
-import jakarta.validation.constraints.Past;
-import java.time.LocalDate;
 import java.util.Collection;
 import java.util.List;
 import java.util.UUID;
@@ -20,6 +16,8 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 import pl.przychodnia360.patients.api.PatientFacade.PatientInfo;
+import pl.przychodnia360.patients.api.dto.EnsureRequest;
+import pl.przychodnia360.patients.api.dto.LinkAccountRequest;
 import pl.przychodnia360.shared.NotFoundException;
 import pl.przychodnia360.shared.ValidationException;
 
@@ -32,13 +30,6 @@ import pl.przychodnia360.shared.ValidationException;
 public class InternalPatientController {
 
     private static final int MAX_IDS = 200;
-
-    public record EnsureRequest(@NotBlank String firstName, @NotBlank String lastName, @NotNull @Past LocalDate birthDate,
-            String contactEmail, UUID userId) {
-    }
-
-    public record LinkAccountRequest(@NotNull UUID userId) {
-    }
 
     private final PatientFacade patients;
 

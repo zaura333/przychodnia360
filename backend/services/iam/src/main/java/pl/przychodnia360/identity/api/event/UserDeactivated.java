@@ -1,4 +1,4 @@
-package pl.przychodnia360.identity.api;
+package pl.przychodnia360.identity.api.event;
 
 import java.time.Instant;
 import java.util.UUID;

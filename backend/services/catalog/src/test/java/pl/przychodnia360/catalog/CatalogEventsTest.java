@@ -10,9 +10,9 @@ import org.springframework.test.context.event.ApplicationEvents;
 import org.springframework.test.context.event.RecordApplicationEvents;
 import pl.przychodnia360.AbstractCatalogApiTest;
 import pl.przychodnia360.catalog.api.PerformerType;
-import pl.przychodnia360.catalog.api.ServiceCreated;
-import pl.przychodnia360.catalog.api.ServiceDeactivated;
-import pl.przychodnia360.catalog.api.ServiceUpdated;
+import pl.przychodnia360.catalog.api.event.ServiceCreated;
+import pl.przychodnia360.catalog.api.event.ServiceDeactivated;
+import pl.przychodnia360.catalog.api.event.ServiceUpdated;
 import pl.przychodnia360.catalog.application.ServiceCatalogService;
 import pl.przychodnia360.catalog.application.ServiceCatalogService.ServiceCommand;
 

@@ -5,13 +5,11 @@ import java.util.List;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RestController;
 import pl.przychodnia360.common.security.PublicEndpoint;
+import pl.przychodnia360.tenant.api.dto.FacilityResponse;
 import pl.przychodnia360.tenant.application.FacilityQueryService;
 
 @RestController
 public class FacilityController {
-
-    public record FacilityResponse(String slug, String name) {
-    }
 
     private final FacilityQueryService service;
 

@@ -15,6 +15,7 @@ import org.slf4j.MDC;
 import org.springframework.beans.factory.annotation.Autowired;
 import pl.przychodnia360.AbstractApiTest;
 import pl.przychodnia360.RecordingEventTransport;
+import pl.przychodnia360.identity.api.event.UserDeactivated;
 
 /**
  * Fala 1.6: jeden traceId łączy żądanie HTTP, zdarzenie w outboxie, kopertę wysłaną przez przekaźnik i obsługę

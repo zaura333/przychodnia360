@@ -14,7 +14,7 @@ spring:
       connection-timeout: 3000
   flyway:
     # Migracje jako właściciel schematu (p360_owner), osobne poświadczenia niż aplikacja
-    url: ${FLYWAY_URL:${DB_URL:jdbc:postgresql://localhost:5432/p360}}
+    url: ${FLYWAY_URL:${DB_URL:jdbc:postgresql://localhost:5432/p360_catalog}}
     user: p360_catalog_owner
     password: ${P360_CATALOG_OWNER_PASSWORD}
     placeholders:

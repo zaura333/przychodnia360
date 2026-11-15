@@ -2,12 +2,6 @@ package pl.przychodnia360.patients.api;
 
 import io.swagger.v3.oas.annotations.Operation;
 import jakarta.validation.Valid;
-import jakarta.validation.constraints.Email;
-import jakarta.validation.constraints.NotBlank;
-import jakarta.validation.constraints.NotNull;
-import jakarta.validation.constraints.PastOrPresent;
-import jakarta.validation.constraints.Size;
-import java.time.LocalDate;
 import java.util.UUID;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
@@ -22,35 +16,16 @@ import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 import pl.przychodnia360.common.web.PageResponse;
 import pl.przychodnia360.common.security.AuthenticatedUser;
+import pl.przychodnia360.patients.api.dto.ContactRequest;
+import pl.przychodnia360.patients.api.dto.CreatePatientRequest;
+import pl.przychodnia360.patients.api.dto.PatientResponse;
+import pl.przychodnia360.patients.api.dto.SearchRequest;
 import pl.przychodnia360.patients.application.PatientService;
-import pl.przychodnia360.patients.domain.Patient;
 import pl.przychodnia360.shared.NotFoundException;
 
 /** Dane pacjenta: własne (PATIENT) i zarządzane przez rejestratora (FR-17, FR-38, FR-50). */
 @RestController
 public class PatientController {
-
-    public record PatientResponse(UUID id, String firstName, String lastName, LocalDate birthDate,
-            String contactEmail, boolean hasAccount) {
-
-        static PatientResponse of(Patient p) {
-            return new PatientResponse(p.id(), p.firstName(), p.lastName(), p.birthDate(), p.contactEmail(),
-                    p.userId() != null);
-        }
-    }
-
-    public record ContactRequest(@Email @Size(max = 254) String contactEmail) {
-    }
-
-    public record CreatePatientRequest(
-            @NotBlank @Size(max = 100) String firstName,
-            @NotBlank @Size(max = 100) String lastName,
-            @NotNull @PastOrPresent LocalDate birthDate,
-            @Email @Size(max = 254) String contactEmail) {
-    }
-
-    public record SearchRequest(@NotBlank @Size(max = 200) String query, Integer page, Integer size) {
-    }
 
     private final PatientService service;
 

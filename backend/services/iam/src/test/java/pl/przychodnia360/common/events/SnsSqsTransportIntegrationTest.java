@@ -17,6 +17,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.transaction.PlatformTransactionManager;
 import org.testcontainers.localstack.LocalStackContainer;
 import pl.przychodnia360.AbstractApiTest;
+import pl.przychodnia360.identity.api.event.UserDeactivated;
 import software.amazon.awssdk.auth.credentials.AwsBasicCredentials;
 import software.amazon.awssdk.auth.credentials.StaticCredentialsProvider;
 import software.amazon.awssdk.regions.Region;

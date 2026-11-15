@@ -10,26 +10,15 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
+import pl.przychodnia360.catalog.api.dto.CategoryResponse;
+import pl.przychodnia360.catalog.api.dto.ServiceResponse;
 import pl.przychodnia360.catalog.application.CatalogRepository.ServiceFilter;
 import pl.przychodnia360.catalog.application.ServiceCatalogService;
-import pl.przychodnia360.catalog.domain.MedicalService;
 import pl.przychodnia360.common.web.PageResponse;
 
 /** Odczyt katalogu: usługi (filtry, FR-02, FR-22) i kategorie. */
 @RestController
 public class ServiceController {
-
-    public record ServiceResponse(UUID id, UUID categoryId, String name, String description, BigDecimal price,
-            int durationMinutes, PerformerType performerType, boolean active) {
-
-        static ServiceResponse of(MedicalService s) {
-            return new ServiceResponse(s.id(), s.categoryId(), s.name(), s.description(), s.price(),
-                    s.durationMinutes(), s.performerType(), s.active());
-        }
-    }
-
-    public record CategoryResponse(UUID id, String name) {
-    }
 
     private final ServiceCatalogService service;
 

@@ -12,8 +12,9 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import pl.przychodnia360.shared.NotFoundException;
-import pl.przychodnia360.staff.api.StaffDtos.ScheduleResponse;
-import pl.przychodnia360.staff.api.StaffDtos.WeeklyEntryResponse;
+import pl.przychodnia360.staff.api.dto.DoctorResponse;
+import pl.przychodnia360.staff.api.dto.ScheduleResponse;
+import pl.przychodnia360.staff.api.dto.WeeklyEntryResponse;
 import pl.przychodnia360.staff.application.EmployeeService;
 import pl.przychodnia360.staff.application.ScheduleService;
 import pl.przychodnia360.staff.domain.Employee;
@@ -21,10 +22,6 @@ import pl.przychodnia360.staff.domain.Employee;
 /** Lista lekarzy i ich grafiki dla pacjentów i rejestratorów (FR-39). */
 @RestController
 public class DoctorController {
-
-    public record DoctorResponse(UUID id, String firstName, String lastName, String specialization,
-            List<WeeklyEntryResponse> weekly) {
-    }
 
     private final EmployeeService employees;
     private final ScheduleService schedules;

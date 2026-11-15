@@ -11,6 +11,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.transaction.support.TransactionTemplate;
 import pl.przychodnia360.common.security.Role;
+import pl.przychodnia360.identity.api.event.UserDeactivated;
 import pl.przychodnia360.identity.application.PasswordHasher;
 import pl.przychodnia360.identity.application.UserRepository;
 import pl.przychodnia360.identity.domain.User;
@@ -53,7 +54,7 @@ public abstract class AbstractApiTest extends AbstractIntegrationTest {
      */
     protected UUID publishSampleEvent() {
         UUID aggregate = UUID.randomUUID();
-        domainEvents.publish(new pl.przychodnia360.identity.api.UserDeactivated(TenantContext.requireTenant().value(),
+        domainEvents.publish(new pl.przychodnia360.identity.api.event.UserDeactivated(TenantContext.requireTenant().value(),
                 aggregate, java.time.Instant.now()));
         return aggregate;
     }
