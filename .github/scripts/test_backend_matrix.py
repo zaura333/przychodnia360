@@ -7,7 +7,7 @@ import unittest
 sys.path.insert(0, os.path.dirname(__file__))
 import backend_matrix as bm  # noqa: E402
 
-TWO = ['scheduling', 'notification-service']
+TWO = ['notification-service', 'scheduling']
 ONE = ['scheduling']
 
 
@@ -26,7 +26,7 @@ class PlanTest(unittest.TestCase):
 
     def test_changes_in_two_services_build_both_without_platform(self):
         r = bm.plan(['backend/services/notification-service/pom.xml', 'backend/services/scheduling/x.yml'], TWO)
-        self.assertEqual(r, {'run': True, 'platform': False, 'services': ['scheduling', 'notification-service']})
+        self.assertEqual(r, {'run': True, 'platform': False, 'services': ['notification-service', 'scheduling']})
 
     def test_a_platform_change_builds_every_service_and_the_platform(self):
         r = bm.plan(['backend/platform/p360-platform-starter/src/main/java/A.java'], TWO)
