@@ -3,7 +3,7 @@
 # Tworzy rolę właściciela (Flyway) i bazę aplikacji. Role aplikacyjne (np. p360_app), RLS i rozszerzenia
 # należą do migracji Flyway (V1+), nie do tego skryptu.
 #
-# 1) Baza główna (clinic-core): P360_DB_NAME i P360_OWNER_PASSWORD, rola p360_owner (jak dotąd, w tym w testach).
+# 1) Baza główna (scheduling, dawniej clinic-core): P360_DB_NAME i P360_OWNER_PASSWORD, rola p360_owner (jak dotąd, w tym w testach).
 # 2) Baza per usługa (zadanie 1.10): P360_SERVICE_DATABASES to lista nazw usług rozdzielona przecinkami, np.
 #    "notification,integration-hub". Dla usługi <nazwa> powstają baza p360_<nazwa> i rola p360_<nazwa>_owner
 #    z hasłem ze zmiennej P360_<NAZWA>_OWNER_PASSWORD (litery wielkie, "-" zamienione na "_"). Własności:

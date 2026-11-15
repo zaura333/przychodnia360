@@ -28,5 +28,7 @@ public enum Permission {
     /** Wewnętrzny odczyt pacjentów przez inne usługi (tylko SERVICE). */
     PATIENT_INTERNAL_READ,
     /** Wewnętrzny zapis pacjentów przez inne usługi, np. saga rejestracji (tylko SERVICE). */
-    PATIENT_INTERNAL_WRITE
+    PATIENT_INTERNAL_WRITE,
+    /** Wewnętrzne operacje na kontach w iam, np. saga zakładania pracownika (tylko SERVICE). */
+    IDENTITY_INTERNAL_WRITE
 }

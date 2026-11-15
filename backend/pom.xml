@@ -21,10 +21,11 @@
     <module>platform/p360-shared-core</module>
     <module>platform/p360-platform-starter</module>
     <module>platform/p360-test-support</module>
-    <!-- clinic-core na końcu: jego eksport przelicza agregat api/openapi.json z eksportów wszystkich usług -->
+    <!-- scheduling na końcu: jego eksport przelicza agregat api/openapi.json z eksportów wszystkich usług -->
     <module>services/catalog</module>
     <module>services/patient</module>
-    <module>services/clinic-core</module>
+    <module>services/iam</module>
+    <module>services/scheduling</module>
   </modules>
 
   <properties>

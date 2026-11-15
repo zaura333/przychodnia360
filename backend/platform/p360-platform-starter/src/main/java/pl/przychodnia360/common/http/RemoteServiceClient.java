@@ -79,6 +79,10 @@ public class RemoteServiceClient {
         return call(() -> client.post().uri(uri, vars).headers(h -> authorize(h)).body(body).retrieve().body(type));
     }
 
+    public <T> T put(String uri, Object body, Class<T> type, Object... vars) {
+        return call(() -> client.put().uri(uri, vars).headers(h -> authorize(h)).body(body).retrieve().body(type));
+    }
+
     public void put(String uri, Object body, Object... vars) {
         call(() -> client.put().uri(uri, vars).headers(h -> authorize(h)).body(body).retrieve().toBodilessEntity());
     }

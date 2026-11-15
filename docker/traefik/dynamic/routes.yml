@@ -104,11 +104,11 @@ http:
     every:
       loadBalancer:
         servers:
-          - url: "http://backend:8080"
+          - url: "http://scheduling:8080"
     iam:
       loadBalancer:
         servers:
-          - url: "http://backend:8080"
+          - url: "http://iam:8080"
     patient:
       loadBalancer:
         servers:
@@ -116,4 +116,4 @@ http:
     scheduling:
       loadBalancer:
         servers:
-          - url: "http://backend:8080"
+          - url: "http://scheduling:8080"

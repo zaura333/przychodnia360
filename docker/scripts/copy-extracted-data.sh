@@ -1,12 +1,13 @@
 #!/bin/sh
-# Jednorazowe kopiowanie danych wydzielonych modułów (S1 katalog, S2 pacjenci) z bazy głównej clinic-core do baz usług
-# (p360_catalog, p360_patient). Dotyczy środowisk, które mają dane w starych tabelach (service_categories, services,
-# patients) sprzed wydzielenia; środowiska z danymi z seedu można po prostu zresetować (docker compose down -v).
+# Jednorazowe kopiowanie danych wydzielonych modułów (S1 katalog, S2 pacjenci, S3 konta i placówki) z bazy głównej
+# clinic-core (dziś scheduling) do baz usług (p360_catalog, p360_patient, p360_iam). Dotyczy środowisk, które mają dane w starych tabelach
+# (service_categories, services, patients, tenants, users, tokeny) sprzed wydzielenia; środowiska z danymi z seedu można po prostu zresetować (docker compose down -v).
 #
-# Migracja V12 w clinic-core odmawia usunięcia tabel, które mają wiersze, więc kolejność jest taka:
+# Dla S3 uruchom iam pierwszy raz z SEED_ENABLED=false (inaczej seed iam założy placówki z innymi identyfikatorami, a
+# skrypt odmówi nadpisania). Migracje V12 i V13 w scheduling odmawiają usunięcia tabel, które mają wiersze, więc kolejność jest taka:
 #   1. uruchom bazy i usługi catalog oraz patient (ich migracje tworzą tabele docelowe),
 #   2. uruchom ten skrypt (kopiuje, sprawdza liczności; dodaj CLEAR_SOURCE=yes, żeby opróżnić tabele źródłowe),
-#   3. uruchom clinic-core: migracja V12 usunie puste tabele.
+#   3. uruchom scheduling: migracje V12 i V13 usuną puste tabele.
 #
 # Uruchomienie z korzenia repozytorium (skrypt działa wewnątrz kontenera postgres jako superużytkownik, który omija RLS):
 #   docker compose exec -T postgres sh -s < docker/scripts/copy-extracted-data.sh
@@ -66,11 +67,16 @@ copy_table() { # <tabela> <baza docelowa>
 copy_table service_categories p360_catalog
 copy_table services p360_catalog
 copy_table patients p360_patient
+# placówki przed kontami, konta przed tokenami (klucze obce wewnątrz iam)
+copy_table tenants p360_iam
+copy_table users p360_iam
+copy_table refresh_tokens p360_iam
+copy_table password_reset_tokens p360_iam
 
 if [ "${CLEAR_SOURCE:-no}" = "yes" ]; then
   # jedno polecenie TRUNCATE: PostgreSQL nie pozwala opróżnić tabeli, do której odwołuje się klucz obcy, osobno
   tables=""
-  for table in services service_categories patients; do
+  for table in services service_categories patients password_reset_tokens refresh_tokens users tenants; do
     if exists "$SOURCE_DB" "$table"; then
       tables="${tables:+$tables, }public.$table"
     fi
@@ -79,7 +85,7 @@ if [ "${CLEAR_SOURCE:-no}" = "yes" ]; then
     psql -U "$USER_NAME" -d "$SOURCE_DB" -v ON_ERROR_STOP=1 -q -c "TRUNCATE $tables"
     echo "Opróżniono źródło: $tables"
   fi
-  echo "Gotowe: clinic-core z migracją V12 usunie puste tabele przy starcie."
+  echo "Gotowe: scheduling z migracjami V12 i V13 usunie puste tabele przy starcie."
 else
   echo "Skopiowano. Źródło nietknięte: uruchom ponownie z CLEAR_SOURCE=yes po sprawdzeniu danych w usługach."
 fi
