@@ -39,7 +39,7 @@ curl http://localhost:8080/api/v1/health
 
 **Pierwszy administrator platformy** (bez migracji i bez hasła w repozytorium): jednorazowe uruchomienie z profilem `bootstrap-admin`, np. `BOOTSTRAP_ADMIN_EMAIL=root@platform.example.test BOOTSTRAP_ADMIN_PASSWORD=... java -jar services/clinic-core/target/clinic-core.jar --spring.profiles.active=local,bootstrap-admin`. Konto powstaje idempotentnie, po czym proces kończy pracę.
 
-Po zmianie endpointów `./mvnw verify` aktualizuje `api/openapi.json`; plik trzeba zatwierdzić (CI sprawdza zgodność). Konwencje bazy: `docs/db-conventions.md`.
+Po zmianie endpointów `./mvnw verify` aktualizuje eksport usługi (`api/exports/<usługa>.json`) i agregat `api/openapi.json` (składany z eksportów usług, ADR-M16); pliki trzeba zatwierdzić (CI sprawdza zgodność). Konwencje bazy: `docs/db-conventions.md`.
 
 **Lista kontrolna: nowa tabela danych placówki**
 - migracja `V<n>__opis.sql` z `tenant_id`, `ENABLE` i `FORCE ROW LEVEL SECURITY` oraz polityką `tenant_id = app_tenant_id()` (wzorzec w `docs/db-conventions.md`),

@@ -4,7 +4,7 @@ Frontend woła jedno API pod `/api/v1/...`, a krawędź kieruje żądania do wł
 
 - `routing-table.csv`: **źródło prawdy** (wzorzec ścieżki → usługa logiczna). Wzorzec `/x/**` obejmuje `/x` i wszystko pod nim; wzorzec bez `**` to dokładna ścieżka. Z tej tabeli powstaje konfiguracja Traefika (lokalnie) i, później, reguły ALB (AWS).
 - `upstreams.csv`: adres każdej usługi logicznej w sieci compose. Dziś `catalog` i `patient` wskazują własne usługi (S1, S2), a pozostałe monolit `backend` (`clinic-core`); po wycięciu kolejnej usługi zmienia się tylko jej wiersz. W AWS (Traefik jako zadanie Fargate za wewnętrznym NLB, D-048) adresy będą nazwami z Cloud Map w osobnym `upstreams.aws.csv`; reguły (`routing-table.csv`) są wspólne. Tego pliku i modułu Terraform jeszcze nie ma.
-- `../traefik/dynamic/routes.yml`: **plik wygenerowany**, nie edytuj ręcznie. Test `EdgeRoutesTest` sprawdza, że jest zgodny z tabelami, a `RoutingTableConsistencyTest`, że każda ścieżka z `api/openapi.json` ma dokładnie jedną regułę.
+- `../traefik/dynamic/routes.yml`: **plik wygenerowany**, nie edytuj ręcznie. Test `EdgeRoutesTest` sprawdza, że jest zgodny z tabelami, a `RoutingTableConsistencyTest`, że każda ścieżka z agregatu `api/openapi.json` (składanego z eksportów usług, ADR-M16) ma dokładnie jedną regułę.
 
 Regeneracja po zmianie tabel (z katalogu `backend`, Bash):
 

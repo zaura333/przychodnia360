@@ -68,13 +68,10 @@ services:
       P360_APP_PASSWORD: ${P360_APP_PASSWORD:?ustaw w .env (skopiuj .env.example)}
       SPRING_MAIL_HOST: mailpit
       SPRING_MAIL_PORT: "1025"
-      # Katalog wydzielony (S1, ADR-M14): fasada katalogu woła catalog-service przez REST, a seed zakłada katalog
-      # przez jego API. Odwrócenie: P360_CATALOG_MODE=local i upstream `catalog` w docker/edge/upstreams.csv na backend.
-      P360_CATALOG_MODE: remote
+      # Katalog i pacjenci to osobne usługi (S1 ADR-M14, S2): clinic-core woła je przez REST z tokenem usługowym iam
+      # (moduły zostały usunięte z clinic-core, migracja V12), a seed zakłada katalog przez API catalog i pacjentów
+      # przez sagę rejestracji. Adresy w sieci compose (z IDE: domyślnie localhost:8082 i localhost:8083).
       P360_CATALOG_URL: http://catalog:8080
-      # Pacjenci wydzieleni (S2): odczyt przez REST, rejestracja jako saga z tokenem usługowym iam.
-      # Odwrócenie: P360_PATIENT_MODE=local i upstream `patient` w docker/edge/upstreams.csv na backend.
-      P360_PATIENT_MODE: remote
       P360_PATIENT_URL: http://patient:8080
     ports:
       - "127.0.0.1:${BACKEND_PORT:-8080}:8080"

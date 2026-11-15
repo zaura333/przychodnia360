@@ -21,7 +21,6 @@ import org.springframework.stereotype.Component;
 import org.springframework.transaction.support.TransactionTemplate;
 import pl.przychodnia360.appointments.application.BookingService;
 import pl.przychodnia360.appointments.application.BookingService.BookCommand;
-import pl.przychodnia360.catalog.api.PerformerType;
 import pl.przychodnia360.identity.infrastructure.JwtService;
 import pl.przychodnia360.common.time.ClinicTime;
 import pl.przychodnia360.common.security.AuthenticatedUser;
@@ -127,13 +126,13 @@ class SeedRunner implements ApplicationRunner {
             UUID consultations = catalog.category("Konsultacje");
             UUID diagnostics = catalog.category("Diagnostyka");
             UUID consult = catalog.service(consultations, "Konsultacja lekarska", "Konsultacja ogólna",
-                    new BigDecimal("150.00"), 30, PerformerType.DOCTOR);
+                    new BigDecimal("150.00"), 30, "DOCTOR");
             catalog.service(consultations, "Konsultacja kontrolna", "Wizyta kontrolna",
-                    new BigDecimal("100.00"), 15, PerformerType.DOCTOR);
+                    new BigDecimal("100.00"), 15, "DOCTOR");
             catalog.service(diagnostics, "USG", "Badanie ultrasonograficzne",
-                    new BigDecimal("200.00"), 45, PerformerType.DOCTOR);
+                    new BigDecimal("200.00"), 45, "DOCTOR");
             catalog.service(diagnostics, "Pobranie krwi", "Pobranie krwi żylnej",
-                    new BigDecimal("40.00"), 15, PerformerType.MEDICAL_STAFF);
+                    new BigDecimal("40.00"), 15, "MEDICAL_STAFF");
 
             Employee first = employee(domain, "lekarz1", EmployeeType.DOCTOR, clinic.firstDoctor(), "Interna");
             Employee second = employee(domain, "lekarz2", EmployeeType.DOCTOR, clinic.secondDoctor(), "Pediatria");

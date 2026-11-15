@@ -24,6 +24,13 @@ class SeedRunnerTest extends AbstractApiTest {
         return r.json().get("accessToken").asString();
     }
 
+    private java.util.UUID tenantIdOf(String slug) {
+        try (var h = pl.przychodnia360.shared.TenantContext.openWithoutTenant()) {
+            return tx.execute(s -> jdbc.sql("SELECT id FROM tenants WHERE slug = ?").param(slug)
+                    .query(java.util.UUID.class).single());
+        }
+    }
+
     @Test
     void seedCreatesTwoClinicsWithLoginsForEveryRoleAndIsIdempotent() throws Exception {
         seed.run(null);
@@ -39,7 +46,8 @@ class SeedRunnerTest extends AbstractApiTest {
             String patient = login(slug, "pacjent1@" + domain);
 
             assertThat(fetch("/api/v1/doctors", patient).json()).hasSize(2);
-            assertThat(fetch("/api/v1/services", patient).json().get("total").asLong()).isEqualTo(4);
+            assertThat(fakeCatalog.servicesOf(tenantIdOf(slug))).as("katalog z seedu w " + slug).hasSize(4);
+            assertThat(fakePatients.patientsOf(tenantIdOf(slug))).as("pacjenci z seedu w " + slug).hasSize(4);
             assertThat(fetch("/api/v1/admin/employees", admin).json()).hasSize(4);
             LocalDate from = LocalDate.now();
             Resp terminarz = fetch("/api/v1/reception/appointments?from=" + from + "&to=" + from.plusDays(7), reception);

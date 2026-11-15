@@ -4,7 +4,6 @@ import java.time.Clock;
 import java.time.Duration;
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.web.client.RestClient;
@@ -16,7 +15,7 @@ import pl.przychodnia360.common.http.CircuitBreaker;
 import pl.przychodnia360.common.http.RemoteServiceClient;
 
 /**
- * Klienty do wydzielonych usług (S1, S2). Każdy powstaje tylko w trybie zdalnym ({@code p360.<usługa>.mode=remote});
+ * Klienty do wydzielonych usług (S1, S2) z adresami {@code p360.<usługa>.url};
  * limity czasu i wyłącznik obwodu są konfigurowalne ({@code p360.<usługa>.connect-timeout|read-timeout|
  * failure-threshold|open-for}).
  */
@@ -35,7 +34,6 @@ class RemoteServicesConfig {
     }
 
     @Bean
-    @ConditionalOnProperty(name = "p360.catalog.mode", havingValue = "remote")
     RemoteServiceClient catalogClient(@Value("${p360.catalog.url}") String url,
             @Value("${p360.catalog.connect-timeout:PT0.5S}") Duration connect,
             @Value("${p360.catalog.read-timeout:PT2S}") Duration read,
@@ -47,7 +45,6 @@ class RemoteServicesConfig {
     }
 
     @Bean
-    @ConditionalOnProperty(name = "p360.patient.mode", havingValue = "remote")
     RemoteServiceClient patientClient(@Value("${p360.patient.url}") String url,
             @Value("${p360.patient.connect-timeout:PT0.5S}") Duration connect,
             @Value("${p360.patient.read-timeout:PT2S}") Duration read,

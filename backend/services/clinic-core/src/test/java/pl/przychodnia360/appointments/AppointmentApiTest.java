@@ -80,15 +80,12 @@ class AppointmentApiTest extends AbstractAppointmentTest {
         assertThat(bookAsPatient("15:45").status()).as("wizyta wychodzi poza dyżur").isEqualTo(422);
         assertThat(bookAsPatient("09:10").status()).as("poza siatką").isEqualTo(422);
         // lekarz nie wykona usługi personelu medycznego
-        String cat = fetch("/api/v1/service-categories", admin).json().get(0).get("id").asString();
-        String nurseService = call("POST", "/api/v1/admin/services", admin, "{\"categoryId\":\"" + cat
-                + "\",\"name\":\"Pobranie\",\"price\":10,\"durationMinutes\":15,\"performerType\":\"MEDICAL_STAFF\"}")
-                .json().get("id").asString();
+        String nurseService = fakeCatalog.add(tenant, "Pobranie", new java.math.BigDecimal("10"), 15, "MEDICAL_STAFF").toString();
         assertThat(call("POST", "/api/v1/appointments", patient.token(), "{\"serviceId\":\"" + nurseService
                 + "\",\"employeeId\":\"" + doctorId + "\",\"startAt\":\"" + at("09:00") + "\"}").status())
                 .as("wykonawca niezgodny z usługą").isEqualTo(422);
         // nieaktywna usługa
-        call("DELETE", "/api/v1/admin/services/" + serviceId, admin, null);
+        fakeCatalog.deactivate(tenant, java.util.UUID.fromString(serviceId));
         assertThat(bookAsPatient("09:00").status()).as("usługa nieaktywna").isEqualTo(422);
     }
 

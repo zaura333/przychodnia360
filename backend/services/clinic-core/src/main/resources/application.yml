@@ -53,6 +53,12 @@ management:
         enabled: false
 
 p360:
+  # Wydzielone usługi (S1, S2): adresy domyślne dla uruchomienia z IDE (porty publikowane przez compose); w compose
+  # nadpisywane zmiennymi P360_CATALOG_URL i P360_PATIENT_URL (nazwy usług w sieci compose)
+  catalog:
+    url: ${P360_CATALOG_URL:http://localhost:8082}
+  patient:
+    url: ${P360_PATIENT_URL:http://localhost:8083}
   events:
     relay:
       # Przekaźnik outboxu (fala 1.3); bez brokera zdarzenia są tylko logowane (LoggingEventTransport)

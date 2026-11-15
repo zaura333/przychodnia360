@@ -32,6 +32,9 @@ public abstract class AbstractApiTest extends AbstractIntegrationTest {
     @Autowired protected TransactionTemplate tx;
     @Autowired protected JdbcClient jdbc;
     @Autowired protected PatientFacade patientFacade;
+    @Autowired protected FakeCatalog fakeCatalog;
+    @Autowired protected FakePatients fakePatients;
+    @Autowired protected pl.przychodnia360.shared.DomainEventPublisher domainEvents;
     @Autowired protected RecordingMailSender mails;
 
     /** Konto pacjenta z rekordem pacjenta i tokenem. */
@@ -43,6 +46,17 @@ public abstract class AbstractApiTest extends AbstractIntegrationTest {
         public JsonNode json() {
             return JSON.readTree(body);
         }
+    }
+
+    /**
+     * Publikuje przykładowe zdarzenie domenowe iam (UserDeactivated) w bieżącej transakcji i placówce, żeby testy outboxu,
+     * przekaźnika i śladu miały producenta zdarzeń w clinic-core. Zwraca identyfikator agregatu.
+     */
+    protected UUID publishSampleEvent() {
+        UUID aggregate = UUID.randomUUID();
+        domainEvents.publish(new pl.przychodnia360.identity.api.UserDeactivated(TenantContext.requireTenant().value(),
+                aggregate, java.time.Instant.now()));
+        return aggregate;
     }
 
     protected static String unique() {

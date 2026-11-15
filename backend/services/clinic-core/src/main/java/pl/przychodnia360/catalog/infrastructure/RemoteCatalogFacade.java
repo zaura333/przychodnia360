@@ -8,8 +8,6 @@ import java.util.UUID;
 import java.util.stream.Collectors;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
-import org.springframework.context.annotation.Primary;
 import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.stereotype.Component;
 import pl.przychodnia360.catalog.api.CatalogFacade;
@@ -18,13 +16,11 @@ import pl.przychodnia360.shared.NotFoundException;
 import pl.przychodnia360.shared.ServiceUnavailableException;
 
 /**
- * Zdalna implementacja {@link CatalogFacade} (S1, ADR-M14): zapytania REST do catalog-service. Włączana właściwością
- * {@code p360.catalog.mode=remote} (domyślnie lokalna implementacja w tym procesie). Rezerwacja (jedna usługa) przy awarii
- * dostaje 503; widoki wizyt (wiele usług) degradują się do pustych nazw usług, bez blokowania przeglądania wizyt.
+ * Jedyna implementacja {@link CatalogFacade} w {@code clinic-core} (S1, ADR-M14): zapytania REST do catalog-service
+ * (moduł katalogu został stąd usunięty). Rezerwacja (jedna usługa) przy awarii dostaje 503; widoki wizyt (wiele usług)
+ * degradują się do pustych nazw usług, bez blokowania przeglądania wizyt. Testy podstawiają atrapę ({@code @Primary}).
  */
 @Component
-@Primary
-@ConditionalOnProperty(name = "p360.catalog.mode", havingValue = "remote")
 class RemoteCatalogFacade implements CatalogFacade {
 
     private static final Logger log = LoggerFactory.getLogger(RemoteCatalogFacade.class);
