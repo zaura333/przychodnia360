@@ -23,7 +23,8 @@ services:
       P360_OWNER_PASSWORD: ${P360_OWNER_PASSWORD:?ustaw w .env (skopiuj .env.example)}
       # Baza per usługa (zadanie 1.10): lista nazw usług, np. "notification,integration-hub"; hasła właścicieli
       # P360_<NAZWA>_OWNER_PASSWORD trafiają do kontenera z .env (env_file poniżej). Puste = tylko baza główna.
-      P360_SERVICE_DATABASES: ${P360_SERVICE_DATABASES:-}
+      P360_SERVICE_DATABASES: ${P360_SERVICE_DATABASES:-catalog}
+      P360_CATALOG_OWNER_PASSWORD: ${P360_CATALOG_OWNER_PASSWORD:-p360_catalog_owner_local_dev}
     env_file:
       - .env
     ports:
@@ -77,6 +78,32 @@ services:
     cpus: 0.5
     mem_limit: 2g
     # Bez restart: błędy backendu mają być widoczne
+
+  # catalog-service (S1, ADR-M14): własna baza p360_catalog i własne role; tokeny weryfikuje z JWKS clinic-core.
+  # Do przełączenia routingu (krok 6 podziału) krawędź kieruje /services/** nadal do backendu; ta usługa już działa
+  # i ma zdrowie, dzięki czemu e2e sprawdza jej start na świeżej bazie.
+  catalog:
+    profiles: ["core", "full"]
+    build:
+      context: ./backend
+      target: runtime
+      args:
+        MODULE: services/catalog
+        JAR: catalog
+    environment:
+      SPRING_PROFILES_ACTIVE: local
+      DB_URL: jdbc:postgresql://postgres:5432/p360_catalog
+      P360_CATALOG_OWNER_PASSWORD: ${P360_CATALOG_OWNER_PASSWORD:-p360_catalog_owner_local_dev}
+      P360_CATALOG_APP_PASSWORD: ${P360_CATALOG_APP_PASSWORD:-p360_catalog_app_local_dev}
+      # JWKS wystawcy tokenów (iam, dziś clinic-core); usługa nie ma żadnego sekretu podpisu
+      P360_JWKS_URL: http://backend:8080/api/v1/auth/jwks
+    ports:
+      - "127.0.0.1:${CATALOG_PORT:-8082}:8080"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    cpus: 0.5
+    mem_limit: 1g
 
   # Krawędź (Traefik, fala 1.5) przed backendem; reguły z docker/edge (generowane do docker/traefik/dynamic/routes.yml).
   # Wchodzi do core i full; profil edge uruchamia ją samą (np. przy backendzie z IDE).
