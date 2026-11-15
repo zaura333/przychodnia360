@@ -1,5 +1,14 @@
-# Zależności lokalne: `docker compose up -d` startuje postgres i mailpit.
-# Backend działa z IDE, frontend z Vite. Kolejne profile (full, web, async, p1) dochodzą z etapami.
+# Zależności lokalne: `docker compose up -d` startuje postgres i mailpit (backend z IDE, frontend z Vite).
+#
+# Profile (zadanie 1.10), łączone flagą --profile:
+#   core    rdzeń: usługi biznesowe (iam, catalog, patient, scheduling) i krawędź Traefik. To zestaw dla e2e
+#           i dla osób bez Javy: `docker compose --profile core up -d --build --wait`.
+#   finance zarezerwowany dla billing i integration-hub (fala 2 i 3); na razie bez usług.
+#   edge    sama krawędź (Traefik), gdy backend działa z IDE.
+#   async   SNS i SQS lokalnie (LocalStack, obraz ok. 2 GB), nie wchodzi do core, żeby e2e go nie pobierało.
+#   full    wszystko: core + finance + async.
+# Nowa usługa dostaje wpis w profilu core (lub finance), bazę z P360_SERVICE_DATABASES (docker/postgres/init) i
+# upstream w docker/edge/upstreams.csv.
 name: przychodnia360
 
 services:
@@ -12,6 +21,14 @@ services:
       POSTGRES_DB: ${POSTGRES_DB:-postgres}
       P360_DB_NAME: ${P360_DB_NAME:-p360}
       P360_OWNER_PASSWORD: ${P360_OWNER_PASSWORD:?ustaw w .env (skopiuj .env.example)}
+      # Baza per usługa (zadanie 1.10): lista nazw usług, np. "notification,integration-hub"; hasła właścicieli
+      # P360_<NAZWA>_OWNER_PASSWORD trafiają do kontenera z .env (env_file poniżej). Puste = tylko baza główna.
+      P360_SERVICE_DATABASES: ${P360_SERVICE_DATABASES:-catalog,patient,iam}
+      P360_CATALOG_OWNER_PASSWORD: ${P360_CATALOG_OWNER_PASSWORD:-p360_catalog_owner_local_dev}
+      P360_PATIENT_OWNER_PASSWORD: ${P360_PATIENT_OWNER_PASSWORD:-p360_patient_owner_local_dev}
+      P360_IAM_OWNER_PASSWORD: ${P360_IAM_OWNER_PASSWORD:-p360_iam_owner_local_dev}
+    env_file:
+      - .env
     ports:
       - "127.0.0.1:${POSTGRES_PORT:-5432}:5432"
     volumes:
@@ -36,38 +53,153 @@ services:
       timeout: 3s
       retries: 10
 
-  # Profil full: cała platforma w kontenerach (osoby bez Javy, e2e). Domyślnie backend działa z IDE.
-  backend:
-    profiles: ["full"]
+  # scheduling-service (S4, dawniej clinic-core): pracownicy, grafiki i wizyty; baza p360 (łańcuch migracji V1+ zachowany,
+  # ADR-M12). Profile core i full; domyślnie usługa działa z IDE. Limit 0,5 vCPU i 2 GB jak zadanie Fargate: start trwa dłużej niż na laptopie, stąd
+  # tolerancyjny healthcheck w Dockerfile (M-7).
+  scheduling:
+    profiles: ["core", "full"]
     build:
       context: ./backend
       target: runtime
+      args:
+        MODULE: services/scheduling
+        JAR: scheduling
     environment:
       SPRING_PROFILES_ACTIVE: local
-      # W sieci compose baza i poczta mają nazwy usług (z IDE: localhost)
+      # W sieci compose baza ma nazwę usługi (z IDE: localhost)
       DB_URL: jdbc:postgresql://postgres:5432/${P360_DB_NAME:-p360}
       P360_OWNER_PASSWORD: ${P360_OWNER_PASSWORD:?ustaw w .env (skopiuj .env.example)}
       P360_APP_PASSWORD: ${P360_APP_PASSWORD:?ustaw w .env (skopiuj .env.example)}
+      # Konta, placówki, katalog i pacjenci to osobne usługi (S1 ADR-M14, S2, S3 ADR-M17): scheduling woła je przez REST
+      # z tokenem usługowym pobranym od iam za swoim sekretem, a tokeny użytkowników weryfikuje z JWKS iam. Seed loguje
+      # się w iam jako administrator placówki. Adresy w sieci compose (z IDE: localhost:8084, 8082 i 8083).
+      P360_IAM_URL: http://iam:8080
+      P360_JWKS_URL: http://iam:8080/api/v1/auth/jwks
+      P360_SCHEDULING_CLIENT_SECRET: ${P360_SCHEDULING_CLIENT_SECRET:-p360_scheduling_client_local_dev}
+      P360_CATALOG_URL: http://catalog:8080
+      P360_PATIENT_URL: http://patient:8080
+    ports:
+      - "127.0.0.1:${SCHEDULING_PORT:-8080}:8080"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      # seed przy starcie loguje się w iam, zakłada katalog w catalog-service i umawia pacjentów z patient-service
+      iam:
+        condition: service_healthy
+      catalog:
+        condition: service_healthy
+      patient:
+        condition: service_healthy
+    # Punkt wyjścia zbliżony do zadania Fargate (0,5 vCPU, 2 GB); finalnie z ADR-006
+    cpus: 0.5
+    mem_limit: 2g
+    # Bez restart: błędy usługi mają być widoczne
+
+  # iam-service (S3, ADR-M17): placówki, konta, logowanie, tokeny (JWKS) i tokeny usługowe; własna baza p360_iam.
+  # Krawędź kieruje do niej /auth/**, /me, /tenant, /facilities i /platform/** (docker/edge/upstreams.csv). Wysyła
+  # e-maile (reset hasła, konto pracownika) do Mailpit; seed iam woła patient-service (saga rejestracji pacjentów).
+  iam:
+    profiles: ["core", "full"]
+    build:
+      context: ./backend
+      target: runtime
+      args:
+        MODULE: services/iam
+        JAR: iam
+    environment:
+      SPRING_PROFILES_ACTIVE: local
+      DB_URL: jdbc:postgresql://postgres:5432/p360_iam
+      P360_IAM_OWNER_PASSWORD: ${P360_IAM_OWNER_PASSWORD:-p360_iam_owner_local_dev}
+      P360_IAM_APP_PASSWORD: ${P360_IAM_APP_PASSWORD:-p360_iam_app_local_dev}
       SPRING_MAIL_HOST: mailpit
       SPRING_MAIL_PORT: "1025"
+      P360_PATIENT_URL: http://patient:8080
+      # sekret, za który usługa scheduling dostaje tokeny usługowe
+      P360_SCHEDULING_CLIENT_SECRET: ${P360_SCHEDULING_CLIENT_SECRET:-p360_scheduling_client_local_dev}
     ports:
-      - "127.0.0.1:${BACKEND_PORT:-8080}:8080"
+      - "127.0.0.1:${IAM_PORT:-8084}:8080"
     depends_on:
       postgres:
         condition: service_healthy
       mailpit:
         condition: service_healthy
-    # Punkt wyjścia zbliżony do zadania Fargate (0,5 vCPU, 2 GB); finalnie z ADR-006
+      patient:
+        condition: service_healthy
     cpus: 0.5
-    mem_limit: 2g
-    # Bez restart: błędy backendu mają być widoczne
+    mem_limit: 1g
 
-  # Profil async (osobny od full: e2e go nie potrzebuje, a obraz ma ok. 2 GB): SNS i SQS lokalnie (LocalStack,
+  # catalog-service (S1, ADR-M14): własna baza p360_catalog i własne role; tokeny weryfikuje z JWKS iam.
+  # Krawędź kieruje do niej /services/**, /service-categories i /admin/service*/** (docker/edge/upstreams.csv).
+  catalog:
+    profiles: ["core", "full"]
+    build:
+      context: ./backend
+      target: runtime
+      args:
+        MODULE: services/catalog
+        JAR: catalog
+    environment:
+      SPRING_PROFILES_ACTIVE: local
+      DB_URL: jdbc:postgresql://postgres:5432/p360_catalog
+      P360_CATALOG_OWNER_PASSWORD: ${P360_CATALOG_OWNER_PASSWORD:-p360_catalog_owner_local_dev}
+      P360_CATALOG_APP_PASSWORD: ${P360_CATALOG_APP_PASSWORD:-p360_catalog_app_local_dev}
+      # JWKS wystawcy tokenów (iam); usługa nie ma żadnego sekretu podpisu
+      P360_JWKS_URL: http://iam:8080/api/v1/auth/jwks
+    ports:
+      - "127.0.0.1:${CATALOG_PORT:-8082}:8080"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    cpus: 0.5
+    mem_limit: 1g
+
+  # patient-service (S2): własna baza p360_patient i własne role; tokeny weryfikuje z JWKS iam. Krawędź kieruje do
+  # niej /me/patient i /reception/patients/**; rejestrację pacjenta (saga) prowadzi iam z tokenem usługowym.
+  patient:
+    profiles: ["core", "full"]
+    build:
+      context: ./backend
+      target: runtime
+      args:
+        MODULE: services/patient
+        JAR: patient
+    environment:
+      SPRING_PROFILES_ACTIVE: local
+      DB_URL: jdbc:postgresql://postgres:5432/p360_patient
+      P360_PATIENT_OWNER_PASSWORD: ${P360_PATIENT_OWNER_PASSWORD:-p360_patient_owner_local_dev}
+      P360_PATIENT_APP_PASSWORD: ${P360_PATIENT_APP_PASSWORD:-p360_patient_app_local_dev}
+      P360_JWKS_URL: http://iam:8080/api/v1/auth/jwks
+    ports:
+      - "127.0.0.1:${PATIENT_PORT:-8083}:8080"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    cpus: 0.5
+    mem_limit: 1g
+
+  # Krawędź (Traefik, fala 1.5) przed backendem; reguły z docker/edge (generowane do docker/traefik/dynamic/routes.yml).
+  # Wchodzi do core i full; profil edge uruchamia ją samą (np. przy backendzie z IDE).
+  traefik:
+    profiles: ["core", "full", "edge"]
+    image: traefik:v3.2.3
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:${EDGE_PORT:-8090}:80"
+    volumes:
+      - ./docker/traefik/traefik.yml:/etc/traefik/traefik.yml:ro
+      - ./docker/traefik/dynamic:/etc/traefik/dynamic:ro
+    healthcheck:
+      test: ["CMD", "traefik", "healthcheck", "--ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  # Profil async (poza core: e2e go nie potrzebuje, a obraz ma ok. 2 GB; wchodzi do full): SNS i SQS lokalnie (LocalStack,
   # fala 1.4). Temat, kolejki i DLQ tworzy docker/localstack/init (skrypt musi mieć bit wykonywalności w git).
   # Wersja przypięta (community, bez tokenu); `latest` wymaga konta. Backend włącza transport zmiennymi
   # P360_EVENTS_SNS_TOPIC_ARN i P360_EVENTS_AWS_ENDPOINT (patrz README).
   localstack:
-    profiles: ["async"]
+    profiles: ["async", "full"]
     image: localstack/localstack:3.8.1
     restart: unless-stopped
     environment:
@@ -78,10 +210,12 @@ services:
     volumes:
       - ./docker/localstack/init/ready.d:/etc/localstack/init/ready.d:ro
     healthcheck:
-      test: ["CMD-SHELL", "awslocal sns list-topics | grep -q p360-clinic-core-events"]
+      # ostatnia czynność skryptu init (docker/localstack/init): subskrypcja kolejki scheduling do tematu patient;
+      # sam temat powstaje na początku, więc nie dowodzi gotowości kolejek
+      test: ["CMD-SHELL", "awslocal sns list-subscriptions-by-topic --topic-arn arn:aws:sns:eu-central-1:000000000000:p360-patient-events | grep -q p360-scheduling-inbox"]
       interval: 5s
       timeout: 5s
-      retries: 20
+      retries: 30
       start_period: 15s
 
 volumes:

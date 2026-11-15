@@ -12,6 +12,10 @@
   <artifactId>p360-platform-starter</artifactId>
   <name>p360-platform-starter (security, tenant/RLS, Problem Details, logowanie, czas)</name>
 
+  <properties>
+    <skipTests>${p360.platform.skipTests}</skipTests>
+  </properties>
+
   <dependencies>
     <dependency>
       <groupId>pl.przychodnia360</groupId>
@@ -28,6 +32,15 @@
     <dependency>
       <groupId>org.springframework.boot</groupId>
       <artifactId>spring-boot-starter-jdbc</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>org.springframework.security</groupId>
+      <artifactId>spring-security-oauth2-jose</artifactId>
+    </dependency>
+    <!-- observability: Micrometer Tracing + OpenTelemetry (traceparent, MDC traceId/spanId) -->
+    <dependency>
+      <groupId>org.springframework.boot</groupId>
+      <artifactId>spring-boot-starter-opentelemetry</artifactId>
     </dependency>
     <dependency>
       <groupId>org.springdoc</groupId>

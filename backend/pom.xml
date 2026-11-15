@@ -20,7 +20,12 @@
   <modules>
     <module>platform/p360-shared-core</module>
     <module>platform/p360-platform-starter</module>
-    <module>services/clinic-core</module>
+    <module>platform/p360-test-support</module>
+    <!-- scheduling na końcu: jego eksport przelicza agregat api/openapi.json z eksportów wszystkich usług -->
+    <module>services/catalog</module>
+    <module>services/patient</module>
+    <module>services/iam</module>
+    <module>services/scheduling</module>
   </modules>
 
   <properties>
@@ -32,6 +37,13 @@
     <bouncycastle.version>1.85</bouncycastle.version>
     <enforcer.version>3.7.0</enforcer.version>
     <awssdk.version>2.29.52</awssdk.version>
+    <json-schema-validator.version>1.5.9</json-schema-validator.version>
+    <!-- CI (zadanie 1.9): zadania usług uruchamiane z -Dp360.platform.skipTests=true nie powtarzają testów platform/*,
+         które biegną raz w osobnym zadaniu "platform" -->
+    <p360.platform.skipTests>false</p360.platform.skipTests>
+    <!-- GHSA-ccrj-gw8r-854m (CVE-2026-118259): opentelemetry-api 1.62.0 z BOM-a Spring Boot 4.1.2 ma lukę DoS w parsowaniu
+         tracestate, naprawioną w 1.67.0. Nadpisanie właściwości BOM-a; USUŃ, gdy BOM Spring Boot dostarczy OpenTelemetry >= 1.67.0. -->
+    <opentelemetry.version>1.67.0</opentelemetry.version>
   </properties>
 
   <dependencyManagement>
@@ -54,9 +66,20 @@
         <version>${project.version}</version>
       </dependency>
       <dependency>
+        <groupId>pl.przychodnia360</groupId>
+        <artifactId>p360-test-support</artifactId>
+        <version>${project.version}</version>
+        <scope>test</scope>
+      </dependency>
+      <dependency>
         <groupId>org.springdoc</groupId>
         <artifactId>springdoc-openapi-starter-webmvc-ui</artifactId>
         <version>${springdoc.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>com.networknt</groupId>
+        <artifactId>json-schema-validator</artifactId>
+        <version>${json-schema-validator.version}</version>
       </dependency>
       <dependency>
         <groupId>com.tngtech.archunit</groupId>

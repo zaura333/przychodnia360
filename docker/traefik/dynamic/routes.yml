@@ -1,0 +1,119 @@
+# PLIK WYGENEROWANY z docker/edge/routing-table.csv i upstreams.csv (EdgeRoutesTest). Nie edytuj ręcznie.
+http:
+  routers:
+    auth-prefix:
+      entryPoints: [web]
+      rule: "Path(`/api/v1/auth`) || PathPrefix(`/api/v1/auth/`)"
+      priority: 100
+      service: iam
+    me:
+      entryPoints: [web]
+      rule: "Path(`/api/v1/me`)"
+      priority: 200
+      service: iam
+    me-patient:
+      entryPoints: [web]
+      rule: "Path(`/api/v1/me/patient`)"
+      priority: 200
+      service: patient
+    me-appointments:
+      entryPoints: [web]
+      rule: "Path(`/api/v1/me/appointments`)"
+      priority: 200
+      service: scheduling
+    me-schedule:
+      entryPoints: [web]
+      rule: "Path(`/api/v1/me/schedule`)"
+      priority: 200
+      service: scheduling
+    tenant:
+      entryPoints: [web]
+      rule: "Path(`/api/v1/tenant`)"
+      priority: 200
+      service: iam
+    facilities:
+      entryPoints: [web]
+      rule: "Path(`/api/v1/facilities`)"
+      priority: 200
+      service: iam
+    platform-prefix:
+      entryPoints: [web]
+      rule: "Path(`/api/v1/platform`) || PathPrefix(`/api/v1/platform/`)"
+      priority: 100
+      service: iam
+    admin-employees-prefix:
+      entryPoints: [web]
+      rule: "Path(`/api/v1/admin/employees`) || PathPrefix(`/api/v1/admin/employees/`)"
+      priority: 100
+      service: scheduling
+    admin-services-prefix:
+      entryPoints: [web]
+      rule: "Path(`/api/v1/admin/services`) || PathPrefix(`/api/v1/admin/services/`)"
+      priority: 100
+      service: catalog
+    admin-service-categories-prefix:
+      entryPoints: [web]
+      rule: "Path(`/api/v1/admin/service-categories`) || PathPrefix(`/api/v1/admin/service-categories/`)"
+      priority: 100
+      service: catalog
+    services-prefix:
+      entryPoints: [web]
+      rule: "Path(`/api/v1/services`) || PathPrefix(`/api/v1/services/`)"
+      priority: 100
+      service: catalog
+    service-categories:
+      entryPoints: [web]
+      rule: "Path(`/api/v1/service-categories`)"
+      priority: 200
+      service: catalog
+    doctors-prefix:
+      entryPoints: [web]
+      rule: "Path(`/api/v1/doctors`) || PathPrefix(`/api/v1/doctors/`)"
+      priority: 100
+      service: scheduling
+    employees-prefix:
+      entryPoints: [web]
+      rule: "Path(`/api/v1/employees`) || PathPrefix(`/api/v1/employees/`)"
+      priority: 100
+      service: scheduling
+    appointments-prefix:
+      entryPoints: [web]
+      rule: "Path(`/api/v1/appointments`) || PathPrefix(`/api/v1/appointments/`)"
+      priority: 100
+      service: scheduling
+    reception-appointments:
+      entryPoints: [web]
+      rule: "Path(`/api/v1/reception/appointments`)"
+      priority: 200
+      service: scheduling
+    reception-patients-prefix:
+      entryPoints: [web]
+      rule: "Path(`/api/v1/reception/patients`) || PathPrefix(`/api/v1/reception/patients/`)"
+      priority: 100
+      service: patient
+    health-prefix:
+      entryPoints: [web]
+      rule: "Path(`/api/v1/health`) || PathPrefix(`/api/v1/health/`)"
+      priority: 100
+      service: every
+  services:
+    catalog:
+      loadBalancer:
+        servers:
+          - url: "http://catalog:8080"
+    every:
+      loadBalancer:
+        servers:
+          - url: "http://scheduling:8080"
+    iam:
+      loadBalancer:
+        servers:
+          - url: "http://iam:8080"
+    patient:
+      loadBalancer:
+        servers:
+          - url: "http://patient:8080"
+    scheduling:
+      loadBalancer:
+        servers:
+          - url: "http://scheduling:8080"

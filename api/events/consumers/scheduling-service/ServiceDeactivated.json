@@ -1,0 +1,15 @@
+{
+  "consumer": "scheduling-service",
+  "event": "ServiceDeactivated",
+  "note": "Kopia service_ref: oznaczenie usługi jako nieaktywnej (S1, ADR-M14).",
+  "requires": {
+    "tenantId": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "aggregateId": {
+      "type": "string",
+      "format": "uuid"
+    }
+  }
+}

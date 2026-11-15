@@ -3,8 +3,9 @@ title = "przychodnia360"
 [extend]
 useDefault = true
 
-# Ścieżki obejmują stary układ (backend/backend-api, w historii commitów) i nowy (backend/services/clinic-core):
-# gitleaks skanuje całą historię PR, więc wyjątki muszą działać dla obu.
+# Ścieżki obejmują stary układ (backend/backend-api, w historii commitów) i nowy (backend/services/<dowolna usługa>):
+# gitleaks skanuje całą historię wszystkich pobranych gałęzi (także cudzych, np. feature/three-services z usługami
+# iam-service, catalog-service i scheduling-service), więc wyjątki nie mogą zależeć od nazwy katalogu usługi.
 # Hasła lokalne i syntetyczne z .env.example są jawne z założenia (patrz plan Dockera, sekcja 1).
 [[allowlists]]
 description = "Wartości dev w szablonie środowiska lokalnego"
@@ -12,14 +13,17 @@ paths = ['''(^|/)\.env\.example$''']
 
 [[allowlists]]
 description = "Hasła testowe kontenera Testcontainers (syntetyczne, tylko w testach)"
-paths = ['''backend/(backend-api|services/clinic-core)/src/test/java/pl/przychodnia360/AbstractIntegrationTest\.java''']
+paths = [
+  '''backend/(backend-api|services/[^/]+)/src/test/java/pl/przychodnia360/AbstractIntegrationTest\.java''',
+  '''backend/platform/p360-test-support/src/main/java/pl/przychodnia360/testsupport/PostgresIntegrationTest\.java''',
+]
 
 [[allowlists]]
 description = "Klucze JWT i hasła demo tylko lokalne i testowe (syntetyczne, profile local i test)"
 paths = [
-  '''backend/(backend-api|services/clinic-core)/src/main/resources/application-local\.yml''',
-  '''backend/(backend-api|services/clinic-core)/src/test/resources/application-test\.yml''',
-  '''backend/(backend-api|services/clinic-core)/src/test/java/.*Test\.java''',
+  '''backend/(backend-api|services/[^/]+)/src/main/resources/application-local\.yml''',
+  '''backend/(backend-api|services/[^/]+)/src/test/resources/application-test\.yml''',
+  '''backend/(backend-api|services/[^/]+)/src/test/java/.*Test\.java''',
 ]
 
 [[allowlists]]

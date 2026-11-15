@@ -24,26 +24,27 @@ Monorepo:
 
 ## Backend: uruchomienie lokalne
 
-Wymagania: Java 21, Docker. Pakiet bazowy: `pl.przychodnia360`. Moduły: `platform/p360-shared-core` (czysta Java), `platform/p360-platform-starter` (security, tenant/RLS, Problem Details, logowanie, czas) i `services/clinic-core` (monolit modułowy, Spring Boot).
+Wymagania: Java 21, Docker. Pakiet bazowy: `pl.przychodnia360`. Moduły: `platform/p360-shared-core` (czysta Java), `platform/p360-platform-starter` (security, tenant/RLS, Problem Details, logowanie, czas) oraz usługi Spring Boot w `services/`: `iam` (placówki, konta, logowanie, tokeny), `catalog` (usługi i ceny), `patient` (pacjenci) i `scheduling` (pracownicy, grafiki, wizyty; dawniej monolit `clinic-core`).
 
 ```bash
 cp .env.example .env                 # raz
 docker compose up -d --wait          # postgres + mailpit
 cd backend
 ./mvnw verify                        # testy (Testcontainers), generuje ../api/openapi.json
-java -jar services/clinic-core/target/clinic-core.jar --spring.profiles.active=local
+# całość najprościej przez compose (niżej); z IDE każda usługa osobno, np.:
+java -jar services/scheduling/target/scheduling.jar --spring.profiles.active=local
 curl http://localhost:8080/api/v1/health
 ```
 
 **Dane demo (profil `local`).** Przy starcie `SeedRunner` zakłada (idempotentnie) placówki `klinika-a` i `klinika-b` z administratorem, dwoma lekarzami, pielęgniarką, rejestratorem, trzema pacjentami, katalogiem, grafikami i wizytami. Konta mają adresy w domenie `<slug>.example.test`: `admin@`, `lekarz1@`, `lekarz2@`, `pielegniarka@`, `rejestracja@`, `pacjent1@` do `pacjent3@`; hasło wszystkich to wartość `SEED_PASSWORD` (lokalnie domyślnie `demo-przychodnia-2026`). Seed trwa kilka sekund po starcie. Wiadomości e-mail (linki ustawienia hasła) trafiają do Mailpit: http://localhost:8025. Przykład logowania: `POST /api/v1/auth/login` z `{"tenantSlug":"klinika-a","email":"rejestracja@klinika-a.example.test","password":"..."}`.
 
-**Pierwszy administrator platformy** (bez migracji i bez hasła w repozytorium): jednorazowe uruchomienie z profilem `bootstrap-admin`, np. `BOOTSTRAP_ADMIN_EMAIL=root@platform.example.test BOOTSTRAP_ADMIN_PASSWORD=... java -jar services/clinic-core/target/clinic-core.jar --spring.profiles.active=local,bootstrap-admin`. Konto powstaje idempotentnie, po czym proces kończy pracę.
+**Pierwszy administrator platformy** (bez migracji i bez hasła w repozytorium): jednorazowe uruchomienie z profilem `bootstrap-admin`, np. `BOOTSTRAP_ADMIN_EMAIL=root@platform.example.test BOOTSTRAP_ADMIN_PASSWORD=... java -jar services/iam/target/iam.jar --spring.profiles.active=local,bootstrap-admin`. Konto powstaje idempotentnie, po czym proces kończy pracę.
 
-Po zmianie endpointów `./mvnw verify` aktualizuje `api/openapi.json`; plik trzeba zatwierdzić (CI sprawdza zgodność). Konwencje bazy: `docs/db-conventions.md`.
+Po zmianie endpointów `./mvnw verify` aktualizuje eksport usługi (`api/exports/<usługa>.json`) i agregat `api/openapi.json` (składany z eksportów usług, ADR-M16); pliki trzeba zatwierdzić (CI sprawdza zgodność). Konwencje bazy: `docs/db-conventions.md`.
 
 **Lista kontrolna: nowa tabela danych placówki**
 - migracja `V<n>__opis.sql` z `tenant_id`, `ENABLE` i `FORCE ROW LEVEL SECURITY` oraz polityką `tenant_id = app_tenant_id()` (wzorzec w `docs/db-conventions.md`),
-- `RlsCoverageTest` przechodzi (albo wyjątek z uzasadnieniem),
+- `RlsCoverageTest` (podklasa `RlsCoverageContract` z `p360-test-support`) przechodzi (albo wyjątek z uzasadnieniem),
 - test izolacji: placówka B nie widzi wierszy placówki A,
 - brak `GRANT` dla `p360_app` poza domyślnymi uprawnieniami; funkcje `SECURITY DEFINER` tylko z uzasadnieniem.
 
@@ -63,7 +64,7 @@ Wymagania: Node z `frontend/.nvmrc`. Szczegóły, skrypty i zasady: `frontend/RE
 ```bash
 cd frontend
 npm ci               # instaluje zależności i generuje klienta API z ../api/openapi.json
-npm run dev          # http://localhost:5173, proxy /api na http://localhost:8080
+npm run dev          # http://localhost:5173, proxy /api na krawędź http://localhost:8090 (docker compose --profile core)
 npm test             # testy jednostkowe; npm run test:e2e dla Playwright
 ```
 
@@ -78,20 +79,25 @@ Docker służy do uruchamiania zależności (PostgreSQL, Mailpit) i do odtwarzan
 | Cel                                       | Polecenie                                            |
 | ----------------------------------------- | ---------------------------------------------------- |
 | Zależności (postgres, mailpit)            | `docker compose up -d --wait`                        |
-| Cała platforma (z backendem w kontenerze) | `docker compose --profile full up -d --build --wait` |
+| Rdzeń (backend w kontenerze + krawędź)    | `docker compose --profile core up -d --build --wait` |
+| Wszystko (core + async: SNS i SQS)        | `docker compose --profile full up -d --build --wait` |
 | Logi                                      | `docker compose logs -f backend`                     |
 | Zatrzymanie (dane zostają)                | `docker compose --profile full down`                 |
 | Reset danych i seed od nowa               | `docker compose --profile full down -v` a potem `up` |
 
-Usługi i adresy: PostgreSQL `127.0.0.1:5432` (baza `p360`), Mailpit UI <http://localhost:8025> (SMTP `1025`), backend <http://localhost:8080/api/v1/health> (profil `full`). Domyślnie (`up -d`) startują tylko zależności, a backend działa z IDE lub z `java -jar`, frontend z `npm run dev`.
+**Profile compose** (łączone flagą `--profile`): `core` (usługi biznesowe `iam`, `catalog`, `patient`, `scheduling` i krawędź Traefik na `http://127.0.0.1:8090`), `edge` (sama krawędź, gdy backend działa z IDE), `async` (LocalStack: SNS i SQS, obraz ok. 2 GB, poza `core`), `finance` (zarezerwowany dla billing i integration-hub, na razie bez usług), `full` (core, finance i async). Przy `down` podaj te same profile co przy `up`, inaczej kontenery profili zostaną. Frontend przez krawędź: `VITE_DEV_BACKEND=http://127.0.0.1:8090`.
+
+**Baza per usługa:** lista usług w `P360_SERVICE_DATABASES` (np. `notification,integration-hub`) tworzy przy pierwszym starcie (pusty wolumen) bazę `p360_<usługa>` i właściciela `p360_<usługa>_owner` z hasłem z `P360_<USŁUGA>_OWNER_PASSWORD` (patrz `.env.example`); właściciel jednej usługi nie wchodzi do bazy innej. Baza główna `p360` należy do `scheduling` (łańcuch migracji zachowany, ADR-M12); domyślna lista to `catalog,patient,iam`.
+
+Usługi i adresy: PostgreSQL `127.0.0.1:5432` (baza `p360`), Mailpit UI <http://localhost:8025> (SMTP `1025`), backend <http://localhost:8080/api/v1/health> (profile `core` i `full`). Domyślnie (`up -d`) startują tylko zależności, a backend działa z IDE lub z `java -jar`, frontend z `npm run dev`.
 
 **Obraz backendu** (`backend/Dockerfile`): cel `runtime` (domyślny) buduje jar wewnątrz obrazu; cel `from-jar` kopiuje gotowy `backend/app.jar` (tak robi CI, więc e2e i wdrożenie uruchamiają ten sam jar). Obraz działa jako użytkownik inny niż root, na Alpine, x86_64.
 
-**Wersja PostgreSQL** jest zapisana w trzech miejscach (`docker-compose.yml`, `AbstractIntegrationTest`, `docs/adr/ADR-B01-postgresql-wersja-i-role.md`); `ComposeConsistencyTest` pilnuje, żeby się zgadzały.
+**Wersja PostgreSQL** jest zapisana w trzech miejscach (`docker-compose.yml`, `PostgresIntegrationTest` w `p360-test-support`, `docs/adr/ADR-B01-postgresql-wersja-i-role.md`); `ComposeConsistencyTest` pilnuje, żeby się zgadzały.
 
 **Rozwiązywanie problemów:**
 
-- _Zajęty port 5432:_ ustaw `POSTGRES_PORT` w `.env` (lokalna instalacja PostgreSQL często go zajmuje); analogicznie `BACKEND_PORT`, `MAILPIT_UI_PORT`.
+- _Zajęty port 5432:_ ustaw `POSTGRES_PORT` w `.env` (lokalna instalacja PostgreSQL często go zajmuje); analogicznie `SCHEDULING_PORT`, `IAM_PORT`, `MAILPIT_UI_PORT`.
 - _Kontener `postgres` nie startuje, błąd w skrypcie init:_ skrypt musi mieć końce linii LF (`.gitattributes` to wymusza dla `docker/**`); po poprawce `docker compose down -v` i start od nowa (skrypt init wykonuje się tylko na pustym wolumenie).
 - _`required variable ... is missing`:_ uzupełnij `.env` brakującymi zmiennymi z `.env.example`.
 - _Zmiana ról lub haseł bazy nie działa:_ skrypt init nie uruchamia się na istniejącym wolumenie; wykonaj `docker compose down -v`.

@@ -1,0 +1,481 @@
+{
+  "openapi" : "3.1.0",
+  "info" : {
+    "description" : "Wersja demonstracyjna, dane wyłącznie syntetyczne.",
+    "title" : "Przychodnia360 API",
+    "version" : "v1"
+  },
+  "servers" : [ {
+    "url" : "/"
+  } ],
+  "paths" : {
+    "/api/v1/admin/service-categories" : {
+      "post" : {
+        "description" : "Dostęp: SERVICE_MANAGE.",
+        "operationId" : "createServiceCategory",
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/CategoryRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "201" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/CategoryResponse"
+                }
+              }
+            },
+            "description" : "Created"
+          }
+        },
+        "summary" : "Dodanie kategorii",
+        "tags" : [ "service-admin-controller" ]
+      }
+    },
+    "/api/v1/admin/service-categories/{id}" : {
+      "delete" : {
+        "description" : "Dostęp: SERVICE_MANAGE. 409, gdy kategoria ma aktywne usługi.",
+        "operationId" : "deleteServiceCategory",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "id",
+          "required" : true,
+          "schema" : {
+            "type" : "string",
+            "format" : "uuid"
+          }
+        } ],
+        "responses" : {
+          "204" : {
+            "description" : "No Content"
+          }
+        },
+        "summary" : "Usunięcie kategorii",
+        "tags" : [ "service-admin-controller" ]
+      },
+      "put" : {
+        "description" : "Dostęp: SERVICE_MANAGE.",
+        "operationId" : "renameServiceCategory",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "id",
+          "required" : true,
+          "schema" : {
+            "type" : "string",
+            "format" : "uuid"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/CategoryRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/CategoryResponse"
+                }
+              }
+            },
+            "description" : "OK"
+          }
+        },
+        "summary" : "Zmiana nazwy kategorii",
+        "tags" : [ "service-admin-controller" ]
+      }
+    },
+    "/api/v1/admin/services" : {
+      "post" : {
+        "description" : "Dostęp: SERVICE_MANAGE (TENANT_ADMIN).",
+        "operationId" : "createService",
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/ServiceRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "201" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ServiceResponse"
+                }
+              }
+            },
+            "description" : "Created"
+          }
+        },
+        "summary" : "Dodanie usługi",
+        "tags" : [ "service-admin-controller" ]
+      }
+    },
+    "/api/v1/admin/services/{id}" : {
+      "delete" : {
+        "description" : "Dostęp: SERVICE_MANAGE. Historia wizyt zostaje.",
+        "operationId" : "deactivateService",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "id",
+          "required" : true,
+          "schema" : {
+            "type" : "string",
+            "format" : "uuid"
+          }
+        } ],
+        "responses" : {
+          "204" : {
+            "description" : "No Content"
+          }
+        },
+        "summary" : "Dezaktywacja usługi (usunięcie logiczne)",
+        "tags" : [ "service-admin-controller" ]
+      },
+      "put" : {
+        "description" : "Dostęp: SERVICE_MANAGE (TENANT_ADMIN).",
+        "operationId" : "updateService",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "id",
+          "required" : true,
+          "schema" : {
+            "type" : "string",
+            "format" : "uuid"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/ServiceRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ServiceResponse"
+                }
+              }
+            },
+            "description" : "OK"
+          }
+        },
+        "summary" : "Edycja usługi",
+        "tags" : [ "service-admin-controller" ]
+      }
+    },
+    "/api/v1/health" : {
+      "get" : {
+        "description" : "Dostęp: publiczny.",
+        "operationId" : "getHealth",
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/HealthResponse"
+                }
+              }
+            },
+            "description" : "OK"
+          }
+        },
+        "summary" : "Stan aplikacji (bez bazy)",
+        "tags" : [ "health-controller" ]
+      }
+    },
+    "/api/v1/health/db" : {
+      "get" : {
+        "description" : "Dostęp: publiczny w local/test.",
+        "operationId" : "getHealthDb",
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/HealthResponse"
+                }
+              }
+            },
+            "description" : "OK"
+          }
+        },
+        "summary" : "Stan aplikacji z zapytaniem do bazy (tylko local/test)",
+        "tags" : [ "health-controller" ]
+      }
+    },
+    "/api/v1/service-categories" : {
+      "get" : {
+        "description" : "Dostęp: SERVICE_READ.",
+        "operationId" : "listServiceCategories",
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "type" : "array",
+                  "items" : {
+                    "$ref" : "#/components/schemas/CategoryResponse"
+                  }
+                }
+              }
+            },
+            "description" : "OK"
+          }
+        },
+        "summary" : "Kategorie usług",
+        "tags" : [ "service-controller" ]
+      }
+    },
+    "/api/v1/services" : {
+      "get" : {
+        "description" : "Dostęp: SERVICE_READ (wszystkie role placówki). Tylko usługi aktywne.",
+        "operationId" : "listServices",
+        "parameters" : [ {
+          "in" : "query",
+          "name" : "categoryId",
+          "required" : false,
+          "schema" : {
+            "type" : "string",
+            "format" : "uuid"
+          }
+        }, {
+          "in" : "query",
+          "name" : "minPrice",
+          "required" : false,
+          "schema" : {
+            "type" : "number"
+          }
+        }, {
+          "in" : "query",
+          "name" : "maxPrice",
+          "required" : false,
+          "schema" : {
+            "type" : "number"
+          }
+        }, {
+          "in" : "query",
+          "name" : "performerType",
+          "required" : false,
+          "schema" : {
+            "type" : "string",
+            "enum" : [ "DOCTOR", "MEDICAL_STAFF" ]
+          }
+        }, {
+          "in" : "query",
+          "name" : "page",
+          "required" : false,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int32",
+            "default" : 0
+          }
+        }, {
+          "in" : "query",
+          "name" : "size",
+          "required" : false,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int32",
+            "default" : 20
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/PageResponseServiceResponse"
+                }
+              }
+            },
+            "description" : "OK"
+          }
+        },
+        "summary" : "Lista usług z filtrami",
+        "tags" : [ "service-controller" ]
+      }
+    },
+    "/api/v1/services/{id}" : {
+      "get" : {
+        "description" : "Dostęp: SERVICE_READ. Cena i czas trwania (FR-22).",
+        "operationId" : "getService",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "id",
+          "required" : true,
+          "schema" : {
+            "type" : "string",
+            "format" : "uuid"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ServiceResponse"
+                }
+              }
+            },
+            "description" : "OK"
+          }
+        },
+        "summary" : "Szczegóły usługi",
+        "tags" : [ "service-controller" ]
+      }
+    }
+  },
+  "components" : {
+    "schemas" : {
+      "CategoryRequest" : {
+        "type" : "object",
+        "properties" : {
+          "name" : {
+            "type" : "string",
+            "maxLength" : 100,
+            "minLength" : 0
+          }
+        },
+        "required" : [ "name" ]
+      },
+      "CategoryResponse" : {
+        "type" : "object",
+        "properties" : {
+          "id" : {
+            "type" : "string",
+            "format" : "uuid"
+          },
+          "name" : {
+            "type" : "string"
+          }
+        },
+        "required" : [ "id", "name" ]
+      },
+      "HealthResponse" : {
+        "type" : "object",
+        "properties" : {
+          "status" : {
+            "type" : "string"
+          }
+        },
+        "required" : [ "status" ]
+      },
+      "PageResponseServiceResponse" : {
+        "type" : "object",
+        "properties" : {
+          "items" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/ServiceResponse"
+            }
+          },
+          "page" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "size" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "total" : {
+            "type" : "integer",
+            "format" : "int64"
+          }
+        },
+        "required" : [ "items", "page", "size", "total" ]
+      },
+      "ServiceRequest" : {
+        "type" : "object",
+        "properties" : {
+          "categoryId" : {
+            "type" : "string",
+            "format" : "uuid"
+          },
+          "description" : {
+            "type" : "string",
+            "maxLength" : 2000,
+            "minLength" : 0
+          },
+          "durationMinutes" : {
+            "type" : "integer",
+            "format" : "int32",
+            "maximum" : 480,
+            "minimum" : 5
+          },
+          "name" : {
+            "type" : "string",
+            "maxLength" : 200,
+            "minLength" : 0
+          },
+          "performerType" : {
+            "type" : "string",
+            "enum" : [ "DOCTOR", "MEDICAL_STAFF" ]
+          },
+          "price" : {
+            "type" : "number",
+            "minimum" : 0.00
+          }
+        },
+        "required" : [ "categoryId", "name", "performerType", "price" ]
+      },
+      "ServiceResponse" : {
+        "type" : "object",
+        "properties" : {
+          "active" : {
+            "type" : "boolean"
+          },
+          "categoryId" : {
+            "type" : "string",
+            "format" : "uuid"
+          },
+          "description" : {
+            "type" : "string"
+          },
+          "durationMinutes" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "id" : {
+            "type" : "string",
+            "format" : "uuid"
+          },
+          "name" : {
+            "type" : "string"
+          },
+          "performerType" : {
+            "type" : "string",
+            "enum" : [ "DOCTOR", "MEDICAL_STAFF" ]
+          },
+          "price" : {
+            "type" : "number"
+          }
+        },
+        "required" : [ "active", "categoryId", "durationMinutes", "id", "name", "performerType", "price" ]
+      }
+    }
+  }
+}

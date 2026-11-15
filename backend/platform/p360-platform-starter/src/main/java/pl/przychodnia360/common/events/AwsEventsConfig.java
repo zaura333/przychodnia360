@@ -63,9 +63,9 @@ class AwsEventsConfig {
     @ConditionalOnExpression("!'${p360.events.sqs.queue-url:}'.isEmpty()")
     SqsEventConsumer sqsEventConsumer(SqsClient sqs, @Value("${p360.events.sqs.queue-url}") String queueUrl,
             @Value("${spring.application.name}") String consumerName, JsonMapper mapper, InboxGuard inbox,
-            PlatformTransactionManager transactionManager, List<EventHandler> handlers,
+            PlatformTransactionManager transactionManager, List<EventHandler> handlers, EventTracing tracing,
             @Value("${p360.events.sqs.wait-seconds:10}") int waitSeconds) {
         return new SqsEventConsumer(sqs, queueUrl, consumerName, mapper, inbox, transactionManager, handlers,
-                waitSeconds);
+                tracing, waitSeconds);
     }
 }

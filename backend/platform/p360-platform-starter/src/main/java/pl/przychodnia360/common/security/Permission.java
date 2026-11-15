@@ -22,5 +22,13 @@ public enum Permission {
     PATIENT_SEARCH,
     USER_MANAGE,
     TENANT_READ,
-    PLATFORM_MANAGE
+    PLATFORM_MANAGE,
+    /** Wewnętrzny odczyt katalogu przez inne usługi (tylko SERVICE). */
+    CATALOG_INTERNAL_READ,
+    /** Wewnętrzny odczyt pacjentów przez inne usługi (tylko SERVICE). */
+    PATIENT_INTERNAL_READ,
+    /** Wewnętrzny zapis pacjentów przez inne usługi, np. saga rejestracji (tylko SERVICE). */
+    PATIENT_INTERNAL_WRITE,
+    /** Wewnętrzne operacje na kontach w iam, np. saga zakładania pracownika (tylko SERVICE). */
+    IDENTITY_INTERNAL_WRITE
 }

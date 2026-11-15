@@ -1,0 +1,32 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://schemas.przychodnia360.example/events/PatientUpdated.schema.json",
+  "title": "PatientUpdated",
+  "description": "Zmieniono dane pacjenta. Tylko identyfikatory i dane techniczne, bez danych osobowych (ADR-M10).",
+  "x-schemaVersion": 1,
+  "x-producer": "patient",
+  "type": "object",
+  "properties": {
+    "tenantId": {
+      "type": "string",
+      "format": "uuid",
+      "description": "Placówka (izolacja tenantów)"
+    },
+    "aggregateId": {
+      "type": "string",
+      "format": "uuid",
+      "description": "Identyfikator agregatu, którego dotyczy zdarzenie"
+    },
+    "occurredAt": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Moment zdarzenia (UTC)"
+    }
+  },
+  "required": [
+    "tenantId",
+    "aggregateId",
+    "occurredAt"
+  ],
+  "additionalProperties": false
+}

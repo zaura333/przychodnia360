@@ -1,0 +1,16 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://schemas.przychodnia360.example/events/UserDeactivated.schema.json",
+  "title": "UserDeactivated",
+  "description": "Konto użytkownika zdezaktywowane (odwołanie dostępu). Tylko identyfikatory i dane techniczne, bez danych osobowych (ADR-M10).",
+  "x-schemaVersion": 1,
+  "x-producer": "iam",
+  "type": "object",
+  "properties": {
+    "tenantId": { "type": "string", "format": "uuid", "description": "Placówka (izolacja tenantów)" },
+    "aggregateId": { "type": "string", "format": "uuid", "description": "Identyfikator agregatu, którego dotyczy zdarzenie" },
+    "occurredAt": { "type": "string", "format": "date-time", "description": "Moment zdarzenia (UTC)" }
+  },
+  "required": ["tenantId", "aggregateId", "occurredAt"],
+  "additionalProperties": false
+}

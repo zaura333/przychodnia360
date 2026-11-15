@@ -1,0 +1,27 @@
+# Profil lokalny (docker-compose). Wartości dev są jawne, bo dane są syntetyczne i lokalne;
+# zgodne z .env.example. Nadpisywane zmiennymi środowiskowymi (np. w profilu compose `full`).
+spring:
+  datasource:
+    password: ${P360_APP_PASSWORD:p360_app_local_dev}
+  flyway:
+    password: ${P360_OWNER_PASSWORD:p360_owner_local_dev}
+    placeholders:
+      app_password: ${P360_APP_PASSWORD:p360_app_local_dev}
+
+logging:
+  pattern:
+    level: "%5p [%X{requestId:-}]"
+
+security:
+  jwt:
+    # iam uruchomione lokalnie (profil local, port 8084); w compose nadpisywane P360_JWKS_URL
+    jwks-url: ${P360_JWKS_URL:http://localhost:8084/api/v1/auth/jwks}
+
+p360:
+  service-client:
+    # sekret dev tej usługi w iam (dane syntetyczne, tylko lokalnie); w compose P360_SCHEDULING_CLIENT_SECRET
+    secret: ${P360_SCHEDULING_CLIENT_SECRET:p360_scheduling_client_local_dev}
+
+seed:
+  # Hasło kont demo (dane syntetyczne, tylko lokalnie): to samo co w iam, bo seed loguje się jako administrator placówki
+  password: ${SEED_PASSWORD:demo-przychodnia-2026}
