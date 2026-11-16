@@ -96,10 +96,10 @@ public abstract class AbstractApiTest extends AbstractIntegrationTest {
         UUID patientId;
         try (var h = TenantContext.open(new TenantId(tenantId))) {
             patientId = tx.execute(s -> {
-                UUID id = patientFacade.create(firstName, lastName, java.time.LocalDate.of(1990, 1, 1), null);
+                UUID id = Ids.newId();
                 user.linkPatient(id);
                 users.update(user);
-                patientFacade.linkAccount(id, user.id());
+                patientFacade.ensure(id, firstName, lastName, java.time.LocalDate.of(1990, 1, 1), null, user.id());
                 return id;
             });
         }

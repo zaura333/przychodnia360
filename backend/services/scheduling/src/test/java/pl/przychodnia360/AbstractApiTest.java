@@ -81,8 +81,8 @@ public abstract class AbstractApiTest extends AbstractIntegrationTest {
         TestUser user = newUser(tenantId, Role.PATIENT);
         UUID patientId;
         try (var h = TenantContext.open(new TenantId(tenantId))) {
-            patientId = patientFacade.create(firstName, lastName, java.time.LocalDate.of(1990, 1, 1), null);
-            patientFacade.linkAccount(patientId, user.id());
+            patientId = UUID.randomUUID();
+            patientFacade.ensure(patientId, firstName, lastName, java.time.LocalDate.of(1990, 1, 1), null, user.id());
         }
         return new PatientAccount(user, patientId, TestTokenIssuer.token(tenantId, Role.PATIENT, user.id(), null, patientId));
     }

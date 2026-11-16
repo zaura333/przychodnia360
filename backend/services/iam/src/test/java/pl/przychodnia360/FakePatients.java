@@ -1,8 +1,6 @@
 package pl.przychodnia360;
 
 import java.time.LocalDate;
-import java.util.Collection;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -10,7 +8,6 @@ import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicReference;
 import pl.przychodnia360.patients.api.PatientFacade;
-import pl.przychodnia360.shared.Ids;
 import pl.przychodnia360.shared.ServiceUnavailableException;
 import pl.przychodnia360.shared.TenantContext;
 
@@ -53,13 +50,6 @@ public class FakePatients implements PatientFacade {
     }
 
     @Override
-    public UUID create(String firstName, String lastName, LocalDate birthDate, String contactEmail) {
-        UUID id = Ids.newId();
-        current().put(id, new PatientInfo(id, null, firstName.trim(), lastName.trim(), birthDate, contactEmail));
-        return id;
-    }
-
-    @Override
     public void ensure(UUID patientId, String firstName, String lastName, LocalDate birthDate, String contactEmail,
             UUID userId) {
         if (failure.get() == Failure.BEFORE) {
@@ -74,20 +64,7 @@ public class FakePatients implements PatientFacade {
     }
 
     @Override
-    public void linkAccount(UUID patientId, UUID userId) {
-        current().computeIfPresent(patientId, (id, p) -> new PatientInfo(p.id(), userId, p.firstName(), p.lastName(),
-                p.birthDate(), p.contactEmail()));
-    }
-
-    @Override
     public Optional<PatientInfo> find(UUID patientId) {
         return Optional.ofNullable(current().get(patientId));
-    }
-
-    @Override
-    public Map<UUID, PatientInfo> findAll(Collection<UUID> ids) {
-        Map<UUID, PatientInfo> result = new HashMap<>();
-        ids.forEach(id -> find(id).ifPresent(p -> result.put(id, p)));
-        return result;
     }
 }

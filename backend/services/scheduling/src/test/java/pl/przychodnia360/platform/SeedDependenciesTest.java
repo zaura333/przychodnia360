@@ -45,17 +45,7 @@ class SeedDependenciesTest {
         final AtomicInteger calls = new AtomicInteger();
 
         @Override
-        public UUID create(String f, String l, LocalDate b, String e) {
-            throw new UnsupportedOperationException();
-        }
-
-        @Override
         public void ensure(UUID id, String f, String l, LocalDate b, String e, UUID userId) {
-            throw new UnsupportedOperationException();
-        }
-
-        @Override
-        public void linkAccount(UUID p, UUID u) {
             throw new UnsupportedOperationException();
         }
 
