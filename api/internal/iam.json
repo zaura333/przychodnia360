@@ -1,0 +1,168 @@
+{
+  "openapi" : "3.1.0",
+  "info" : {
+    "description" : "Wersja demonstracyjna, dane wyłącznie syntetyczne.",
+    "title" : "Przychodnia360 API",
+    "version" : "v1"
+  },
+  "servers" : [ {
+    "url" : "/"
+  } ],
+  "paths" : {
+    "/api/v1/internal/employee-accounts/{employeeId}" : {
+      "put" : {
+        "description" : "Dostęp: IDENTITY_INTERNAL_WRITE (SERVICE). Powtórzenie zwraca to samo konto; e-mail innego konta: 409.",
+        "operationId" : "internalEnsureEmployeeAccount",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "employeeId",
+          "required" : true,
+          "schema" : {
+            "type" : "string",
+            "format" : "uuid"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/EmployeeAccountRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/EmployeeAccountResponse"
+                }
+              }
+            },
+            "description" : "OK"
+          }
+        },
+        "summary" : "Idempotentne konto pracownika (wewnętrzne)",
+        "tags" : [ "internal-identity-controller" ]
+      }
+    },
+    "/api/v1/internal/service-tokens" : {
+      "post" : {
+        "description" : "Dostęp: sekret usługi. Zły sekret: 401; usługa docelowa spoza listy lub nieaktywna placówka: 403.",
+        "operationId" : "internalIssueServiceToken",
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/ServiceTokenRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ServiceTokenResponse"
+                }
+              }
+            },
+            "description" : "OK"
+          }
+        },
+        "summary" : "Token usługowy (wewnętrzne)",
+        "tags" : [ "service-token-controller" ]
+      }
+    },
+    "/api/v1/internal/users/{userId}/deactivate" : {
+      "post" : {
+        "description" : "Dostęp: IDENTITY_INTERNAL_WRITE (SERVICE). Idempotentne; unieważnia tokeny odświeżania.",
+        "operationId" : "internalDeactivateUser",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "userId",
+          "required" : true,
+          "schema" : {
+            "type" : "string",
+            "format" : "uuid"
+          }
+        } ],
+        "responses" : {
+          "204" : {
+            "description" : "No Content"
+          }
+        },
+        "summary" : "Dezaktywacja konta (wewnętrzne)",
+        "tags" : [ "internal-identity-controller" ]
+      }
+    }
+  },
+  "components" : {
+    "schemas" : {
+      "EmployeeAccountRequest" : {
+        "type" : "object",
+        "properties" : {
+          "email" : {
+            "type" : "string",
+            "format" : "email",
+            "minLength" : 1
+          },
+          "role" : {
+            "type" : "string",
+            "enum" : [ "PATIENT", "DOCTOR", "MEDICAL_STAFF", "RECEPTIONIST", "TENANT_ADMIN", "PLATFORM_ADMIN" ]
+          }
+        },
+        "required" : [ "email", "role" ]
+      },
+      "EmployeeAccountResponse" : {
+        "type" : "object",
+        "properties" : {
+          "userId" : {
+            "type" : "string",
+            "format" : "uuid"
+          }
+        },
+        "required" : [ "userId" ]
+      },
+      "ServiceTokenRequest" : {
+        "type" : "object",
+        "properties" : {
+          "audience" : {
+            "type" : "string",
+            "minLength" : 1
+          },
+          "clientId" : {
+            "type" : "string",
+            "minLength" : 1
+          },
+          "clientSecret" : {
+            "type" : "string",
+            "minLength" : 1
+          },
+          "tenantId" : {
+            "type" : "string",
+            "format" : "uuid"
+          }
+        },
+        "required" : [ "audience", "clientId", "clientSecret", "tenantId" ]
+      },
+      "ServiceTokenResponse" : {
+        "type" : "object",
+        "properties" : {
+          "accessToken" : {
+            "type" : "string"
+          },
+          "expiresIn" : {
+            "type" : "integer",
+            "format" : "int64"
+          }
+        },
+        "required" : [ "accessToken", "expiresIn" ]
+      }
+    }
+  }
+}
