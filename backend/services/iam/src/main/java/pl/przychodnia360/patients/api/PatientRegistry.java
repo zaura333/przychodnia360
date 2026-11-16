@@ -5,10 +5,11 @@ import java.util.Optional;
 import java.util.UUID;
 
 /**
- * Port iam do patient-service: tylko to, czego iam potrzebuje (rejestracja konta pacjenta). Kontrakt sieciowy to
- * {@code api/exports/patient.json}, a ten interfejs jest własnością konsumenta.
+ * Port iam do patient-service: tylko to, czego iam potrzebuje (rejestracja konta pacjenta). Interfejs jest własnością
+ * konsumenta; adapter HTTP ({@code RemotePatientRegistry}) woła wewnętrzne API patient-service
+ * ({@code /api/v1/internal/patients}), którego nie ma w eksportach OpenAPI.
  */
-public interface PatientFacade {
+public interface PatientRegistry {
 
     /** Dane pacjenta widoczne dla iam. */
     record PatientInfo(UUID id, UUID userId, String firstName, String lastName, LocalDate birthDate,

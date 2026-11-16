@@ -7,7 +7,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 import pl.przychodnia360.catalog.api.CatalogFacade;
-import pl.przychodnia360.patients.api.PatientFacade;
+import pl.przychodnia360.patients.api.PatientDirectory;
 import pl.przychodnia360.shared.ServiceUnavailableException;
 import pl.przychodnia360.shared.TenantContext;
 import pl.przychodnia360.shared.TenantId;
@@ -26,11 +26,11 @@ class SeedDependencies {
     private static final Logger log = LoggerFactory.getLogger(SeedDependencies.class);
 
     private final CatalogFacade catalog;
-    private final PatientFacade patients;
+    private final PatientDirectory patients;
     private final int maxAttempts;
     private final Duration retryDelay;
 
-    SeedDependencies(CatalogFacade catalog, PatientFacade patients,
+    SeedDependencies(CatalogFacade catalog, PatientDirectory patients,
             @Value("${seed.dependencies.max-attempts:40}") int maxAttempts,
             @Value("${seed.dependencies.retry-delay:PT3S}") Duration retryDelay) {
         this.catalog = catalog;

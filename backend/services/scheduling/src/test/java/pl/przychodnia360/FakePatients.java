@@ -9,16 +9,16 @@ import java.util.Optional;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicReference;
-import pl.przychodnia360.patients.api.PatientFacade;
+import pl.przychodnia360.patients.api.PatientDirectory;
 import pl.przychodnia360.shared.ServiceUnavailableException;
 import pl.przychodnia360.shared.TenantContext;
 
 /**
- * Atrapa {@link PatientFacade} w testach scheduling (moduł pacjentów jest w patient-service): rekordy w pamięci,
+ * Atrapa {@link PatientDirectory} w testach scheduling (moduł pacjentów jest w patient-service): rekordy w pamięci,
  * rozdzielone placówkami. Zapis zdalny zatwierdza się niezależnie od transakcji konta, jak w prawdziwej usłudze, więc
  * test sagi rejestracji może wstrzyknąć awarię przed zapisem albo po zapisie (zgubiona odpowiedź).
  */
-public class FakePatients implements PatientFacade {
+public class FakePatients implements PatientDirectory {
 
     /** Awaria wstrzykiwana w {@link #ensure}: przed zapisem albo po zapisie (odpowiedź zgubiona). */
     public enum Failure { NONE, BEFORE, AFTER }

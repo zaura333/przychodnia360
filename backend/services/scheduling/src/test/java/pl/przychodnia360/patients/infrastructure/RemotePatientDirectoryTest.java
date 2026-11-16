@@ -21,7 +21,7 @@ import pl.przychodnia360.common.security.Role;
 import pl.przychodnia360.shared.ServiceUnavailableException;
 
 /** Zdalna fasada pacjentów (S2): odczyt przez REST, degradacja widoków, awaria przy pojedynczym odczycie, brak zapisu bez sagi. */
-class RemotePatientFacadeTest {
+class RemotePatientDirectoryTest {
 
     private static final String PATIENT = "{\"id\":\"%s\",\"userId\":null,\"firstName\":\"Anna\",\"lastName\":\"Nowak\","
             + "\"birthDate\":\"1990-05-17\",\"contactEmail\":null}";
@@ -46,7 +46,7 @@ class RemotePatientFacadeTest {
         UUID id = UUID.randomUUID();
         try (StubHttpServer stub = new StubHttpServer().respond(r -> r.path().endsWith("/" + id)
                 ? Reply.ok(String.format(PATIENT, id)) : Reply.ok("[" + String.format(PATIENT, id) + "]"))) {
-            RemotePatientFacade facade = new RemotePatientFacade(client(stub, 5, Duration.ofSeconds(2)));
+            RemotePatientDirectory facade = new RemotePatientDirectory(client(stub, 5, Duration.ofSeconds(2)));
             asCaller("token-xyz");
 
             var one = facade.find(id).orElseThrow();
@@ -60,14 +60,14 @@ class RemotePatientFacadeTest {
     @Test
     void unknownPatientIsEmpty() {
         try (StubHttpServer stub = new StubHttpServer().respond(r -> Reply.status(404))) {
-            assertThat(new RemotePatientFacade(client(stub, 5, Duration.ofSeconds(2))).find(UUID.randomUUID())).isEmpty();
+            assertThat(new RemotePatientDirectory(client(stub, 5, Duration.ofSeconds(2))).find(UUID.randomUUID())).isEmpty();
         }
     }
 
     @Test
     void outageDegradesViewsButFailsSingleReads() {
         try (StubHttpServer stub = new StubHttpServer().respond(r -> Reply.status(500))) {
-            RemotePatientFacade facade = new RemotePatientFacade(client(stub, 5, Duration.ofSeconds(2)));
+            RemotePatientDirectory facade = new RemotePatientDirectory(client(stub, 5, Duration.ofSeconds(2)));
             asCaller("t");
 
             assertThat(facade.findAll(List.of(UUID.randomUUID()))).as("etykieta zastępcza po stronie widoku").isEmpty();
@@ -80,7 +80,7 @@ class RemotePatientFacadeTest {
         UUID patientId = UUID.randomUUID();
         UUID userId = UUID.randomUUID();
         try (StubHttpServer stub = new StubHttpServer().respond(r -> Reply.status(204))) {
-            RemotePatientFacade facade = new RemotePatientFacade(serviceClient(stub, "svc-token"));
+            RemotePatientDirectory facade = new RemotePatientDirectory(serviceClient(stub, "svc-token"));
             asCaller("user-token");
 
             facade.ensure(patientId, "Anna", "Nowak", java.time.LocalDate.of(1990, 5, 17), "a@example.test", userId);
@@ -97,7 +97,7 @@ class RemotePatientFacadeTest {
             assertThat(stub.received().get(1).body()).contains("\"userId\":null");
         }
         try (StubHttpServer down = new StubHttpServer().respond(r -> Reply.status(503))) {
-            RemotePatientFacade facade = new RemotePatientFacade(serviceClient(down, "svc-token"));
+            RemotePatientDirectory facade = new RemotePatientDirectory(serviceClient(down, "svc-token"));
             assertThatThrownBy(() -> facade.ensure(patientId, "A", "B", java.time.LocalDate.of(1990, 1, 1), null, null))
                     .isInstanceOf(ServiceUnavailableException.class);
         }

@@ -8,9 +8,10 @@ import java.util.UUID;
 
 /**
  * Port scheduling do patient-service: tylko to, czego scheduling potrzebuje (rezerwacje, widoki wizyt, seed).
- * Kontrakt sieciowy to {@code api/exports/patient.json}, a ten interfejs jest własnością konsumenta.
+ * Interfejs jest własnością konsumenta; adapter HTTP ({@code RemotePatientDirectory}) woła wewnętrzne API
+ * patient-service ({@code /api/v1/internal/patients}), którego nie ma w eksportach OpenAPI.
  */
-public interface PatientFacade {
+public interface PatientDirectory {
 
     /** Dane pacjenta widoczne dla scheduling. */
     record PatientInfo(UUID id, UUID userId, String firstName, String lastName, LocalDate birthDate,
