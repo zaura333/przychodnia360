@@ -200,7 +200,7 @@ services:
   # P360_EVENTS_SNS_TOPIC_ARN i P360_EVENTS_AWS_ENDPOINT (patrz README).
   localstack:
     profiles: ["async", "full"]
-    image: localstack/localstack:3.8.1
+    image: localstack/localstack:4.14.0
     restart: unless-stopped
     environment:
       SERVICES: sns,sqs
