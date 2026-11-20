@@ -181,7 +181,7 @@ services:
   # Wchodzi do core i full; profil edge uruchamia ją samą (np. przy backendzie z IDE).
   traefik:
     profiles: ["core", "full", "edge"]
-    image: traefik:v3.2.3
+    image: traefik:v3.7.18
     restart: unless-stopped
     ports:
       - "127.0.0.1:${EDGE_PORT:-8090}:80"
