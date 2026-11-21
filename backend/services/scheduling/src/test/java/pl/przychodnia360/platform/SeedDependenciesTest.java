@@ -12,7 +12,7 @@ import java.util.UUID;
 import java.util.concurrent.atomic.AtomicInteger;
 import org.junit.jupiter.api.Test;
 import pl.przychodnia360.catalog.api.CatalogFacade;
-import pl.przychodnia360.patients.api.PatientFacade;
+import pl.przychodnia360.patients.api.PatientDirectory;
 import pl.przychodnia360.shared.ServiceUnavailableException;
 
 /** Seed czeka na usługi catalog i patient przed utworzeniem stanu (zimny start, awaria na starcie) i nie czeka w nieskończoność. */
@@ -41,21 +41,11 @@ class SeedDependenciesTest {
         }
     }
 
-    private static final class QuietPatients implements PatientFacade {
+    private static final class QuietPatients implements PatientDirectory {
         final AtomicInteger calls = new AtomicInteger();
 
         @Override
-        public UUID create(String f, String l, LocalDate b, String e) {
-            throw new UnsupportedOperationException();
-        }
-
-        @Override
         public void ensure(UUID id, String f, String l, LocalDate b, String e, UUID userId) {
-            throw new UnsupportedOperationException();
-        }
-
-        @Override
-        public void linkAccount(UUID p, UUID u) {
             throw new UnsupportedOperationException();
         }
 

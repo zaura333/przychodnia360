@@ -20,7 +20,7 @@ import pl.przychodnia360.common.time.ClinicTime;
 import pl.przychodnia360.common.security.AuthenticatedUser;
 import pl.przychodnia360.common.security.Permission;
 import pl.przychodnia360.common.security.PermissionPolicy;
-import pl.przychodnia360.patients.api.PatientFacade;
+import pl.przychodnia360.patients.api.PatientDirectory;
 import pl.przychodnia360.shared.DomainEventPublisher;
 import pl.przychodnia360.shared.ForbiddenException;
 import pl.przychodnia360.shared.Ids;
@@ -46,13 +46,13 @@ public class BookingService {
     private final AppointmentRepository repository;
     private final CatalogFacade catalog;
     private final StaffFacade staff;
-    private final PatientFacade patients;
+    private final PatientDirectory patients;
     private final ViewAssembler views;
     private final Clock clock;
     private final DomainEventPublisher events;
     private final int stepMinutes;
 
-    BookingService(AppointmentRepository repository, CatalogFacade catalog, StaffFacade staff, PatientFacade patients,
+    BookingService(AppointmentRepository repository, CatalogFacade catalog, StaffFacade staff, PatientDirectory patients,
             ViewAssembler views, Clock clock, DomainEventPublisher events,
             @Value("${appointments.slot-step-minutes:15}") int stepMinutes) {
         this.repository = repository;
