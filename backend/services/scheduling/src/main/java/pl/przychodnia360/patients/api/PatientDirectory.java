@@ -6,10 +6,14 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 
-/** Publiczny interfejs modułu pacjentów dla innych modułów (rejestracja konta, rezerwacje). */
-public interface PatientFacade {
+/**
+ * Port scheduling do patient-service: tylko to, czego scheduling potrzebuje (rezerwacje, widoki wizyt, seed).
+ * Interfejs jest własnością konsumenta; adapter HTTP ({@code RemotePatientDirectory}) woła wewnętrzne API
+ * patient-service ({@code /api/v1/internal/patients}), którego nie ma w eksportach OpenAPI.
+ */
+public interface PatientDirectory {
 
-    /** Dane pacjenta widoczne dla innych modułów. */
+    /** Dane pacjenta widoczne dla scheduling. */
     record PatientInfo(UUID id, UUID userId, String firstName, String lastName, LocalDate birthDate,
             String contactEmail) {
 
@@ -18,19 +22,12 @@ public interface PatientFacade {
         }
     }
 
-    /** Zakłada rekord pacjenta w bieżącej placówce (kontekst z TenantContext). */
-    UUID create(String firstName, String lastName, LocalDate birthDate, String contactEmail);
-
     /**
-     * Idempotentnie zakłada rekord pacjenta o zadanym identyfikatorze (saga rejestracji, S2): powtórzenie z tym samym
-     * identyfikatorem niczego nie duplikuje, a podane powiązanie z kontem jest ustawiane (nadpisuje poprzednie, np. z
-     * wycofanej próby rejestracji).
+     * Idempotentnie zakłada rekord pacjenta o zadanym identyfikatorze (seed): powtórzenie z tym samym identyfikatorem
+     * niczego nie duplikuje.
      */
     void ensure(UUID patientId, String firstName, String lastName, LocalDate birthDate, String contactEmail,
             UUID userId);
-
-    /** Wiąże rekord pacjenta z kontem użytkownika. */
-    void linkAccount(UUID patientId, UUID userId);
 
     Optional<PatientInfo> find(UUID patientId);
 

@@ -17,7 +17,8 @@ import pl.przychodnia360.shared.ConflictException;
 @Component
 class RemoteIdentityFacade implements IdentityFacade {
 
-    private record AccountResponse(UUID userId) {
+    /** Odpowiedź iam na założenie konta (pakietowa, żeby test kontraktu mógł sprawdzić zgodność z dostawcą). */
+    record AccountResponse(UUID userId) {
     }
 
     private final RemoteServiceClient client;
@@ -39,6 +40,6 @@ class RemoteIdentityFacade implements IdentityFacade {
 
     @Override
     public void deactivate(UUID userId) {
-        client.post("/api/v1/internal/users/{id}/deactivate", Map.of(), Void.class, userId);
+        client.postWithoutBody("/api/v1/internal/users/{id}/deactivate", userId);
     }
 }

@@ -79,6 +79,11 @@ public class RemoteServiceClient {
         return call(() -> client.post().uri(uri, vars).headers(h -> authorize(h)).body(body).retrieve().body(type));
     }
 
+    /** POST bez treści (polecenia bez parametrów, np. dezaktywacja): nie wysyła pustego obiektu, którego kontrakt nie przewiduje. */
+    public void postWithoutBody(String uri, Object... vars) {
+        call(() -> client.post().uri(uri, vars).headers(h -> authorize(h)).retrieve().toBodilessEntity());
+    }
+
     public <T> T put(String uri, Object body, Class<T> type, Object... vars) {
         return call(() -> client.put().uri(uri, vars).headers(h -> authorize(h)).body(body).retrieve().body(type));
     }

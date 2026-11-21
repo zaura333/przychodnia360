@@ -1,0 +1,107 @@
+{
+  "openapi" : "3.1.0",
+  "info" : {
+    "description" : "Wersja demonstracyjna, dane wyłącznie syntetyczne.",
+    "title" : "Przychodnia360 API",
+    "version" : "v1"
+  },
+  "servers" : [ {
+    "url" : "/"
+  } ],
+  "paths" : {
+    "/api/v1/internal/services" : {
+      "get" : {
+        "description" : "Dostęp: CATALOG_INTERNAL_READ (SERVICE). Nieznane identyfikatory są pomijane.",
+        "operationId" : "internalServicesByIds",
+        "parameters" : [ {
+          "in" : "query",
+          "name" : "ids",
+          "required" : true,
+          "schema" : {
+            "type" : "array",
+            "items" : {
+              "type" : "string",
+              "format" : "uuid"
+            }
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "type" : "array",
+                  "items" : {
+                    "$ref" : "#/components/schemas/ServiceInfo"
+                  }
+                }
+              }
+            },
+            "description" : "OK"
+          }
+        },
+        "summary" : "Usługi po identyfikatorach (wewnętrzne, także nieaktywne)",
+        "tags" : [ "internal-catalog-controller" ]
+      }
+    },
+    "/api/v1/internal/services/{id}" : {
+      "get" : {
+        "description" : "Dostęp: CATALOG_INTERNAL_READ (SERVICE).",
+        "operationId" : "internalServiceById",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "id",
+          "required" : true,
+          "schema" : {
+            "type" : "string",
+            "format" : "uuid"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ServiceInfo"
+                }
+              }
+            },
+            "description" : "OK"
+          }
+        },
+        "summary" : "Usługa po identyfikatorze (wewnętrzne, także nieaktywna)",
+        "tags" : [ "internal-catalog-controller" ]
+      }
+    }
+  },
+  "components" : {
+    "schemas" : {
+      "ServiceInfo" : {
+        "type" : "object",
+        "properties" : {
+          "active" : {
+            "type" : "boolean"
+          },
+          "durationMinutes" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "id" : {
+            "type" : "string",
+            "format" : "uuid"
+          },
+          "name" : {
+            "type" : "string"
+          },
+          "performerType" : {
+            "type" : "string"
+          },
+          "price" : {
+            "type" : "number"
+          }
+        },
+        "required" : [ "active", "durationMinutes", "id", "name", "performerType", "price" ]
+      }
+    }
+  }
+}
