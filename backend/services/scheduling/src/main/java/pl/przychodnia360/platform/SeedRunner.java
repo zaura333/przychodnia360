@@ -27,7 +27,7 @@ import pl.przychodnia360.common.security.AccessTokenVerifier;
 import pl.przychodnia360.common.security.AuthenticatedUser;
 import pl.przychodnia360.common.security.Role;
 import pl.przychodnia360.common.time.ClinicTime;
-import pl.przychodnia360.patients.api.PatientFacade;
+import pl.przychodnia360.patients.api.PatientDirectory;
 import pl.przychodnia360.shared.ServiceUnavailableException;
 import pl.przychodnia360.shared.SubjectIds;
 import pl.przychodnia360.shared.TenantContext;
@@ -66,7 +66,7 @@ class SeedRunner implements ApplicationRunner {
     private final EmployeeService employees;
     private final ScheduleService schedules;
     private final BookingService booking;
-    private final PatientFacade patients;
+    private final PatientDirectory patients;
     private final java.time.Clock clock;
     private final String password;
     private final int maxAttempts;
@@ -74,7 +74,7 @@ class SeedRunner implements ApplicationRunner {
 
     SeedRunner(SeedCatalog catalog, SeedDependencies dependencies, @Qualifier("iamClient") RemoteServiceClient iam,
             AccessTokenVerifier verifier, EmployeeService employees, ScheduleService schedules,
-            BookingService booking, PatientFacade patients, java.time.Clock clock, @Value("${seed.password:}") String password,
+            BookingService booking, PatientDirectory patients, java.time.Clock clock, @Value("${seed.password:}") String password,
             @Value("${seed.dependencies.max-attempts:40}") int maxAttempts,
             @Value("${seed.dependencies.retry-delay:PT3S}") Duration retryDelay) {
         this.catalog = catalog;
