@@ -18,7 +18,7 @@ import pl.przychodnia360.identity.application.RegistrationService;
 import pl.przychodnia360.identity.application.RegistrationService.Registration;
 import pl.przychodnia360.identity.application.UserRepository;
 import pl.przychodnia360.identity.domain.User;
-import pl.przychodnia360.patients.api.PatientFacade;
+import pl.przychodnia360.patients.api.PatientRegistry;
 import pl.przychodnia360.shared.Ids;
 import pl.przychodnia360.shared.ServiceUnavailableException;
 import pl.przychodnia360.shared.SubjectIds;
@@ -56,7 +56,7 @@ class SeedRunner implements ApplicationRunner {
     private final TenantService tenantService;
     private final TenantFacade tenants;
     private final RegistrationService registration;
-    private final PatientFacade patients;
+    private final PatientRegistry patients;
     private final UserRepository users;
     private final PasswordHasher hasher;
     private final TransactionTemplate tx;
@@ -65,7 +65,7 @@ class SeedRunner implements ApplicationRunner {
     private final Duration retryDelay;
 
     SeedRunner(TenantService tenantService, TenantFacade tenants, RegistrationService registration,
-            PatientFacade patients, UserRepository users, PasswordHasher hasher, TransactionTemplate tx,
+            PatientRegistry patients, UserRepository users, PasswordHasher hasher, TransactionTemplate tx,
             @Value("${seed.password:}") String password,
             @Value("${seed.dependencies.max-attempts:40}") int maxAttempts,
             @Value("${seed.dependencies.retry-delay:PT3S}") Duration retryDelay) {

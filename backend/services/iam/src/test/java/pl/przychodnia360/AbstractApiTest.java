@@ -15,7 +15,7 @@ import pl.przychodnia360.identity.api.event.UserDeactivated;
 import pl.przychodnia360.identity.application.PasswordHasher;
 import pl.przychodnia360.identity.application.UserRepository;
 import pl.przychodnia360.identity.domain.User;
-import pl.przychodnia360.patients.api.PatientFacade;
+import pl.przychodnia360.patients.api.PatientRegistry;
 import pl.przychodnia360.shared.Ids;
 import pl.przychodnia360.shared.TenantContext;
 import pl.przychodnia360.shared.TenantId;
@@ -32,7 +32,7 @@ public abstract class AbstractApiTest extends AbstractIntegrationTest {
     @Autowired protected PasswordHasher hasher;
     @Autowired protected TransactionTemplate tx;
     @Autowired protected JdbcClient jdbc;
-    @Autowired protected PatientFacade patientFacade;
+    @Autowired protected PatientRegistry patientRegistry;
     @Autowired protected FakePatients fakePatients;
     @Autowired protected pl.przychodnia360.shared.DomainEventPublisher domainEvents;
     @Autowired protected RecordingMailSender mails;
@@ -96,10 +96,10 @@ public abstract class AbstractApiTest extends AbstractIntegrationTest {
         UUID patientId;
         try (var h = TenantContext.open(new TenantId(tenantId))) {
             patientId = tx.execute(s -> {
-                UUID id = patientFacade.create(firstName, lastName, java.time.LocalDate.of(1990, 1, 1), null);
+                UUID id = Ids.newId();
                 user.linkPatient(id);
                 users.update(user);
-                patientFacade.linkAccount(id, user.id());
+                patientRegistry.ensure(id, firstName, lastName, java.time.LocalDate.of(1990, 1, 1), null, user.id());
                 return id;
             });
         }
