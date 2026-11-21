@@ -12,3 +12,8 @@ runs:
         cache-dependency-path: |
           backend/**/pom.xml
           backend/.mvn/wrapper/maven-wrapper.properties
+    # setup-java cache: maven obejmuje tylko ~/.m2/repository; sam Maven pobierany przez mvnw leży w ~/.m2/wrapper.
+    - uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4
+      with:
+        path: ~/.m2/wrapper
+        key: mvnw-${{ runner.os }}-${{ hashFiles('backend/.mvn/wrapper/maven-wrapper.properties') }}
