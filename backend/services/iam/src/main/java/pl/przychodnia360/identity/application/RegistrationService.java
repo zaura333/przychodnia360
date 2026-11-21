@@ -9,7 +9,7 @@ import pl.przychodnia360.common.security.Role;
 import pl.przychodnia360.identity.application.MailSender.MailMessage;
 import pl.przychodnia360.identity.domain.PasswordPolicy;
 import pl.przychodnia360.identity.domain.User;
-import pl.przychodnia360.patients.api.PatientFacade;
+import pl.przychodnia360.patients.api.PatientRegistry;
 import pl.przychodnia360.shared.ConflictException;
 import pl.przychodnia360.shared.Ids;
 import pl.przychodnia360.shared.TenantContext;
@@ -30,13 +30,13 @@ public class RegistrationService {
     }
 
     private final TenantFacade tenants;
-    private final PatientFacade patients;
+    private final PatientRegistry patients;
     private final UserRepository users;
     private final PasswordHasher hasher;
     private final PasswordResetService passwordResets;
     private final TransactionTemplate tx;
 
-    RegistrationService(TenantFacade tenants, PatientFacade patients, UserRepository users, PasswordHasher hasher,
+    RegistrationService(TenantFacade tenants, PatientRegistry patients, UserRepository users, PasswordHasher hasher,
             PasswordResetService passwordResets, TransactionTemplate tx) {
         this.tenants = tenants;
         this.patients = patients;

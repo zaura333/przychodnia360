@@ -12,7 +12,7 @@ import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.transaction.support.TransactionTemplate;
 import pl.przychodnia360.appointments.api.event.AppointmentCancelled;
 import pl.przychodnia360.common.security.Role;
-import pl.przychodnia360.patients.api.PatientFacade;
+import pl.przychodnia360.patients.api.PatientDirectory;
 import pl.przychodnia360.shared.TenantContext;
 import pl.przychodnia360.shared.TenantId;
 import tools.jackson.databind.JsonNode;
@@ -29,7 +29,7 @@ public abstract class AbstractApiTest extends AbstractIntegrationTest {
 
     @Autowired protected TransactionTemplate tx;
     @Autowired protected JdbcClient jdbc;
-    @Autowired protected PatientFacade patientFacade;
+    @Autowired protected PatientDirectory patientDirectory;
     @Autowired protected FakeCatalog fakeCatalog;
     @Autowired protected FakePatients fakePatients;
     @Autowired protected FakeIdentity fakeIdentity;
@@ -81,8 +81,8 @@ public abstract class AbstractApiTest extends AbstractIntegrationTest {
         TestUser user = newUser(tenantId, Role.PATIENT);
         UUID patientId;
         try (var h = TenantContext.open(new TenantId(tenantId))) {
-            patientId = patientFacade.create(firstName, lastName, java.time.LocalDate.of(1990, 1, 1), null);
-            patientFacade.linkAccount(patientId, user.id());
+            patientId = UUID.randomUUID();
+            patientDirectory.ensure(patientId, firstName, lastName, java.time.LocalDate.of(1990, 1, 1), null, user.id());
         }
         return new PatientAccount(user, patientId, TestTokenIssuer.token(tenantId, Role.PATIENT, user.id(), null, patientId));
     }

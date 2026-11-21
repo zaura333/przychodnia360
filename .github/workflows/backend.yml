@@ -138,6 +138,27 @@ jobs:
           curl -sSfL "https://github.com/oasdiff/oasdiff/releases/download/v${OASDIFF_VERSION}/oasdiff_${OASDIFF_VERSION}_linux_amd64.tar.gz" \
             | tar -xz -C "$RUNNER_TEMP" oasdiff
           "$RUNNER_TEMP/oasdiff" breaking "$RUNNER_TEMP/base-openapi.json" api/openapi.json --format githubactions --fail-on ERR
+      # Kontrakty wewnętrzne usług (api/internal/<usługa>.json, ścieżki /api/v1/internal/**) są poza agregatem, ale
+      # wołają je inne usługi, więc ich złamanie też blokuje PR. Nowy plik (brak w bazie) nie jest złamaniem.
+      - name: oasdiff breaking kontraktów wewnętrznych względem bazy PR
+        env:
+          BASE_REF: ${{ github.base_ref }}
+        run: |
+          if [ ! -x "$RUNNER_TEMP/oasdiff" ]; then
+            curl -sSfL "https://github.com/oasdiff/oasdiff/releases/download/v${OASDIFF_VERSION}/oasdiff_${OASDIFF_VERSION}_linux_amd64.tar.gz" \
+              | tar -xz -C "$RUNNER_TEMP" oasdiff
+          fi
+          status=0
+          for file in api/internal/*.json; do
+            [ -f "$file" ] || continue
+            if ! git cat-file -e "origin/${BASE_REF}:${file}" 2>/dev/null; then
+              echo "::notice::Brak ${file} w gałęzi bazowej (pierwszy kontrakt), pomijam."
+              continue
+            fi
+            git show "origin/${BASE_REF}:${file}" > "$RUNNER_TEMP/base-internal.json"
+            "$RUNNER_TEMP/oasdiff" breaking "$RUNNER_TEMP/base-internal.json" "$file" --format githubactions --fail-on ERR || status=1
+          done
+          exit $status
 
   # Blokada (zadanie 1.8): zmiana schematu zdarzenia łamiąca istniejących konsumentów (usunięte lub zmienione pole,
   # pole wymagane staje się opcjonalne, obniżona wersja, usunięty typ zdarzenia) daje czerwony wynik. Zamiast edycji
