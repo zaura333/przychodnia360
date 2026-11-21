@@ -25,18 +25,36 @@ import tools.jackson.databind.node.ObjectNode;
 public final class OpenApiAggregate {
 
     public static final String EXPORT_DIR = "api/exports";
+    /** Kontrakt wewnętrzny usług ({@code /api/v1/internal/**}): poza agregatem, frontendem i routingiem krawędzi. */
+    public static final String INTERNAL_DIR = "api/internal";
     public static final String AGGREGATE = "api/openapi.json";
     private static final String INTERNAL_PREFIX = "/api/v1/internal/";
 
     private OpenApiAggregate() {
     }
 
-    /** Zapisuje eksport usługi (bez ścieżek wewnętrznych) i przelicza agregat. */
+    /**
+     * Zapisuje eksport usługi (bez ścieżek wewnętrznych), eksport jej ścieżek wewnętrznych do {@code api/internal}
+     * (tylko gdy usługa je ma; nieaktualny plik jest usuwany) i przelicza agregat. Agregat składa się wyłącznie z
+     * eksportów publicznych, więc kontrakt wewnętrzny nie trafia do klienta frontendu ani do routingu.
+     */
     public static void exportAndAggregate(String service, String springdocJson) {
         Path root = EventSchemas.repoRoot();
-        ObjectNode export = OpenApiSplitter.filterPaths(OpenApiSplitter.parse(springdocJson),
-                path -> !path.startsWith(INTERNAL_PREFIX));
+        JsonNode spec = OpenApiSplitter.parse(springdocJson);
+        ObjectNode export = OpenApiSplitter.filterPaths(spec, path -> !path.startsWith(INTERNAL_PREFIX));
         write(root.resolve(EXPORT_DIR).resolve(service + ".json"), OpenApiSplitter.toJson(export));
+
+        ObjectNode internal = OpenApiSplitter.filterPaths(spec, path -> path.startsWith(INTERNAL_PREFIX));
+        Path internalFile = root.resolve(INTERNAL_DIR).resolve(service + ".json");
+        if (internal.path("paths").isEmpty()) {
+            try {
+                Files.deleteIfExists(internalFile);
+            } catch (IOException e) {
+                throw new UncheckedIOException(e);
+            }
+        } else {
+            write(internalFile, OpenApiSplitter.toJson(internal));
+        }
         write(root.resolve(AGGREGATE), OpenApiSplitter.toJson(merge(readExports(root))));
     }
 

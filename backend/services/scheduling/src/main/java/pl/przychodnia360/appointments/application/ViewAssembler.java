@@ -11,8 +11,8 @@ import pl.przychodnia360.appointments.api.AppointmentViews.StaffAppointmentView;
 import pl.przychodnia360.appointments.domain.Appointment;
 import pl.przychodnia360.catalog.api.CatalogFacade;
 import pl.przychodnia360.catalog.api.CatalogFacade.ServiceInfo;
-import pl.przychodnia360.patients.api.PatientFacade;
-import pl.przychodnia360.patients.api.PatientFacade.PatientInfo;
+import pl.przychodnia360.patients.api.PatientDirectory;
+import pl.przychodnia360.patients.api.PatientDirectory.PatientInfo;
 import pl.przychodnia360.staff.api.StaffFacade;
 import pl.przychodnia360.staff.api.StaffFacade.EmployeeInfo;
 
@@ -22,9 +22,9 @@ class ViewAssembler {
 
     private final CatalogFacade catalog;
     private final StaffFacade staff;
-    private final PatientFacade patients;
+    private final PatientDirectory patients;
 
-    ViewAssembler(CatalogFacade catalog, StaffFacade staff, PatientFacade patients) {
+    ViewAssembler(CatalogFacade catalog, StaffFacade staff, PatientDirectory patients) {
         this.catalog = catalog;
         this.staff = staff;
         this.patients = patients;
