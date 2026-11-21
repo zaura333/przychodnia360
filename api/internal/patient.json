@@ -1,0 +1,205 @@
+{
+  "openapi" : "3.1.0",
+  "info" : {
+    "description" : "Wersja demonstracyjna, dane wyłącznie syntetyczne.",
+    "title" : "Przychodnia360 API",
+    "version" : "v1"
+  },
+  "servers" : [ {
+    "url" : "/"
+  } ],
+  "paths" : {
+    "/api/v1/internal/patients" : {
+      "get" : {
+        "description" : "Dostęp: PATIENT_INTERNAL_READ (SERVICE). Nieznane identyfikatory są pomijane.",
+        "operationId" : "internalPatientsByIds",
+        "parameters" : [ {
+          "in" : "query",
+          "name" : "ids",
+          "required" : true,
+          "schema" : {
+            "type" : "array",
+            "items" : {
+              "type" : "string",
+              "format" : "uuid"
+            }
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "type" : "array",
+                  "items" : {
+                    "$ref" : "#/components/schemas/PatientInfo"
+                  }
+                }
+              }
+            },
+            "description" : "OK"
+          }
+        },
+        "summary" : "Pacjenci po identyfikatorach (wewnętrzne)",
+        "tags" : [ "internal-patient-controller" ]
+      }
+    },
+    "/api/v1/internal/patients/{id}" : {
+      "get" : {
+        "description" : "Dostęp: PATIENT_INTERNAL_READ (SERVICE).",
+        "operationId" : "internalPatientById",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "id",
+          "required" : true,
+          "schema" : {
+            "type" : "string",
+            "format" : "uuid"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/PatientInfo"
+                }
+              }
+            },
+            "description" : "OK"
+          }
+        },
+        "summary" : "Pacjent po identyfikatorze (wewnętrzne)",
+        "tags" : [ "internal-patient-controller" ]
+      },
+      "put" : {
+        "description" : "Dostęp: PATIENT_INTERNAL_WRITE (SERVICE). Saga rejestracji: powtórzenie niczego nie duplikuje.",
+        "operationId" : "internalEnsurePatient",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "id",
+          "required" : true,
+          "schema" : {
+            "type" : "string",
+            "format" : "uuid"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/EnsureRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "204" : {
+            "description" : "No Content"
+          }
+        },
+        "summary" : "Idempotentne założenie pacjenta o zadanym identyfikatorze",
+        "tags" : [ "internal-patient-controller" ]
+      }
+    },
+    "/api/v1/internal/patients/{id}/account" : {
+      "put" : {
+        "description" : "Dostęp: PATIENT_INTERNAL_WRITE (SERVICE).",
+        "operationId" : "internalLinkPatientAccount",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "id",
+          "required" : true,
+          "schema" : {
+            "type" : "string",
+            "format" : "uuid"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/LinkAccountRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "204" : {
+            "description" : "No Content"
+          }
+        },
+        "summary" : "Powiązanie pacjenta z kontem",
+        "tags" : [ "internal-patient-controller" ]
+      }
+    }
+  },
+  "components" : {
+    "schemas" : {
+      "EnsureRequest" : {
+        "type" : "object",
+        "properties" : {
+          "birthDate" : {
+            "type" : "string",
+            "format" : "date"
+          },
+          "contactEmail" : {
+            "type" : "string"
+          },
+          "firstName" : {
+            "type" : "string",
+            "minLength" : 1
+          },
+          "lastName" : {
+            "type" : "string",
+            "minLength" : 1
+          },
+          "userId" : {
+            "type" : "string",
+            "format" : "uuid"
+          }
+        },
+        "required" : [ "birthDate", "firstName", "lastName" ]
+      },
+      "LinkAccountRequest" : {
+        "type" : "object",
+        "properties" : {
+          "userId" : {
+            "type" : "string",
+            "format" : "uuid"
+          }
+        },
+        "required" : [ "userId" ]
+      },
+      "PatientInfo" : {
+        "type" : "object",
+        "properties" : {
+          "birthDate" : {
+            "type" : "string",
+            "format" : "date"
+          },
+          "contactEmail" : {
+            "type" : "string"
+          },
+          "firstName" : {
+            "type" : "string"
+          },
+          "id" : {
+            "type" : "string",
+            "format" : "uuid"
+          },
+          "lastName" : {
+            "type" : "string"
+          },
+          "userId" : {
+            "type" : "string",
+            "format" : "uuid"
+          }
+        },
+        "required" : [ "birthDate", "firstName", "id", "lastName" ]
+      }
+    }
+  }
+}
