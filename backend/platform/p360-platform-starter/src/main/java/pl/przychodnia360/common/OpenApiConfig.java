@@ -56,17 +56,19 @@ public class OpenApiConfig {
             "EmployeeResponse", Set.of("specialization", "userId"),
             "ServiceResponse", Set.of("description"),
             "PatientResponse", Set.of("contactEmail"),
+            "PatientInfo", Set.of("userId", "contactEmail"),
             "ExceptionResponse", Set.of("startTime", "endTime"),
             "WeeklyEntryResponse", Set.of("validTo"));
 
     /**
      * springdoc oznacza pola odpowiedzi jako opcjonalne, co daje klientowi typy z samymi opcjonalnymi polami.
-     * Odpowiedzi (nazwy kończące się na Response lub View) zawsze zawierają swoje pola, poza wyjątkami z mapy.
+     * Odpowiedzi (nazwy kończące się na Response, View lub Info, ta ostatnia to odpowiedzi wewnętrznego API między
+     * usługami) zawsze zawierają swoje pola, poza wyjątkami z mapy.
      */
     @Bean
     OpenApiCustomizer responseFieldsRequired() {
         return openApi -> openApi.getComponents().getSchemas().forEach((name, schema) -> {
-            boolean response = name.endsWith("Response") || name.endsWith("View");
+            boolean response = name.endsWith("Response") || name.endsWith("View") || name.endsWith("Info");
             if (!response || schema.getProperties() == null) {
                 return;
             }

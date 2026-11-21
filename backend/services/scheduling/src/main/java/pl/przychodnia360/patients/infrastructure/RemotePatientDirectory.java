@@ -2,6 +2,7 @@ package pl.przychodnia360.patients.infrastructure;
 
 import java.time.LocalDate;
 import java.util.Collection;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -13,50 +14,37 @@ import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.stereotype.Component;
 import pl.przychodnia360.common.http.RemoteServiceClient;
-import pl.przychodnia360.patients.api.PatientFacade;
+import pl.przychodnia360.patients.api.PatientDirectory;
 import pl.przychodnia360.shared.NotFoundException;
 import pl.przychodnia360.shared.ServiceUnavailableException;
 
 /**
- * Jedyna implementacja {@link PatientFacade} w {@code clinic-core} (S2): zapytania REST do patient-service (moduł
- * pacjentów został stąd usunięty). Widoki (wiele pacjentów) degradują się do pustych nazw przy awarii;
- * pojedynczy odczyt (rezerwacja) i zapisy (saga rejestracji) dostają 503. Wywołania idą z tokenem usługowym iam.
+ * Jedyna implementacja {@link PatientDirectory} w {@code scheduling} (S2): zapytania REST do patient-service. Widoki
+ * (wiele pacjentów) degradują się do pustych nazw przy awarii; pojedynczy odczyt (rezerwacja) i zapis (seed) dostają 503.
  */
 @Component
-class RemotePatientFacade implements PatientFacade {
+class RemotePatientDirectory implements PatientDirectory {
 
-    private static final Logger log = LoggerFactory.getLogger(RemotePatientFacade.class);
+    private static final Logger log = LoggerFactory.getLogger(RemotePatientDirectory.class);
     private static final ParameterizedTypeReference<PatientInfo> ONE = new ParameterizedTypeReference<>() { };
     private static final ParameterizedTypeReference<List<PatientInfo>> MANY = new ParameterizedTypeReference<>() { };
 
     private final RemoteServiceClient client;
 
-    RemotePatientFacade(@Qualifier("patientClient") RemoteServiceClient client) {
+    RemotePatientDirectory(@Qualifier("patientClient") RemoteServiceClient client) {
         this.client = client;
-    }
-
-    @Override
-    public UUID create(String firstName, String lastName, LocalDate birthDate, String contactEmail) {
-        UUID id = pl.przychodnia360.shared.Ids.newId();
-        ensure(id, firstName, lastName, birthDate, contactEmail, null);
-        return id;
     }
 
     @Override
     public void ensure(UUID patientId, String firstName, String lastName, LocalDate birthDate, String contactEmail,
             UUID userId) {
-        Map<String, Object> body = new java.util.LinkedHashMap<>();
+        Map<String, Object> body = new LinkedHashMap<>();
         body.put("firstName", firstName);
         body.put("lastName", lastName);
         body.put("birthDate", birthDate.toString());
         body.put("contactEmail", contactEmail);
         body.put("userId", userId == null ? null : userId.toString());
         client.put("/api/v1/internal/patients/{id}", body, patientId);
-    }
-
-    @Override
-    public void linkAccount(UUID patientId, UUID userId) {
-        client.put("/api/v1/internal/patients/{id}/account", Map.of("userId", userId.toString()), patientId);
     }
 
     @Override
