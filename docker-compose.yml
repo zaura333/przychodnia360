@@ -42,7 +42,7 @@ services:
       start_period: 10s
 
   mailpit:
-    image: axllent/mailpit:v1.21
+    image: axllent/mailpit:v1.33
     restart: unless-stopped
     ports:
       - "127.0.0.1:${MAILPIT_SMTP_PORT:-1025}:1025"
@@ -181,7 +181,7 @@ services:
   # Wchodzi do core i full; profil edge uruchamia ją samą (np. przy backendzie z IDE).
   traefik:
     profiles: ["core", "full", "edge"]
-    image: traefik:v3.2.3
+    image: traefik:v3.7.18
     restart: unless-stopped
     ports:
       - "127.0.0.1:${EDGE_PORT:-8090}:80"
@@ -200,7 +200,7 @@ services:
   # P360_EVENTS_SNS_TOPIC_ARN i P360_EVENTS_AWS_ENDPOINT (patrz README).
   localstack:
     profiles: ["async", "full"]
-    image: localstack/localstack:3.8.1
+    image: localstack/localstack:4.14.0
     restart: unless-stopped
     environment:
       SERVICES: sns,sqs
