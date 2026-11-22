@@ -2,10 +2,11 @@ package pl.przychodnia360.testsupport.contract;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.networknt.schema.JsonSchema;
-import com.networknt.schema.JsonSchemaFactory;
-import com.networknt.schema.SchemaValidatorsConfig;
-import com.networknt.schema.SpecVersion;
+import com.networknt.schema.InputFormat;
+import com.networknt.schema.Schema;
+import com.networknt.schema.SchemaRegistry;
+import com.networknt.schema.SchemaRegistryConfig;
+import com.networknt.schema.SpecificationVersion;
 import java.io.IOException;
 import java.io.UncheckedIOException;
 import java.nio.charset.StandardCharsets;
@@ -19,9 +20,10 @@ import java.util.stream.Stream;
 public final class EventSchemas {
 
     private static final ObjectMapper MAPPER = new ObjectMapper();
-    private static final JsonSchemaFactory FACTORY = JsonSchemaFactory.getInstance(SpecVersion.VersionFlag.V202012);
-    private static final SchemaValidatorsConfig CONFIG = SchemaValidatorsConfig.builder()
+    private static final SchemaRegistryConfig CONFIG = SchemaRegistryConfig.builder()
             .formatAssertionsEnabled(true).build();
+    private static final SchemaRegistry REGISTRY = SchemaRegistry.withDefaultDialect(SpecificationVersion.DRAFT_2020_12,
+            builder -> builder.schemaRegistryConfig(CONFIG));
 
     private EventSchemas() {
     }
@@ -76,9 +78,10 @@ public final class EventSchemas {
 
     /** Komunikaty błędów walidacji instancji względem schematu; pusta lista oznacza zgodność. */
     public static List<String> validate(JsonNode schema, JsonNode instance) {
-        JsonSchema compiled = FACTORY.getSchema(schema, CONFIG);
+        // walidator 3.x używa Jacksona 3 (tools.jackson), a kontrakty Jacksona 2: granica przez JSON jako tekst
+        Schema compiled = REGISTRY.getSchema(schema.toString());
         List<String> errors = new ArrayList<>();
-        compiled.validate(instance).forEach(m -> errors.add(m.getMessage()));
+        compiled.validate(instance.toString(), InputFormat.JSON).forEach(e -> errors.add(e.getMessage()));
         return errors;
     }
 }
