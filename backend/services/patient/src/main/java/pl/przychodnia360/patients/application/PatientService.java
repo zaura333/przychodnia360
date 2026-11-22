@@ -67,13 +67,6 @@ public class PatientService implements PatientFacade {
     }
 
     @Override
-    @Transactional
-    public void linkAccount(UUID patientId, UUID userId) {
-        Patient patient = repository.findById(patientId).orElseThrow(() -> new NotFoundException("Nie znaleziono pacjenta."));
-        repository.update(patient.withUserId(userId));
-    }
-
-    @Override
     @Transactional(readOnly = true)
     public Optional<PatientInfo> find(UUID patientId) {
         return repository.findById(patientId).map(PatientService::info);

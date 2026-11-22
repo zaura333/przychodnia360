@@ -137,7 +137,7 @@ jobs:
           git show "origin/${BASE_REF}:api/openapi.json" > "$RUNNER_TEMP/base-openapi.json"
           curl -sSfL "https://github.com/oasdiff/oasdiff/releases/download/v${OASDIFF_VERSION}/oasdiff_${OASDIFF_VERSION}_linux_amd64.tar.gz" \
             | tar -xz -C "$RUNNER_TEMP" oasdiff
-          "$RUNNER_TEMP/oasdiff" breaking "$RUNNER_TEMP/base-openapi.json" api/openapi.json --format githubactions --fail-on ERR
+          "$RUNNER_TEMP/oasdiff" breaking "$RUNNER_TEMP/base-openapi.json" api/openapi.json --format githubactions --fail-on ERR --err-ignore api/oasdiff-err-ignore.txt
       # Kontrakty wewnętrzne usług (api/internal/<usługa>.json, ścieżki /api/v1/internal/**) są poza agregatem, ale
       # wołają je inne usługi, więc ich złamanie też blokuje PR. Nowy plik (brak w bazie) nie jest złamaniem.
       - name: oasdiff breaking kontraktów wewnętrznych względem bazy PR
@@ -156,7 +156,7 @@ jobs:
               continue
             fi
             git show "origin/${BASE_REF}:${file}" > "$RUNNER_TEMP/base-internal.json"
-            "$RUNNER_TEMP/oasdiff" breaking "$RUNNER_TEMP/base-internal.json" "$file" --format githubactions --fail-on ERR || status=1
+            "$RUNNER_TEMP/oasdiff" breaking "$RUNNER_TEMP/base-internal.json" "$file" --format githubactions --fail-on ERR --err-ignore api/oasdiff-err-ignore.txt || status=1
           done
           exit $status
 

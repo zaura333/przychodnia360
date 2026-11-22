@@ -46,8 +46,8 @@ class PatientApiTest extends AbstractPatientApiTest {
         UUID tenant = newTenant();
         UUID accountId = UUID.randomUUID();
         UUID patientId = inTenantResult(tenant, () -> {
-            UUID id = patients.create("Ewa", "Zielińska", java.time.LocalDate.of(1985, 3, 2), null);
-            patients.linkAccount(id, accountId);
+            UUID id = UUID.randomUUID();
+            patients.ensure(id, "Ewa", "Zielińska", java.time.LocalDate.of(1985, 3, 2), null, accountId);
             return id;
         });
         String token = tokenFor(tenant, Role.PATIENT, patientId);
