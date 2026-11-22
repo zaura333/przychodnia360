@@ -22,6 +22,65 @@ Monorepo:
 - `infra/` – infrastruktura jako kod (Terraform),
 - `docs/` – dokumentacja.
 
+## Quickstart
+
+Najszybsza droga do działającej aplikacji lokalnie: backend w Dockerze, frontend z Vite.
+
+**Wymagania:** Docker (Docker Desktop z WSL2 na Windows) oraz Node z `frontend/.nvmrc`. Java 21 jest potrzebna tylko do pracy nad backendem.
+
+### 1. Konfiguracja
+
+```bash
+git clone <adres-repozytorium>
+cd przychodnia360
+cp .env.example .env        # PowerShell: Copy-Item .env.example .env
+```
+
+### 2. Backend (Docker)
+
+```bash
+docker compose --profile core up -d --build --wait
+```
+
+Startuje PostgreSQL, Mailpit, usługi backendu i krawędź Traefik na `http://127.0.0.1:8090`. Dane demo pojawiają się kilka sekund po starcie.
+
+### 3. Frontend
+
+```bash
+cd frontend
+npm ci
+npm run dev
+```
+
+### 4. Logowanie
+
+Otwórz <http://localhost:5173> i zaloguj się kontem demo:
+
+| Pole     | Wartość                                                       |
+| -------- | ------------------------------------------------------------- |
+| Placówka | `klinika-a`                                                   |
+| E-mail   | `rejestracja@klinika-a.example.test`                          |
+| Hasło    | wartość `SEED_PASSWORD` (domyślnie `demo-przychodnia-2026`)   |
+
+Inne konta (`admin@`, `lekarz1@`, `pacjent1@` itd.) opisuje sekcja o danych demo w części „Backend".
+
+### Przydatne adresy
+
+| Usługa                                | Adres                                    |
+| ------------------------------------- | ---------------------------------------- |
+| Aplikacja (frontend)                  | <http://localhost:5173>                  |
+| Mailpit (e-maile, linki do hasła)     | <http://localhost:8025>                  |
+| Health backendu                       | <http://localhost:8080/api/v1/health>    |
+
+### Zatrzymanie
+
+```bash
+docker compose --profile core down        # dane zostają
+docker compose --profile core down -v     # kasuje też dane (seed od nowa)
+```
+
+> **Problemy?** Zajęte porty, brakujące zmienne w `.env` i inne: zobacz „Rozwiązywanie problemów" w sekcji Docker.
+
 ## Backend: uruchomienie lokalne
 
 Wymagania: Java 21, Docker. Pakiet bazowy: `pl.przychodnia360`. Moduły: `platform/p360-shared-core` (czysta Java), `platform/p360-platform-starter` (security, tenant/RLS, Problem Details, logowanie, czas) oraz usługi Spring Boot w `services/`: `iam` (placówki, konta, logowanie, tokeny), `catalog` (usługi i ceny), `patient` (pacjenci) i `scheduling` (pracownicy, grafiki, wizyty; dawniej monolit `clinic-core`).
