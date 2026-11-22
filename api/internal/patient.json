@@ -102,38 +102,6 @@
         "summary" : "Idempotentne założenie pacjenta o zadanym identyfikatorze",
         "tags" : [ "internal-patient-controller" ]
       }
-    },
-    "/api/v1/internal/patients/{id}/account" : {
-      "put" : {
-        "description" : "Dostęp: PATIENT_INTERNAL_WRITE (SERVICE).",
-        "operationId" : "internalLinkPatientAccount",
-        "parameters" : [ {
-          "in" : "path",
-          "name" : "id",
-          "required" : true,
-          "schema" : {
-            "type" : "string",
-            "format" : "uuid"
-          }
-        } ],
-        "requestBody" : {
-          "content" : {
-            "application/json" : {
-              "schema" : {
-                "$ref" : "#/components/schemas/LinkAccountRequest"
-              }
-            }
-          },
-          "required" : true
-        },
-        "responses" : {
-          "204" : {
-            "description" : "No Content"
-          }
-        },
-        "summary" : "Powiązanie pacjenta z kontem",
-        "tags" : [ "internal-patient-controller" ]
-      }
     }
   },
   "components" : {
@@ -162,16 +130,6 @@
           }
         },
         "required" : [ "birthDate", "firstName", "lastName" ]
-      },
-      "LinkAccountRequest" : {
-        "type" : "object",
-        "properties" : {
-          "userId" : {
-            "type" : "string",
-            "format" : "uuid"
-          }
-        },
-        "required" : [ "userId" ]
       },
       "PatientInfo" : {
         "type" : "object",
