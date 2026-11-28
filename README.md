@@ -2,71 +2,161 @@
 
 Platforma webowa dla małych i średnich przychodni: rezerwacja wizyt, dokumentacja medyczna, recepty i skierowania (jako dokumenty wewnętrzne) oraz obsługa dokumentów z OCR.
 
-> **Uwaga:** to projekt demonstracyjny. Wykorzystuje wyłącznie dane syntetyczne, nie łączy się z platformą P1 (usługi P1 są symulowane) i nie jest wyrobem medycznym. Nie wolno go używać z danymi rzeczywistych pacjentów.
+> [!WARNING]
+> To projekt demonstracyjny. Wykorzystuje wyłącznie dane syntetyczne, nie łączy się z platformą P1 (usługi P1 są symulowane) i nie jest wyrobem medycznym. Nie wolno go używać z danymi rzeczywistych pacjentów.
+
+## Spis treści
+
+- [Status](#status)
+- [Technologie](#technologie)
+- [Struktura repozytorium](#struktura-repozytorium)
+- [Quickstart](#quickstart)
+- [Backend](#backend-uruchomienie-lokalne)
+- [Frontend](#frontend-uruchomienie-lokalne)
+- [Docker](#docker-środowisko-lokalne)
+- [CI i ochrona gałęzi `main`](#ci-i-ochrona-gałęzi-main)
+- [Autorzy](#autorzy)
+- [Licencja](#licencja)
 
 ## Status
 
-Etap 0 gotowy (szkielety, CI, Docker). Podetap 1a lokalnie: backend (logowanie, katalog, pracownicy z grafikami, rezerwacje z ochroną przed kolizjami, placówki platformy) i frontend (logowanie i rejestracja, kreator rezerwacji, terminarz rejestratora, panele administracji i platformy). Wdrożenie do AWS po etapie 1. Decyzje architektoniczne: `docs/adr/`.
+- **Gotowe:**
+  - etap 0: szkielety, CI, Docker,
+  - podetap 1a (wizyty):
+    - backend: logowanie, katalog, pracownicy z grafikami, rezerwacje z ochroną przed kolizjami, placówki platformy,
+    - frontend: logowanie i rejestracja, kreator rezerwacji, terminarz rejestratora, panele administracji i platformy,
+  - etap 0M: platforma mikroserwisów, rdzeń rozbity na usługi `iam`, `catalog`, `patient`, `scheduling`.
+- **Następny:** podetap 1b (dokumentacja medyczna), jeszcze niezaczęty.
+- **Dalej:** wdrożenie do AWS po etapie 1.
+
+Pełny plan etapów (1a–1d, 2–5, etapy opcjonalne): [`docs/roadmap.md`](docs/roadmap.md). Decyzje architektoniczne: [`docs/adr/`](docs/adr/).
 
 ## Technologie
 
-Java 21 i Spring Boot, React z TypeScript, Tailwind CSS, PostgreSQL, AWS (ECS Fargate, S3, CloudFront, RDS) oraz Terraform.
+| Warstwa        | Technologie                                    |
+| -------------- | ---------------------------------------------- |
+| Backend        | Java 21, Spring Boot                           |
+| Frontend       | React, TypeScript, Tailwind CSS                |
+| Baza danych    | PostgreSQL                                     |
+| Chmura         | AWS (ECS Fargate, S3, CloudFront, RDS)         |
+| Infrastruktura | Terraform                                      |
 
 ## Struktura repozytorium
 
 Monorepo:
 
-- `backend/` – backend i workery,
-- `frontend/` – aplikacja webowa,
-- `api/` – kontrakt OpenAPI,
-- `infra/` – infrastruktura jako kod (Terraform),
-- `docs/` – dokumentacja.
+| Katalog     | Zawartość                           |
+| ----------- | ----------------------------------- |
+| `backend/`  | backend i workery                   |
+| `frontend/` | aplikacja webowa                    |
+| `api/`      | kontrakt OpenAPI                    |
+| `infra/`    | infrastruktura jako kod (Terraform) |
+| `docs/`     | dokumentacja                        |
 
-## Backend: uruchomienie lokalne
+## Quickstart
 
-Wymagania: Java 21, Docker. Pakiet bazowy: `pl.przychodnia360`. Moduły: `platform/p360-shared-core` (czysta Java), `platform/p360-platform-starter` (security, tenant/RLS, Problem Details, logowanie, czas) oraz usługi Spring Boot w `services/`: `iam` (placówki, konta, logowanie, tokeny), `catalog` (usługi i ceny), `patient` (pacjenci) i `scheduling` (pracownicy, grafiki, wizyty; dawniej monolit `clinic-core`).
+Najszybsza droga do działającej aplikacji lokalnie: backend w Dockerze, frontend z Vite.
+
+**Wymagania:** Docker (Docker Desktop z WSL2 na Windows) oraz Node z `frontend/.nvmrc`. Java 21 jest potrzebna tylko do pracy nad backendem.
+
+### 1. Konfiguracja
 
 ```bash
-cp .env.example .env                 # raz
-docker compose up -d --wait          # postgres + mailpit
-cd backend
-./mvnw verify                        # testy (Testcontainers), generuje ../api/openapi.json
-# całość najprościej przez compose (niżej); z IDE każda usługa osobno, np.:
-java -jar services/scheduling/target/scheduling.jar --spring.profiles.active=local
-curl http://localhost:8080/api/v1/health
+git clone <adres-repozytorium>
+cd przychodnia360
+cp .env.example .env        # PowerShell: Copy-Item .env.example .env
 ```
 
-**Dane demo (profil `local`).** Przy starcie `SeedRunner` zakłada (idempotentnie) placówki `klinika-a` i `klinika-b` z administratorem, dwoma lekarzami, pielęgniarką, rejestratorem, trzema pacjentami, katalogiem, grafikami i wizytami. Konta mają adresy w domenie `<slug>.example.test`: `admin@`, `lekarz1@`, `lekarz2@`, `pielegniarka@`, `rejestracja@`, `pacjent1@` do `pacjent3@`; hasło wszystkich to wartość `SEED_PASSWORD` (lokalnie domyślnie `demo-przychodnia-2026`). Seed trwa kilka sekund po starcie. Wiadomości e-mail (linki ustawienia hasła) trafiają do Mailpit: http://localhost:8025. Przykład logowania: `POST /api/v1/auth/login` z `{"tenantSlug":"klinika-a","email":"rejestracja@klinika-a.example.test","password":"..."}`.
+### 2. Backend (Docker)
 
-**Pierwszy administrator platformy** (bez migracji i bez hasła w repozytorium): jednorazowe uruchomienie z profilem `bootstrap-admin`, np. `BOOTSTRAP_ADMIN_EMAIL=root@platform.example.test BOOTSTRAP_ADMIN_PASSWORD=... java -jar services/iam/target/iam.jar --spring.profiles.active=local,bootstrap-admin`. Konto powstaje idempotentnie, po czym proces kończy pracę.
+```bash
+docker compose --profile core up -d --build --wait
+```
 
-Po zmianie endpointów `./mvnw verify` aktualizuje eksport usługi (`api/exports/<usługa>.json`) i agregat `api/openapi.json` (składany z eksportów usług, ADR-M16); pliki trzeba zatwierdzić (CI sprawdza zgodność). Ścieżki wewnętrzne między usługami (`/api/v1/internal/**`) trafiają do osobnych plików `api/internal/<usługa>.json` (poza agregatem i klientem frontendu); testy adapterów HTTP w usługach-konsumentach (`Remote*ContractTest`) sprawdzają, że wołają dokładnie to, co dostawca deklaruje, a CI blokuje zmiany łamiące (`oasdiff`). Konwencje bazy: `docs/db-conventions.md`.
+Startuje PostgreSQL, Mailpit, usługi backendu i krawędź Traefik na `http://127.0.0.1:8090`. Dane demo pojawiają się kilka sekund po starcie.
 
-**Lista kontrolna: nowa tabela danych placówki**
-- migracja `V<n>__opis.sql` z `tenant_id`, `ENABLE` i `FORCE ROW LEVEL SECURITY` oraz polityką `tenant_id = app_tenant_id()` (wzorzec w `docs/db-conventions.md`),
-- `RlsCoverageTest` (podklasa `RlsCoverageContract` z `p360-test-support`) przechodzi (albo wyjątek z uzasadnieniem),
-- test izolacji: placówka B nie widzi wierszy placówki A,
-- brak `GRANT` dla `p360_app` poza domyślnymi uprawnieniami; funkcje `SECURITY DEFINER` tylko z uzasadnieniem.
-
-**Lista kontrolna: nowy endpoint**
-- `@PreAuthorize` odwołujące się do `PermissionPolicy` albo jawne `@PublicEndpoint` (domyślnie odmowa),
-- wiersz w `PermissionMatrixTest` dla każdej roli (dozwolone i zabronione),
-- błędy jako Problem Details (`/problems/<slug>`), cudzy zasób to `404`,
-- zero danych osobowych w logach (PESEL maskowany),
-- `./mvnw verify` i zatwierdzony `api/openapi.json`.
-
-**Decyzje architektoniczne** są w `docs/adr/`: backend `ADR-B01` (PostgreSQL i role), `B02` (logowanie ze slugiem), `B03` (uprawnienia), `B04` (przedział czasu), `B05` (reguła 24 h), `B06` (Argon2id, wstępnie), `B07` (tokeny JWT i odświeżanie), `B08` (grafiki i ograniczenia wizyt); frontend `ADR-F01` do `F10` (`F08` rezerwacja i kolizje, `F09` terminarz rejestratora i odświeżanie, `F10` tabela tras i kontrakt API).
-
-## Frontend: uruchomienie lokalne
-
-Wymagania: Node z `frontend/.nvmrc`. Szczegóły, skrypty i zasady: `frontend/README.md`.
+### 3. Frontend
 
 ```bash
 cd frontend
-npm ci               # instaluje zależności i generuje klienta API z ../api/openapi.json
-npm run dev          # http://localhost:5173, proxy /api na krawędź http://localhost:8090 (docker compose --profile core)
-npm test             # testy jednostkowe; npm run test:e2e dla Playwright
+npm ci
+npm run dev
 ```
+
+### 4. Logowanie
+
+Otwórz <http://localhost:5173> i zaloguj się kontem demo:
+
+| Pole     | Wartość                                                     |
+| -------- | ----------------------------------------------------------- |
+| Placówka | `klinika-a`                                                 |
+| E-mail   | `rejestracja@klinika-a.example.test`                        |
+| Hasło    | wartość `SEED_PASSWORD` (domyślnie `demo-przychodnia-2026`) |
+
+Inne konta opisuje sekcja [Dane demo](#dane-demo).
+
+### Przydatne adresy
+
+| Usługa                            | Adres                                 |
+| --------------------------------- | ------------------------------------- |
+| Aplikacja (frontend)              | <http://localhost:5173>               |
+| Mailpit (e-maile, linki do hasła) | <http://localhost:8025>               |
+| Health backendu                   | <http://localhost:8080/api/v1/health> |
+
+### Zatrzymanie
+
+```bash
+docker compose --profile core down        # dane zostają
+docker compose --profile core down -v     # kasuje też dane (seed od nowa)
+```
+
+> [!TIP]
+> Zajęte porty, brakujące zmienne w `.env` i inne kłopoty: zobacz [Rozwiązywanie problemów](#rozwiązywanie-problemów).
+
+## Backend: uruchomienie lokalne
+
+**Wymagania:** Java 21, Docker. Zależności (PostgreSQL, Mailpit) i całość platformy uruchomisz według [Quickstartu](#quickstart); z IDE każda usługa działa osobno.
+
+```bash
+cd backend
+./mvnw verify                        # testy (Testcontainers), generuje ../api/openapi.json
+java -jar services/scheduling/target/scheduling.jar --spring.profiles.active=local
+```
+
+### Dane demo
+
+Profil `local`. Przy starcie `SeedRunner` zakłada (idempotentnie) placówki `klinika-a` i `klinika-b` z administratorem, dwoma lekarzami, pielęgniarką, rejestratorem, trzema pacjentami, katalogiem, grafikami i wizytami.
+
+Konta mają adresy w domenie `<slug>.example.test`; hasło wszystkich to `SEED_PASSWORD`.
+
+| Rola          | Adres (przed `@<slug>.example.test`) |
+| ------------- | ------------------------------------ |
+| Administrator | `admin`                              |
+| Lekarze       | `lekarz1`, `lekarz2`                 |
+| Pielęgniarka  | `pielegniarka`                       |
+| Rejestrator   | `rejestracja`                        |
+| Pacjenci      | `pacjent1` do `pacjent3`             |
+
+### Pierwszy administrator platformy
+
+Bez migracji i bez hasła w repozytorium: jednorazowe uruchomienie z profilem `bootstrap-admin`.
+
+```bash
+BOOTSTRAP_ADMIN_EMAIL=root@platform.example.test \
+BOOTSTRAP_ADMIN_PASSWORD=... \
+java -jar services/iam/target/iam.jar --spring.profiles.active=local,bootstrap-admin
+```
+
+Konto powstaje idempotentnie, po czym proces kończy pracę.
+
+### Dokumentacja pomocnicza
+
+- konwencje bazy: [`docs/db-conventions.md`](docs/db-conventions.md),
+- decyzje architektoniczne: [`docs/adr/`](docs/adr/).
+
+## Frontend: uruchomienie lokalne
+
+**Wymagania:** Node z `frontend/.nvmrc`. Uruchomienie opisuje [Quickstart](#quickstart), a skrypty i zasady [`frontend/README.md`](frontend/README.md).
 
 ## Docker: środowisko lokalne
 
@@ -74,49 +164,77 @@ Docker służy do uruchamiania zależności (PostgreSQL, Mailpit) i do odtwarzan
 
 **Wymagania:** Docker Desktop z backendem WSL2 (Windows), około 4 GB pamięci dla WSL2 przy pełnym zestawie. Porty są wystawiane tylko na `127.0.0.1` i konfigurowalne w `.env`.
 
-**Pierwsze uruchomienie:** `cp .env.example .env`. Po aktualizacji repozytorium porównaj `.env` z `.env.example` (compose wymaga haseł i odmówi startu, gdy brakuje zmiennej).
+**Po aktualizacji repozytorium:** porównaj `.env` z `.env.example` (compose wymaga haseł i odmówi startu, gdy brakuje zmiennej).
 
-| Cel                                       | Polecenie                                            |
-| ----------------------------------------- | ---------------------------------------------------- |
-| Zależności (postgres, mailpit)            | `docker compose up -d --wait`                        |
-| Rdzeń (backend w kontenerze + krawędź)    | `docker compose --profile core up -d --build --wait` |
-| Wszystko (core + async: SNS i SQS)        | `docker compose --profile full up -d --build --wait` |
-| Logi                                      | `docker compose logs -f backend`                     |
-| Zatrzymanie (dane zostają)                | `docker compose --profile full down`                 |
-| Reset danych i seed od nowa               | `docker compose --profile full down -v` a potem `up` |
+### Polecenia
 
-**Profile compose** (łączone flagą `--profile`): `core` (usługi biznesowe `iam`, `catalog`, `patient`, `scheduling` i krawędź Traefik na `http://127.0.0.1:8090`), `edge` (sama krawędź, gdy backend działa z IDE), `async` (LocalStack: SNS i SQS, obraz ok. 2 GB, poza `core`), `finance` (zarezerwowany dla billing i integration-hub, na razie bez usług), `full` (core, finance i async). Przy `down` podaj te same profile co przy `up`, inaczej kontenery profili zostaną. Frontend przez krawędź: `VITE_DEV_BACKEND=http://127.0.0.1:8090`.
+| Cel                                    | Polecenie                                            |
+| -------------------------------------- | ---------------------------------------------------- |
+| Zależności (postgres, mailpit)         | `docker compose up -d --wait`                        |
+| Rdzeń (backend w kontenerze + krawędź) | `docker compose --profile core up -d --build --wait` |
+| Wszystko (core + async: SNS i SQS)     | `docker compose --profile full up -d --build --wait` |
+| Logi                                   | `docker compose logs -f backend`                     |
+| Zatrzymanie (dane zostają)             | `docker compose --profile full down`                 |
+| Reset danych i seed od nowa            | `docker compose --profile full down -v`, potem `up`  |
 
-**Baza per usługa:** lista usług w `P360_SERVICE_DATABASES` (np. `notification,integration-hub`) tworzy przy pierwszym starcie (pusty wolumen) bazę `p360_<usługa>` i właściciela `p360_<usługa>_owner` z hasłem z `P360_<USŁUGA>_OWNER_PASSWORD` (patrz `.env.example`); właściciel jednej usługi nie wchodzi do bazy innej. Baza główna `p360` należy do `scheduling` (łańcuch migracji zachowany, ADR-M12); domyślna lista to `catalog,patient,iam`.
+Domyślnie (`up -d`) startują tylko zależności (PostgreSQL `127.0.0.1:5432`, baza `p360`; SMTP Mailpit `1025`), a backend działa z IDE lub z `java -jar`.
 
-Usługi i adresy: PostgreSQL `127.0.0.1:5432` (baza `p360`), Mailpit UI <http://localhost:8025> (SMTP `1025`), backend <http://localhost:8080/api/v1/health> (profile `core` i `full`). Domyślnie (`up -d`) startują tylko zależności, a backend działa z IDE lub z `java -jar`, frontend z `npm run dev`.
+### Profile compose
 
-**Obraz backendu** (`backend/Dockerfile`): cel `runtime` (domyślny) buduje jar wewnątrz obrazu; cel `from-jar` kopiuje gotowy `backend/app.jar` (tak robi CI, więc e2e i wdrożenie uruchamiają ten sam jar). Obraz działa jako użytkownik inny niż root, na Alpine, x86_64.
+Łączone flagą `--profile`.
 
-**Wersja PostgreSQL** jest zapisana w trzech miejscach (`docker-compose.yml`, `PostgresIntegrationTest` w `p360-test-support`, `docs/adr/ADR-B01-postgresql-wersja-i-role.md`); `ComposeConsistencyTest` pilnuje, żeby się zgadzały.
+| Profil    | Zawartość                                                                                  |
+| --------- | ------------------------------------------------------------------------------------------ |
+| `core`    | usługi biznesowe `iam`, `catalog`, `patient`, `scheduling` i krawędź Traefik (`:8090`)     |
+| `edge`    | sama krawędź, gdy backend działa z IDE                                                     |
+| `async`   | LocalStack (SNS i SQS), obraz ok. 2 GB, poza `core`                                        |
+| `finance` | zarezerwowany dla billing i integration-hub, na razie bez usług                            |
+| `full`    | `core`, `finance` i `async`                                                                |
 
-**Rozwiązywanie problemów:**
+> [!NOTE]
+> Przy `down` podaj te same profile co przy `up`, inaczej kontenery profili zostaną.
 
-- _Zajęty port 5432:_ ustaw `POSTGRES_PORT` w `.env` (lokalna instalacja PostgreSQL często go zajmuje); analogicznie `SCHEDULING_PORT`, `IAM_PORT`, `MAILPIT_UI_PORT`.
-- _Kontener `postgres` nie startuje, błąd w skrypcie init:_ skrypt musi mieć końce linii LF (`.gitattributes` to wymusza dla `docker/**`); po poprawce `docker compose down -v` i start od nowa (skrypt init wykonuje się tylko na pustym wolumenie).
-- _`required variable ... is missing`:_ uzupełnij `.env` brakującymi zmiennymi z `.env.example`.
-- _Zmiana ról lub haseł bazy nie działa:_ skrypt init nie uruchamia się na istniejącym wolumenie; wykonaj `docker compose down -v`.
-- _Backend w kontenerze jest wolny lub kończy pracę z powodu pamięci:_ limit to 0,5 vCPU i 2 GB (jak zadanie Fargate); zwiększ pamięć WSL2 w `%UserProfile%\.wslconfig`.
-- _Docker Desktop nie odpowiada (`_ping`, błąd 500):_ zrestartuj Docker Desktop lub `wsl --shutdown`.
+### Baza per usługa
+
+Lista usług w `P360_SERVICE_DATABASES` (np. `notification,integration-hub`) tworzy przy pierwszym starcie (pusty wolumen):
+
+- bazę `p360_<usługa>`,
+- właściciela `p360_<usługa>_owner` z hasłem z `P360_<USŁUGA>_OWNER_PASSWORD` (patrz `.env.example`).
+
+Właściciel jednej usługi nie wchodzi do bazy innej. Baza główna `p360` należy do `scheduling` (łańcuch migracji zachowany, ADR-M12); domyślna lista to `catalog,patient,iam`.
+
+### Obraz backendu
+
+`backend/Dockerfile`:
+
+- cel `runtime` (domyślny) buduje jar wewnątrz obrazu,
+- cel `from-jar` kopiuje gotowy `backend/app.jar` (tak robi CI, więc e2e i wdrożenie uruchamiają ten sam jar).
+
+Obraz działa jako użytkownik inny niż root, na Alpine, x86_64.
+
+### Rozwiązywanie problemów
+
+| Objaw                                                    | Rozwiązanie                                                                                                                                                                          |
+| -------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Zajęty port 5432                                         | Ustaw `POSTGRES_PORT` w `.env` (lokalna instalacja PostgreSQL często go zajmuje); analogicznie `SCHEDULING_PORT`, `IAM_PORT`, `MAILPIT_UI_PORT`.                                    |
+| Kontener `postgres` nie startuje, błąd w skrypcie init   | Skrypt musi mieć końce linii LF (`.gitattributes` to wymusza dla `docker/**`). Po poprawce `docker compose down -v` i start od nowa (init wykonuje się tylko na pustym wolumenie).   |
+| `required variable ... is missing`                       | Uzupełnij `.env` brakującymi zmiennymi z `.env.example`.                                                                                                                             |
+| Zmiana ról lub haseł bazy nie działa                     | Skrypt init nie uruchamia się na istniejącym wolumenie; wykonaj `docker compose down -v`.                                                                                            |
+| Backend w kontenerze jest wolny lub kończy pracę (pamięć) | Limit to 0,5 vCPU i 2 GB (jak zadanie Fargate); zwiększ pamięć WSL2 w `%UserProfile%\.wslconfig`.                                                                                    |
+| Docker Desktop nie odpowiada (`_ping`, błąd 500)         | Zrestartuj Docker Desktop lub wykonaj `wsl --shutdown`.                                                                                                                              |
 
 ## CI i ochrona gałęzi `main`
 
-Workflow w `.github/workflows/`: `backend.yml`, `frontend.yml` (zakres wyznacza zadanie `changes`; zbiorcze statusy `backend` i `frontend` raportują zawsze), `codeql.yml`, `gitleaks.yml`. Wersje narzędzi czytane z plików w repo: `.java-version`, `frontend/.nvmrc`.
+Workflow w `.github/workflows/`:
+
+- `backend.yml`,
+- `frontend.yml` (zakres wyznacza zadanie `changes`; zbiorcze statusy `backend` i `frontend` raportują zawsze),
+- `codeql.yml`,
+- `gitleaks.yml`.
+
+Wersje narzędzi czytane z plików w repo: `.java-version`, `frontend/.nvmrc`.
 
 **Przepływ gałęzi:** `feature/*` → PR do `develop` (squash) → PR `develop` → `main` (merge commit). Workflow CI uruchamiają się na każdym PR (dowolna gałąź bazowa) i na pushu do `main` i `develop`. Dependabot otwiera PR-y do `develop`.
-
-**Rulesety** (`.github/rulesets/main.json` i `develop.json`): zakaz pushu bezpośredniego, force-pusha i usuwania, PR bez wymaganych zatwierdzeń (jedna osoba; bramką są statusy CI), wymagane statusy `backend`, `frontend`, `gitleaks`. Dla `develop` dodatkowo wymagana aktualność z gałęzią bazową; dla `main` nie (merge commity z `develop` powodowałyby, że `develop` ciągle jest "za" `main`). Brak wymogu liniowej historii na `main`, bo wydania to merge commity. Statusy `infra` i `e2e` dojdą z tymi workflow. Import: _Settings → Rules → Rulesets → New ruleset → Import a ruleset_ (osobno każdy plik).
-
-**Ustawienia repozytorium (ręcznie, Settings):**
-
-- Actions → General → Fork pull request workflows: wymagaj zatwierdzenia od wszystkich zewnętrznych współpracowników; domyślne uprawnienia `GITHUB_TOKEN`: tylko odczyt.
-- Code security: włącz Dependabot alerts i security updates, secret scanning z push protection, private vulnerability reporting.
-- Zakaz `pull_request_target` z checkoutem kodu z PR; brak self-hosted runnerów.
 
 **Lokalnie:** `pre-commit install` włącza hook gitleaks (`.pre-commit-config.yaml`).
 
