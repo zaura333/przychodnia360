@@ -20,13 +20,16 @@ Platforma webowa dla małych i średnich przychodni: rezerwacja wizyt, dokumenta
 
 ## Status
 
-- **Etap 0:** gotowy (szkielety, CI, Docker).
-- **Podetap 1a (lokalnie):**
-  - backend: logowanie, katalog, pracownicy z grafikami, rezerwacje z ochroną przed kolizjami, placówki platformy,
-  - frontend: logowanie i rejestracja, kreator rezerwacji, terminarz rejestratora, panele administracji i platformy.
+- **Gotowe:**
+  - etap 0: szkielety, CI, Docker,
+  - podetap 1a (wizyty):
+    - backend: logowanie, katalog, pracownicy z grafikami, rezerwacje z ochroną przed kolizjami, placówki platformy,
+    - frontend: logowanie i rejestracja, kreator rezerwacji, terminarz rejestratora, panele administracji i platformy,
+  - etap 0M: platforma mikroserwisów, rdzeń rozbity na usługi `iam`, `catalog`, `patient`, `scheduling`.
+- **Następny:** podetap 1b (dokumentacja medyczna), jeszcze niezaczęty.
 - **Dalej:** wdrożenie do AWS po etapie 1.
 
-Decyzje architektoniczne: [`docs/adr/`](docs/adr/).
+Pełny plan etapów (1a–1d, 2–5, etapy opcjonalne): [`docs/roadmap.md`](docs/roadmap.md). Decyzje architektoniczne: [`docs/adr/`](docs/adr/).
 
 ## Technologie
 
