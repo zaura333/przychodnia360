@@ -1,0 +1,6 @@
+# Świadomie zaakceptowane zmiany łamiące kontrakty (oasdiff breaking --err-ignore).
+# Każda linia: operacja, ścieżka i komunikat oasdiff; dotyczy tylko tej jednej zmiany.
+# Wpis dodawać razem z decyzją w .local/implementation-docs/decisions.md i usuwać, gdy zmiana trafi do gałęzi bazowej.
+
+# D-069 / ADR-M18: usunięty nieużywany endpoint wewnętrzny patient-service (brak konsumentów)
+PUT /api/v1/internal/patients/{id}/account api path removed without deprecation

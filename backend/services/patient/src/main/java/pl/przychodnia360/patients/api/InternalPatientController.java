@@ -17,7 +17,6 @@ import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 import pl.przychodnia360.patients.api.PatientFacade.PatientInfo;
 import pl.przychodnia360.patients.api.dto.EnsureRequest;
-import pl.przychodnia360.patients.api.dto.LinkAccountRequest;
 import pl.przychodnia360.shared.NotFoundException;
 import pl.przychodnia360.shared.ValidationException;
 
@@ -64,14 +63,5 @@ public class InternalPatientController {
     public void ensure(@PathVariable UUID id, @Valid @RequestBody EnsureRequest request) {
         patients.ensure(id, request.firstName(), request.lastName(), request.birthDate(), request.contactEmail(),
                 request.userId());
-    }
-
-    @PutMapping(value = "/api/v1/internal/patients/{id}/account", consumes = MediaType.APPLICATION_JSON_VALUE)
-    @ResponseStatus(HttpStatus.NO_CONTENT)
-    @PreAuthorize("@permissions.has(authentication, 'PATIENT_INTERNAL_WRITE')")
-    @Operation(operationId = "internalLinkPatientAccount", summary = "Powiązanie pacjenta z kontem",
-            description = "Dostęp: PATIENT_INTERNAL_WRITE (SERVICE).")
-    public void linkAccount(@PathVariable UUID id, @Valid @RequestBody LinkAccountRequest request) {
-        patients.linkAccount(id, request.userId());
     }
 }

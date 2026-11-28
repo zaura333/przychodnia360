@@ -53,8 +53,9 @@ describe('ScheduleGrid: układ', () => {
     const block = container.querySelector<HTMLElement>('[data-appt="a1"]');
     expect(block).not.toBeNull();
     // 09:00 to wiersz 8 (od 07:00 co 15 min), +2 na nagłówek; 45 min = 3 sloty
-    expect(block?.getAttribute('style')).toContain('grid-row: 10 / span 3');
-    expect(block?.getAttribute('style')).toContain('grid-column: 2');
+    // własności zamiast tekstu atrybutu: jsdom 31 serializuje grid-row + grid-column jako skrót grid-area
+    expect(block?.style.gridRow).toBe('10 / span 3');
+    expect(block?.style.gridColumn).toBe('2');
   });
 
   it('cancelled appointments do not occupy the slot', () => {

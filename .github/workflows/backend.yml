@@ -31,7 +31,7 @@ jobs:
       platform: ${{ steps.plan.outputs.platform }}
       services: ${{ steps.plan.outputs.services }}
     steps:
-      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           fetch-depth: 0
       - name: Testy skryptu planu
@@ -57,14 +57,14 @@ jobs:
     runs-on: ubuntu-24.04
     timeout-minutes: 15
     steps:
-      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - uses: ./.github/actions/setup-backend
       - name: Maven verify (platform)
         working-directory: backend
         run: ./mvnw -B verify -pl platform/p360-shared-core,platform/p360-platform-starter,platform/p360-test-support
       - name: Raporty testów
         if: always()
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: backend-test-reports-platform
           path: backend/platform/**/target/surefire-reports/
@@ -82,7 +82,7 @@ jobs:
       matrix:
         service: ${{ fromJSON(needs.changes.outputs.services) }}
     steps:
-      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - uses: ./.github/actions/setup-backend
       # verify usługi z zależnościami z reaktora (-am); testy platform/* biegną w zadaniu "platform".
       # Testy: jednostkowe, Testcontainers, ArchUnit, RLS, role, macierz uprawnień, kontrakty.
@@ -102,7 +102,7 @@ jobs:
           fi
       - name: Raporty testów
         if: always()
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: backend-test-reports-${{ matrix.service }}
           path: |
@@ -119,7 +119,7 @@ jobs:
     if: needs.changes.outputs.backend == 'true' && github.event_name == 'pull_request'
     runs-on: ubuntu-24.04
     steps:
-      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           fetch-depth: 0
       - name: oasdiff breaking względem bazy PR
@@ -137,7 +137,7 @@ jobs:
           git show "origin/${BASE_REF}:api/openapi.json" > "$RUNNER_TEMP/base-openapi.json"
           curl -sSfL "https://github.com/oasdiff/oasdiff/releases/download/v${OASDIFF_VERSION}/oasdiff_${OASDIFF_VERSION}_linux_amd64.tar.gz" \
             | tar -xz -C "$RUNNER_TEMP" oasdiff
-          "$RUNNER_TEMP/oasdiff" breaking "$RUNNER_TEMP/base-openapi.json" api/openapi.json --format githubactions --fail-on ERR
+          "$RUNNER_TEMP/oasdiff" breaking "$RUNNER_TEMP/base-openapi.json" api/openapi.json --format githubactions --fail-on ERR --err-ignore api/oasdiff-err-ignore.txt
       # Kontrakty wewnętrzne usług (api/internal/<usługa>.json, ścieżki /api/v1/internal/**) są poza agregatem, ale
       # wołają je inne usługi, więc ich złamanie też blokuje PR. Nowy plik (brak w bazie) nie jest złamaniem.
       - name: oasdiff breaking kontraktów wewnętrznych względem bazy PR
@@ -156,7 +156,7 @@ jobs:
               continue
             fi
             git show "origin/${BASE_REF}:${file}" > "$RUNNER_TEMP/base-internal.json"
-            "$RUNNER_TEMP/oasdiff" breaking "$RUNNER_TEMP/base-internal.json" "$file" --format githubactions --fail-on ERR || status=1
+            "$RUNNER_TEMP/oasdiff" breaking "$RUNNER_TEMP/base-internal.json" "$file" --format githubactions --fail-on ERR --err-ignore api/oasdiff-err-ignore.txt || status=1
           done
           exit $status
 
@@ -169,7 +169,7 @@ jobs:
     runs-on: ubuntu-24.04
     timeout-minutes: 15
     steps:
-      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           fetch-depth: 0
       - uses: ./.github/actions/setup-backend
@@ -193,7 +193,7 @@ jobs:
     if: needs.changes.outputs.backend == 'true'
     runs-on: ubuntu-24.04
     steps:
-      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - uses: ./.github/actions/setup-backend
       # osv-scanner nie rozwiązuje zależności od modułów z reaktora (p360-shared-core, p360-platform-starter), więc skanujemy SBOM
       # wygenerowany przez Mavena (pełne drzewo zależności, także przechodnie).
@@ -222,7 +222,7 @@ jobs:
       matrix:
         service: ${{ fromJSON(needs.changes.outputs.services) }}
     steps:
-      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - uses: ./.github/actions/setup-backend
       - name: Build jar i SBOM
         working-directory: backend
@@ -242,7 +242,7 @@ jobs:
           severity: HIGH,CRITICAL
           ignore-unfixed: true
           exit-code: "1"
-      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: backend-package-${{ matrix.service }}
           path: |

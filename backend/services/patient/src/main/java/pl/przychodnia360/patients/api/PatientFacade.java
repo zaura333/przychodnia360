@@ -29,9 +29,6 @@ public interface PatientFacade {
     void ensure(UUID patientId, String firstName, String lastName, LocalDate birthDate, String contactEmail,
             UUID userId);
 
-    /** Wiąże rekord pacjenta z kontem użytkownika. */
-    void linkAccount(UUID patientId, UUID userId);
-
     Optional<PatientInfo> find(UUID patientId);
 
     /** Pacjenci po identyfikatorach (widoki z imieniem i nazwiskiem); nieznane identyfikatory są pomijane. */

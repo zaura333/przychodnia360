@@ -82,16 +82,10 @@ class InternalPatientApiTest extends AbstractPatientApiTest {
     }
 
     @Test
-    void linkAccountAndValidation() {
+    void ensureValidation() {
         UUID tenant = newTenant();
-        UUID id = patient(tenant, "Ewa");
-        UUID user = UUID.randomUUID();
         String token = serviceTokenFor(tenant);
 
-        assertThat(call("PUT", "/api/v1/internal/patients/" + id + "/account", token, "{\"userId\":\"" + user + "\"}")
-                .status()).isEqualTo(204);
-        assertThat(fetch("/api/v1/internal/patients/" + id, token).json().get("userId").asString()).isEqualTo(user.toString());
-        assertThat(call("PUT", "/api/v1/internal/patients/" + id + "/account", token, "{}").status()).isEqualTo(400);
         assertThat(call("PUT", "/api/v1/internal/patients/" + UUID.randomUUID(), token,
                 "{\"firstName\":\"\",\"lastName\":\"X\",\"birthDate\":\"1990-01-01\"}").status()).isEqualTo(400);
     }

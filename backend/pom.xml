@@ -34,10 +34,10 @@
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     <springdoc.version>3.2.0</springdoc.version>
     <archunit.version>1.5.1</archunit.version>
-    <bouncycastle.version>1.85</bouncycastle.version>
+    <bouncycastle.version>1.87</bouncycastle.version>
     <enforcer.version>3.7.0</enforcer.version>
-    <awssdk.version>2.29.52</awssdk.version>
-    <json-schema-validator.version>1.5.9</json-schema-validator.version>
+    <awssdk.version>2.59.2</awssdk.version>
+    <json-schema-validator.version>3.0.9</json-schema-validator.version>
     <!-- CI (zadanie 1.9): zadania usług uruchamiane z -Dp360.platform.skipTests=true nie powtarzają testów platform/*,
          które biegną raz w osobnym zadaniu "platform" -->
     <p360.platform.skipTests>false</p360.platform.skipTests>
